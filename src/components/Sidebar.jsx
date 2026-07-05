@@ -1,0 +1,124 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/lib/ConsigtecAuthContext';
+import { areasApi } from '@/lib/api/areas';
+import { Building2, LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronRight } from 'lucide-react';
+
+const PAPEL_LABELS = {
+  admin: 'Admin',
+  diretor_area: 'Diretor de Área',
+  lider: 'Líder',
+  corban: 'Corban',
+  operador: 'Operador',
+  suporte: 'Suporte',
+};
+
+export default function Sidebar() {
+  const { perfil, isAdmin, availableAreas, activeUnidade, vinculos } = useAuth();
+  const location = useLocation();
+  const [allAreas, setAllAreas] = useState([]);
+
+  useEffect(() => {
+    areasApi.list().then(setAllAreas).catch(() => {});
+  }, []);
+
+  const visibleAreas = allAreas.filter((a) =>
+    isAdmin || availableAreas.some((va) => va.slug === a.slug)
+  );
+
+  const navItem = (to, label, icon) => {
+    const active = location.pathname === to;
+    const Icon = icon;
+    return (
+      <Link
+        key={to}
+        to={to}
+        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+          active
+            ? 'bg-slate-800 text-white'
+            : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+        }`}
+      >
+        <Icon className="w-4 h-4 shrink-0" />
+        {label}
+      </Link>
+    );
+  };
+
+  const papeisUnidade = activeUnidade
+    ? vinculos.filter((v) => v.unidade_id === activeUnidade.id).map((v) => PAPEL_LABELS[v.papel] || v.papel)
+    : [];
+
+  return (
+    <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col h-full">
+      <div className="px-5 py-5 border-b border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-lg bg-slate-800 ring-1 ring-slate-700 flex items-center justify-center">
+            <Building2 className="w-5 h-5 text-slate-200" />
+          </div>
+          <div>
+            <h1 className="text-sm font-bold text-white tracking-tight">CONSIGTEC</h1>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Grupo Raman</p>
+          </div>
+        </div>
+      </div>
+
+      {activeUnidade && (
+        <div className="px-4 py-3 border-b border-slate-800">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Unidade ativa</p>
+          <p className="text-xs font-medium text-slate-200 truncate">{activeUnidade.nome}</p>
+          {papeisUnidade.length > 0 && (
+            <p className="text-[10px] text-slate-500 mt-0.5">{papeisUnidade.join(', ')}</p>
+          )}
+        </div>
+      )}
+
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <div className="space-y-1">
+          <p className="text-[10px] text-slate-600 uppercase tracking-wider px-3 mb-2">Principal</p>
+          {navItem('/', 'Dashboard', LayoutDashboard)}
+          {navItem('/pendencias', 'Central de Pendências', AlertCircle)}
+        </div>
+
+        {visibleAreas.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-slate-600 uppercase tracking-wider px-3 mb-2">Áreas</p>
+            {visibleAreas.map((area) => {
+              const to = `/area/${area.slug}`;
+              const active = location.pathname === to;
+              return (
+                <Link
+                  key={area.id}
+                  to={to}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                  }`}
+                >
+                  <ChevronRight className="w-3 h-3 shrink-0" />
+                  {area.nome}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-slate-600 uppercase tracking-wider px-3 mb-2">Administração</p>
+            {navItem('/admin/usuarios', 'Usuários', Users)}
+            {navItem('/admin/vinculos', 'Vínculos', Link2)}
+            {navItem('/admin/areas', 'Áreas', Settings)}
+            {navItem('/admin/auditoria', 'Auditoria', ScrollText)}
+          </div>
+        )}
+      </nav>
+
+      <div className="px-4 py-3 border-t border-slate-800">
+        <p className="text-xs text-slate-400 font-medium truncate">{perfil?.nome || 'Usuário'}</p>
+        <p className="text-[10px] text-slate-600 truncate">{perfil?.email}</p>
+      </div>
+    </aside>
+  );
+}
