@@ -43,6 +43,8 @@ export const ConsigtecAuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    let subscription;
+
     const init = async () => {
       try {
         await initSupabase();
@@ -56,26 +58,27 @@ export const ConsigtecAuthProvider = ({ children }) => {
       setSession(session);
       if (session) await loadUserData(session.user);
       setLoading(false);
+
+      const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+        if (!mounted) return;
+        setSession(newSession);
+        if (newSession) {
+          await loadUserData(newSession.user);
+        } else {
+          setPerfil(null);
+          setVinculos([]);
+          setActiveUnidade(null);
+        }
+        setLoading(false);
+      });
+      subscription = data.subscription;
     };
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (!mounted) return;
-      setSession(newSession);
-      if (newSession) {
-        await loadUserData(newSession.user);
-      } else {
-        setPerfil(null);
-        setVinculos([]);
-        setActiveUnidade(null);
-      }
-      setLoading(false);
-    });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (subscription) subscription.unsubscribe();
     };
   }, [loadUserData]);
 
