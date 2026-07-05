@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, initSupabase } from '@/lib/supabaseClient';
 
 const ConsigtecAuthContext = createContext();
 
@@ -44,6 +44,13 @@ export const ConsigtecAuthProvider = ({ children }) => {
     let mounted = true;
 
     const init = async () => {
+      try {
+        await initSupabase();
+      } catch (e) {
+        console.error('Erro ao inicializar Supabase:', e);
+        setLoading(false);
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!mounted) return;
       setSession(session);

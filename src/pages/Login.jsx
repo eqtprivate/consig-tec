@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { supabase, initSupabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
+      await initSupabase();
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
       window.location.href = '/';
@@ -42,12 +43,6 @@ export default function Login() {
         <div className="bg-white rounded-xl shadow-2xl p-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-1">Entrar</h2>
           <p className="text-sm text-slate-500 mb-6">Acesse sua conta para continuar</p>
-
-          {!isSupabaseConfigured && (
-            <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-              <strong>Configuração necessária:</strong> Edite <code className="font-mono">src/lib/supabaseClient.js</code> com a URL e a anon key do seu projeto Supabase.
-            </div>
-          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
