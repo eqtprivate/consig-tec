@@ -5,19 +5,19 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { Construction } from 'lucide-react';
 
 export default function AreaPage() {
-  const { slug } = useParams();
+  const { codigo } = useParams();
   const { hasAreaAccess } = useAuth();
   const [area, setArea] = useState(null);
 
   useEffect(() => {
     areasApi.list().then((areas) => {
-      setArea(areas.find((a) => a.slug === slug));
+      setArea(areas.find((a) => a.codigo === codigo));
     });
-  }, [slug]);
+  }, [codigo]);
 
   if (!area) return null;
 
-  if (!hasAreaAccess(area.slug)) {
+  if (!hasAreaAccess(area.codigo)) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <h2 className="text-lg font-semibold text-slate-900 mb-2">Acesso negado</h2>

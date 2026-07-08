@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 export const areasApi = {
   async list() {
-    const { data, error } = await supabase.from('areas').select('*').order('ordem');
+    const { data, error } = await supabase.from('areas').select('*').order('nome');
     if (error) throw error;
     return data;
   },

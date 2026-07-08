@@ -48,7 +48,7 @@ export default function TopBar({ onToggleSidebar }) {
                 >
                   <div>
                     <p className="text-sm font-medium text-slate-700">{u.nome}</p>
-                    <p className="text-xs text-slate-400">{u.codigo} • {u.cidade || '—'}</p>
+                    <p className="text-xs text-slate-400">{[u.cidade, u.uf].filter(Boolean).join(' • ') || '—'}</p>
                   </div>
                   {activeUnidade?.id === u.id && <Check className="w-4 h-4 text-slate-700" />}
                 </button>

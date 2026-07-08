@@ -42,7 +42,7 @@ const AuthenticatedApp = () => {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/pendencias" element={<Pendencias />} />
-            <Route path="/area/:slug" element={<AreaPage />} />
+            <Route path="/area/:codigo" element={<AreaPage />} />
             <Route path="/admin/usuarios" element={<Users />} />
             <Route path="/admin/vinculos" element={<Vinculos />} />
             <Route path="/admin/areas" element={<AreasAdmin />} />

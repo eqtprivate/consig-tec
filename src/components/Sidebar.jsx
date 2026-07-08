@@ -4,15 +4,6 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
 import { Building2, LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronRight } from 'lucide-react';
 
-const PAPEL_LABELS = {
-  admin: 'Admin',
-  diretor_area: 'Diretor de Área',
-  lider: 'Líder',
-  corban: 'Corban',
-  operador: 'Operador',
-  suporte: 'Suporte',
-};
-
 export default function Sidebar() {
   const { perfil, isAdmin, availableAreas, activeUnidade, vinculos } = useAuth();
   const location = useLocation();
@@ -23,7 +14,7 @@ export default function Sidebar() {
   }, []);
 
   const visibleAreas = allAreas.filter((a) =>
-    isAdmin || availableAreas.some((va) => va.slug === a.slug)
+    isAdmin || availableAreas.some((va) => va.codigo === a.codigo)
   );
 
   const navItem = (to, label, icon) => {
@@ -46,7 +37,7 @@ export default function Sidebar() {
   };
 
   const papeisUnidade = activeUnidade
-    ? vinculos.filter((v) => v.unidade_id === activeUnidade.id).map((v) => PAPEL_LABELS[v.papel] || v.papel)
+    ? vinculos.filter((v) => v.franquia_id === activeUnidade.id).map((v) => v.papel?.nome).filter(Boolean)
     : [];
 
   return (
@@ -84,7 +75,7 @@ export default function Sidebar() {
           <div className="space-y-1">
             <p className="text-[10px] text-slate-600 uppercase tracking-wider px-3 mb-2">Áreas</p>
             {visibleAreas.map((area) => {
-              const to = `/area/${area.slug}`;
+              const to = `/area/${area.codigo}`;
               const active = location.pathname === to;
               return (
                 <Link

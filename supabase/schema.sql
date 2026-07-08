@@ -116,7 +116,9 @@ CREATE INDEX IF NOT EXISTS vinculos_usuario_id_idx ON vinculos(usuario_id);
 -- ============================================================
 CREATE TABLE IF NOT EXISTS pendencias (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  origem text NOT NULL,
+  titulo text,
+  descricao text,
+  origem text NOT NULL DEFAULT 'manual',
   registro_ref text,
   empresa_id uuid REFERENCES empresas(id),
   franquia_id uuid REFERENCES franquias(id),

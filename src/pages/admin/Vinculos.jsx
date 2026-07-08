@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { vinculosApi } from '@/lib/api/vinculos';
 import { usuariosApi } from '@/lib/api/usuarios';
-import { unidadesApi } from '@/lib/api/unidades';
+import { franquiasApi } from '@/lib/api/franquias';
 import { areasApi } from '@/lib/api/areas';
+import { papeisApi } from '@/lib/api/papeis';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,37 +12,31 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
-const PAPEIS = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'diretor_area', label: 'Diretor de Área' },
-  { value: 'lider', label: 'Líder' },
-  { value: 'corban', label: 'Corban' },
-  { value: 'operador', label: 'Operador' },
-  { value: 'suporte', label: 'Suporte' },
-];
-
 export default function Vinculos() {
   const [vinculos, setVinculos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
-  const [unidades, setUnidades] = useState([]);
+  const [franquias, setFranquias] = useState([]);
   const [areas, setAreas] = useState([]);
+  const [papeis, setPapeis] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editVinculo, setEditVinculo] = useState(null);
-  const [form, setForm] = useState({ usuario_id: '', unidade_id: '', area_id: '', papel: 'operador', ativo: true });
+  const [form, setForm] = useState({ usuario_id: '', franquia_id: '', area_id: '', papel_id: '', ativo: true });
 
   const load = async () => {
     setLoading(true);
-    const [v, u, un, a] = await Promise.all([
+    const [v, u, f, a, p] = await Promise.all([
       vinculosApi.list().catch(() => []),
       usuariosApi.list().catch(() => []),
-      unidadesApi.list().catch(() => []),
+      franquiasApi.list().catch(() => []),
       areasApi.list().catch(() => []),
+      papeisApi.list().catch(() => []),
     ]);
     setVinculos(v);
     setUsuarios(u);
-    setUnidades(un);
+    setFranquias(f);
     setAreas(a);
+    setPapeis(p);
     setLoading(false);
   };
 
@@ -49,24 +44,31 @@ export default function Vinculos() {
 
   const openCreate = () => {
     setEditVinculo(null);
-    setForm({ usuario_id: '', unidade_id: '', area_id: '', papel: 'operador', ativo: true });
+    setForm({ usuario_id: '', franquia_id: '', area_id: '', papel_id: '', ativo: true });
     setDialogOpen(true);
   };
 
   const openEdit = (v) => {
     setEditVinculo(v);
-    setForm({ usuario_id: v.usuario_id, unidade_id: v.unidade_id, area_id: v.area_id, papel: v.papel, ativo: v.ativo });
+    setForm({ usuario_id: v.usuario_id, franquia_id: v.franquia_id || '', area_id: v.area_id, papel_id: v.papel_id, ativo: v.ativo });
     setDialogOpen(true);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const payload = {
+      usuario_id: form.usuario_id,
+      franquia_id: form.franquia_id || null,
+      area_id: form.area_id,
+      papel_id: form.papel_id,
+      ativo: form.ativo,
+    };
     if (editVinculo) {
-      await vinculosApi.update(editVinculo.id, form);
-      await auditoriaApi.log('editar_vinculo', 'vinculos', editVinculo.id, form);
+      await vinculosApi.update(editVinculo.id, payload);
+      await auditoriaApi.log('editar_vinculo', 'vinculos', editVinculo.id, payload);
     } else {
-      await vinculosApi.create(form);
-      await auditoriaApi.log('criar_vinculo', 'vinculos', null, form);
+      await vinculosApi.create(payload);
+      await auditoriaApi.log('criar_vinculo', 'vinculos', null, payload);
     }
     setDialogOpen(false);
     load();
@@ -79,14 +81,12 @@ export default function Vinculos() {
     load();
   };
 
-  const getNome = (list, id, field) => list.find((x) => x.id === id)?.[field] || '—';
-
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Vínculos</h1>
-          <p className="text-sm text-slate-500 mt-1">Gestão de vínculos: usuário × unidade × área × papel</p>
+          <p className="text-sm text-slate-500 mt-1">Gestão de vínculos: usuário × franquia × área × papel</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="w-4 h-4" /> Novo vínculo
@@ -101,7 +101,7 @@ export default function Vinculos() {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Usuário</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Unidade</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Franquia</th>
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Área</th>
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Papel</th>
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
@@ -112,11 +112,11 @@ export default function Vinculos() {
               {vinculos.map((v) => (
                 <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{v.usuario?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{v.unidade?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{v.franquia?.nome || '—'}</td>
                   <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{v.area?.nome || '—'}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
-                      {PAPEIS.find((p) => p.value === v.papel)?.label || v.papel}
+                      {v.papel?.nome || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -157,11 +157,11 @@ export default function Vinculos() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Unidade</Label>
-              <Select value={form.unidade_id} onValueChange={(v) => setForm({ ...form, unidade_id: v })} disabled={!!editVinculo}>
+              <Label>Franquia</Label>
+              <Select value={form.franquia_id} onValueChange={(v) => setForm({ ...form, franquia_id: v })} disabled={!!editVinculo}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>
-                  {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  {franquias.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -176,10 +176,10 @@ export default function Vinculos() {
             </div>
             <div className="space-y-2">
               <Label>Papel</Label>
-              <Select value={form.papel} onValueChange={(v) => setForm({ ...form, papel: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={form.papel_id} onValueChange={(v) => setForm({ ...form, papel_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>
-                  {PAPEIS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  {papeis.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

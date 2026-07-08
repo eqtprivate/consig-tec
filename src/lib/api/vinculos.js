@@ -4,7 +4,7 @@ export const vinculosApi = {
   async list() {
     const { data, error } = await supabase
       .from('vinculos')
-      .select('*, usuario:usuarios(*), unidade:unidades(*), area:areas(*)')
+      .select('*, usuario:usuarios(*), empresa:empresas(*), franquia:franquias(*), area:areas(*), papel:papeis(*)')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data;

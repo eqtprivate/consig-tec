@@ -14,7 +14,7 @@ export const ConsigtecAuthProvider = ({ children }) => {
     const { data: perfilData } = await supabase
       .from('usuarios')
       .select('*')
-      .eq('auth_user_id', authUser.id)
+      .eq('id', authUser.id)
       .single();
 
     setPerfil(perfilData);
@@ -22,21 +22,21 @@ export const ConsigtecAuthProvider = ({ children }) => {
     if (perfilData) {
       const { data: vinculosData } = await supabase
         .from('vinculos')
-        .select('*, unidade:unidades(*), area:areas(*)')
+        .select('*, empresa:empresas(*), franquia:franquias(*), area:areas(*), papel:papeis(*)')
         .eq('usuario_id', perfilData.id)
         .eq('ativo', true);
 
       setVinculos(vinculosData || []);
 
-      const unidadesMap = new Map();
+      const franquiasMap = new Map();
       (vinculosData || []).forEach((v) => {
-        if (v.unidade) unidadesMap.set(v.unidade.id, v.unidade);
+        if (v.franquia) franquiasMap.set(v.franquia.id, v.franquia);
       });
-      const uniqueUnidades = [...unidadesMap.values()];
+      const uniqueFranquias = [...franquiasMap.values()];
 
       const savedId = localStorage.getItem('consigtec_active_unidade');
-      const found = savedId ? uniqueUnidades.find((u) => u.id === savedId) : null;
-      setActiveUnidade(found || uniqueUnidades[0] || null);
+      const found = savedId ? uniqueFranquias.find((u) => u.id === savedId) : null;
+      setActiveUnidade(found || uniqueFranquias[0] || null);
     }
   }, []);
 
@@ -92,25 +92,26 @@ export const ConsigtecAuthProvider = ({ children }) => {
     await supabase.auth.signOut();
   };
 
-  const isAdmin = vinculos.some((v) => v.papel === 'admin');
+  const isAdmin = !!perfil?.is_grupo_admin
+    || vinculos.some((v) => v.papel?.codigo?.startsWith('admin'));
 
   const availableAreas = (() => {
     if (!activeUnidade) return [];
     const areas = vinculos
-      .filter((v) => v.unidade_id === activeUnidade.id)
+      .filter((v) => v.franquia_id === activeUnidade.id)
       .map((v) => v.area)
       .filter(Boolean);
     return [...new Map(areas.map((a) => [a.id, a])).values()];
   })();
 
-  const hasAreaAccess = (areaSlug) => {
+  const hasAreaAccess = (areaCodigo) => {
     if (isAdmin) return true;
-    return availableAreas.some((a) => a.slug === areaSlug);
+    return availableAreas.some((a) => a.codigo === areaCodigo);
   };
 
   const uniqueUnidades = (() => {
     const map = new Map();
-    vinculos.forEach((v) => { if (v.unidade) map.set(v.unidade.id, v.unidade); });
+    vinculos.forEach((v) => { if (v.franquia) map.set(v.franquia.id, v.franquia); });
     return [...map.values()];
   })();
 

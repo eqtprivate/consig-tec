@@ -75,7 +75,7 @@ export default function Auditoria() {
               {logs.map((log) => (
                 <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{formatDateTime(log.created_at)}</td>
-                  <td className="px-4 py-3 font-medium text-slate-700">{log.usuario_nome || '—'}</td>
+                  <td className="px-4 py-3 font-medium text-slate-700">{log.usuario?.nome || '—'}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
                       {log.acao}
@@ -83,7 +83,7 @@ export default function Auditoria() {
                   </td>
                   <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{log.entidade || '—'}</td>
                   <td className="px-4 py-3 text-slate-500 text-xs hidden lg:table-cell">
-                    {log.detalhes ? JSON.stringify(log.detalhes).slice(0, 80) : '—'}
+                    {log.valor_novo ? JSON.stringify(log.valor_novo).slice(0, 80) : '—'}
                   </td>
                 </tr>
               ))}

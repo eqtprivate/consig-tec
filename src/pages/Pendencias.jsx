@@ -13,9 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Plus, Filter, Clock, AlertTriangle } from 'lucide-react';
 
 const PRIORIDADE_LABELS = { baixa: 'Baixa', media: 'Média', alta: 'Alta', critica: 'Crítica' };
-const STATUS_LABELS = { aberta: 'Aberta', em_andamento: 'Em andamento', concluida: 'Concluída', cancelada: 'Cancelada' };
+const STATUS_LABELS = { aberta: 'Aberta', em_andamento: 'Em andamento', aguardando_terceiro: 'Aguardando terceiro', vencida: 'Vencida', resolvida: 'Resolvida', cancelada: 'Cancelada' };
 const PRIORIDADE_CORES = { baixa: 'bg-slate-100 text-slate-600', media: 'bg-blue-50 text-blue-700', alta: 'bg-amber-50 text-amber-700', critica: 'bg-red-50 text-red-700' };
-const STATUS_CORES = { aberta: 'bg-slate-100 text-slate-600', em_andamento: 'bg-blue-50 text-blue-700', concluida: 'bg-green-50 text-green-700', cancelada: 'bg-red-50 text-red-700' };
+const STATUS_CORES = { aberta: 'bg-slate-100 text-slate-600', em_andamento: 'bg-blue-50 text-blue-700', aguardando_terceiro: 'bg-amber-50 text-amber-700', vencida: 'bg-red-50 text-red-700', resolvida: 'bg-green-50 text-green-700', cancelada: 'bg-slate-100 text-slate-400' };
 
 function formatSLA(data) {
   if (!data) return '—';
@@ -40,7 +40,7 @@ export default function Pendencias() {
   const load = async () => {
     setLoading(true);
     const f = { ...filters };
-    if (activeUnidade) f.unidade_id = activeUnidade.id;
+    if (activeUnidade) f.franquia_id = activeUnidade.id;
     const [p, a, u] = await Promise.all([
       pendenciasApi.list(f).catch(() => []),
       areasApi.list().catch(() => []),
@@ -56,12 +56,19 @@ export default function Pendencias() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!form.area_id) {
+      alert('Selecione uma área para a pendência.');
+      return;
+    }
     await pendenciasApi.create({
-      ...form,
-      unidade_id: activeUnidade?.id,
-      area_id: form.area_id || null,
+      titulo: form.titulo,
+      descricao: form.descricao || null,
+      area_id: form.area_id,
+      franquia_id: activeUnidade?.id || null,
       responsavel_id: form.responsavel_id || null,
-      sla_data: form.sla_data || null,
+      prioridade: form.prioridade,
+      status: form.status,
+      prazo_sla: form.sla_data || null,
     });
     await auditoriaApi.log('criar_pendencia', 'pendencias', null, { titulo: form.titulo });
     setDialogOpen(false);
@@ -144,7 +151,7 @@ export default function Pendencias() {
             </thead>
             <tbody>
               {sorted.map((p) => {
-                const slaOverdue = p.sla_data && new Date(p.sla_data) < new Date() && p.status !== 'concluida';
+                const slaOverdue = p.prazo_sla && new Date(p.prazo_sla) < new Date() && p.status !== 'resolvida';
                 return (
                   <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3">
@@ -166,7 +173,7 @@ export default function Pendencias() {
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <span className={`inline-flex items-center gap-1 text-xs ${slaOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
                         {slaOverdue ? <AlertTriangle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                        {formatSLA(p.sla_data)}
+                        {formatSLA(p.prazo_sla)}
                       </span>
                     </td>
                   </tr>

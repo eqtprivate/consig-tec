@@ -14,7 +14,7 @@ export default function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ nome: '', cargo: '', telefone: '', ativo: true });
+  const [form, setForm] = useState({ nome: '', cpf: '', is_grupo_admin: false, ativo: true });
 
   const load = async () => {
     setLoading(true);
@@ -27,7 +27,7 @@ export default function Users() {
 
   const openEdit = (u) => {
     setEditUser(u);
-    setForm({ nome: u.nome, cargo: u.cargo || '', telefone: u.telefone || '', ativo: u.ativo });
+    setForm({ nome: u.nome, cpf: u.cpf || '', is_grupo_admin: !!u.is_grupo_admin, ativo: u.ativo });
   };
 
   const handleSave = async (e) => {
@@ -61,7 +61,7 @@ export default function Users() {
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nome</th>
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">E-mail</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Cargo</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">CPF</th>
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
                 <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
               </tr>
@@ -71,7 +71,7 @@ export default function Users() {
                 <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{u.nome}</td>
                   <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{u.email}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{u.cargo || '—'}</td>
+                  <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{u.cpf || '—'}</td>
                   <td className="px-4 py-3">
                     {u.ativo ? (
                       <span className="inline-flex items-center gap-1 text-xs text-green-700"><ShieldCheck className="w-3 h-3" /> Ativo</span>
@@ -109,12 +109,12 @@ export default function Users() {
               <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label>Cargo</Label>
-              <Input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} />
+              <Label>CPF</Label>
+              <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} />
             </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+            <div className="flex items-center justify-between">
+              <Label htmlFor="is-admin">Admin do grupo</Label>
+              <Switch id="is-admin" checked={form.is_grupo_admin} onCheckedChange={(v) => setForm({ ...form, is_grupo_admin: v })} />
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="ativo">Usuário ativo</Label>

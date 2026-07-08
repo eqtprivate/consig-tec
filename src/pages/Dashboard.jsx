@@ -7,13 +7,13 @@ import { AlertCircle, ArrowRight, Building2, Users } from 'lucide-react';
 
 const AREA_ICONS = {
   convenios: '🏛️',
-  'crm-vendas': '💬',
+  crm: '💬',
   averbacao: '📋',
   formalizacao: '📝',
   financeiro: '💰',
   comissoes: '💸',
   cobranca: '📞',
-  'cessao-fidc': '🔄',
+  cessao_fidc: '🔄',
   juridico: '⚖️',
   suporte: '🛟',
   admin: '⚙️',
@@ -28,7 +28,7 @@ export default function Dashboard() {
   useEffect(() => {
     Promise.all([
       areasApi.list().catch(() => []),
-      pendenciasApi.list(activeUnidade ? { unidade_id: activeUnidade.id } : {}).catch(() => []),
+      pendenciasApi.list(activeUnidade ? { franquia_id: activeUnidade.id } : {}).catch(() => []),
     ]).then(([a, p]) => {
       setAllAreas(a);
       setPendencias(p);
@@ -37,7 +37,7 @@ export default function Dashboard() {
   }, [activeUnidade]);
 
   const visibleAreas = allAreas.filter((a) =>
-    isAdmin || availableAreas.some((va) => va.slug === a.slug)
+    isAdmin || availableAreas.some((va) => va.codigo === a.codigo)
   );
 
   const pendenciasAbertas = pendencias.filter((p) => p.status === 'aberta' || p.status === 'em_andamento');
@@ -96,12 +96,12 @@ export default function Dashboard() {
           {visibleAreas.map((area) => (
             <Link
               key={area.id}
-              to={`/area/${area.slug}`}
+              to={`/area/${area.codigo}`}
               className="group bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{AREA_ICONS[area.slug] || '📁'}</span>
+                  <span className="text-2xl">{AREA_ICONS[area.codigo] || '📁'}</span>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{area.nome}</p>
                     <p className="text-xs text-slate-500">{area.descricao}</p>
