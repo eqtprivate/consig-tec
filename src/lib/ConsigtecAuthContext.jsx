@@ -92,7 +92,9 @@ export const ConsigtecAuthProvider = ({ children }) => {
     await supabase.auth.signOut();
   };
 
-  const isAdmin = !!perfil?.is_grupo_admin
+  const isSuperadmin = perfil?.role === 'superadmin';
+  const isAdmin = ['admin', 'superadmin'].includes(perfil?.role)
+    || !!perfil?.is_grupo_admin
     || vinculos.some((v) => v.papel?.codigo?.startsWith('admin'));
 
   const availableAreas = (() => {
@@ -124,6 +126,7 @@ export const ConsigtecAuthProvider = ({ children }) => {
       uniqueUnidades,
       availableAreas,
       isAdmin,
+      isSuperadmin,
       loading,
       isAuthenticated: !!session,
       switchUnidade,
