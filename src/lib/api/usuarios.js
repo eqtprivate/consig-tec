@@ -15,19 +15,27 @@ export const usuariosApi = {
     const { error } = await supabase.from('usuarios').delete().eq('id', id);
     if (error) throw error;
   },
-  // Cria um usuário via função backend (usa service_role no servidor).
-  async criar({ nome, email, password, role }) {
+  async _callFunction(fn, payload) {
     const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch('/api/functions/criarUsuario', {
+    const res = await fetch(`/api/functions/${fn}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${session?.access_token || ''}`,
       },
-      body: JSON.stringify({ nome, email, password, role }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Falha ao criar usuário');
+    if (!res.ok) throw new Error(data.error || 'Operação falhou');
     return data;
+  },
+  // Cria um usuário via função backend (usa service_role no servidor).
+  // Retorna { id, email, role, senha } — a senha temporária para repassar.
+  async criar({ nome, email, password, role, gerarSenha }) {
+    return this._callFunction('criarUsuario', { nome, email, password, role, gerarSenha });
+  },
+  // Ações administrativas: reset_senha | ativar | desativar | excluir
+  async adminAction(action, usuarioId) {
+    return this._callFunction('adminUsuario', { action, usuarioId });
   },
 };
