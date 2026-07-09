@@ -268,6 +268,34 @@ DROP TRIGGER IF EXISTS trg_pendencias_updated ON pendencias;
 CREATE TRIGGER trg_pendencias_updated BEFORE UPDATE ON pendencias FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ============================================================
+-- AUTO-PROVISIONAMENTO DE USUÁRIO
+-- Cria automaticamente o perfil em public.usuarios quando um
+-- novo usuário se cadastra via Supabase Auth.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.usuarios (id, nome, email)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data ->> 'nome', split_part(NEW.email, '@', 1)),
+    NEW.email
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================
 -- RLS (Row Level Security)
 -- ============================================================
 ALTER TABLE empresas            ENABLE ROW LEVEL SECURITY;
