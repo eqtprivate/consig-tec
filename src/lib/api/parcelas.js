@@ -15,4 +15,9 @@ export const parcelasApi = {
     if (error) throw error;
     return data;
   },
+  async criarLote(parcelas) {
+    const { data, error } = await supabase.from('parcelas').insert(parcelas).select();
+    if (error) throw error;
+    return data;
+  },
 };

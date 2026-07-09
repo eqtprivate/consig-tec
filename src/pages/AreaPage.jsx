@@ -4,12 +4,20 @@ import { areasApi } from '@/lib/api/areas';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { Construction } from 'lucide-react';
 import Convenios from '@/pages/modules/Convenios';
-import Clientes from '@/pages/modules/Clientes';
+import CrmVendas from '@/pages/modules/CrmVendas';
+import Contratos from '@/pages/modules/Contratos';
+import Averbacoes from '@/pages/modules/Averbacoes';
+import Financeiro from '@/pages/modules/Financeiro';
+import Comissoes from '@/pages/modules/Comissoes';
 
 // Módulos do Estágio 1 já implementados, indexados pelo código da área.
 const MODULES = {
   convenios: Convenios,
-  crm: Clientes,
+  crm: CrmVendas,
+  formalizacao: Contratos,
+  averbacao: Averbacoes,
+  financeiro: Financeiro,
+  comissoes: Comissoes,
 };
 
 export default function AreaPage() {
