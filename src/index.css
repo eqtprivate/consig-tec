@@ -90,3 +90,60 @@
     @apply bg-background text-foreground font-body antialiased;
   }
 }
+
+/* ============================================================
+   CONSIGTEC — Tema (inspirado no NFTMax). Acento CENTRALIZADO:
+   trocar apenas --primary/--ring/--sidebar-primary quando a
+   logomarca final definir a paleta.
+   ============================================================ */
+:root {
+  --primary: 247 74% 63%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 247 74% 63%;
+  --sidebar-primary: 247 74% 63%;
+  --radius: 0.7rem;
+  --ct-faint: 224 14% 58%;
+}
+.dark {
+  --primary: 249 82% 70%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 249 82% 70%;
+  --sidebar-primary: 249 82% 70%;
+  --background: 226 42% 7%;
+  --card: 226 30% 11%;
+  --popover: 226 30% 11%;
+  --secondary: 225 24% 15%;
+  --muted: 225 24% 15%;
+  --accent: 225 24% 15%;
+  --border: 225 20% 18%;
+  --input: 225 20% 20%;
+  --ct-faint: 224 12% 52%;
+}
+
+/* Camada de app autenticado: fundo escuro + remapeamento das
+   classes utilitárias claras usadas pelos módulos (bg-white,
+   slate-*), para o tema escuro ficar coerente sem reescrever
+   cada tela. */
+.dark-app { background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+.dark-app .bg-white { background-color: hsl(var(--card)); }
+.dark-app .bg-slate-50 { background-color: hsl(var(--secondary)); }
+.dark-app .bg-slate-100 { background-color: hsl(var(--secondary)); }
+.dark-app .hover\:bg-slate-50:hover { background-color: hsl(var(--secondary)); }
+.dark-app .hover\:bg-slate-100:hover { background-color: hsl(var(--secondary)); }
+.dark-app .border-slate-200 { border-color: hsl(var(--border)); }
+.dark-app .border-slate-100 { border-color: hsl(var(--border)); }
+.dark-app .text-slate-900, .dark-app .text-slate-800, .dark-app .text-slate-700 { color: hsl(var(--foreground)); }
+.dark-app .text-slate-600, .dark-app .text-slate-500 { color: hsl(var(--muted-foreground)); }
+.dark-app .text-slate-400 { color: hsl(var(--ct-faint)); }
+/* chips de status → tons suaves no escuro */
+.dark-app .bg-green-50 { background-color: rgba(47, 208, 138, .14); }
+.dark-app .text-green-700, .dark-app .text-green-600 { color: #3ad998; }
+.dark-app .bg-red-50 { background-color: rgba(244, 96, 127, .15); }
+.dark-app .text-red-700, .dark-app .text-red-600 { color: #f4607f; }
+.dark-app .bg-amber-50 { background-color: rgba(245, 165, 36, .15); }
+.dark-app .text-amber-700 { color: #f7b23f; }
+.dark-app .bg-blue-50 { background-color: rgba(123, 140, 255, .16); }
+.dark-app .text-blue-700 { color: #9db0ff; }
+.dark-app .bg-violet-50 { background-color: rgba(139, 120, 255, .18); }
+.dark-app .text-violet-700 { color: #b8a9ff; }
+.num, .tabular { font-variant-numeric: tabular-nums; }

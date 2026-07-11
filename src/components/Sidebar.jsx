@@ -26,7 +26,7 @@ export default function Sidebar() {
         to={to}
         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
           active
-            ? 'bg-slate-800 text-white'
+            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
             : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
         }`}
       >
@@ -44,8 +44,9 @@ export default function Sidebar() {
     <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col h-full">
       <div className="px-5 py-5 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-slate-800 ring-1 ring-slate-700 flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-slate-200" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold tracking-tight"
+               style={{ background: 'linear-gradient(150deg, hsl(var(--primary)), #a78bfa)', boxShadow: '0 8px 20px -8px hsl(var(--primary))' }}>
+            C
           </div>
           <div>
             <h1 className="text-sm font-bold text-white tracking-tight">CONSIGTEC</h1>
@@ -83,7 +84,7 @@ export default function Sidebar() {
                   to={to}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-slate-800 text-white'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >

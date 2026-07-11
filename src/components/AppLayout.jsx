@@ -31,7 +31,7 @@ export default function AppLayout() {
   if (perfil?.must_change_password) return <TrocarSenha />;
 
   return (
-    <div className="h-screen flex bg-slate-50 overflow-hidden">
+    <div className="dark dark-app h-screen flex overflow-hidden">
       <div className="hidden lg:block shrink-0">
         <Sidebar />
       </div>
