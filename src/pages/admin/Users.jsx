@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { usuariosApi } from '@/lib/api/usuarios';
+import { vinculosApi } from '@/lib/api/vinculos';
+import { franquiasApi } from '@/lib/api/franquias';
+import { areasApi } from '@/lib/api/areas';
+import { papeisApi } from '@/lib/api/papeis';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { validarSenha } from '@/lib/validators';
@@ -9,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, Pencil, ShieldCheck, ShieldAlert, Plus, KeyRound, Power, Copy } from 'lucide-react';
+import { Trash2, Pencil, ShieldCheck, ShieldAlert, Plus, KeyRound, Power, Copy, Link2, Mail } from 'lucide-react';
 
 const ROLE_LABELS = { usuario: 'Usuário', admin: 'Admin', superadmin: 'Superadmin' };
 const ROLE_CORES = {
@@ -26,10 +30,19 @@ export default function Users() {
   const [form, setForm] = useState({ nome: '', cpf: '', role: 'usuario', ativo: true });
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ nome: '', email: '', password: '', role: 'usuario', gerarSenha: true });
+  const [createForm, setCreateForm] = useState({ nome: '', email: '', password: '', role: 'usuario', gerarSenha: true, enviarEmail: true });
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState('');
-  const [senhaGerada, setSenhaGerada] = useState(null); // { email, senha }
+  const [senhaGerada, setSenhaGerada] = useState(null); // { email, senha, emailEnviado }
+
+  // Gestão de acessos (vínculos) por usuário
+  const [acessosUser, setAcessosUser] = useState(null);
+  const [acessos, setAcessos] = useState([]);
+  const [franquias, setFranquias] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [papeis, setPapeis] = useState([]);
+  const [vincForm, setVincForm] = useState({ franquia_id: '', area_id: '', papel_id: '' });
+  const [savingVinc, setSavingVinc] = useState(false);
 
   const rolesDisponiveis = isSuperadmin ? ['usuario', 'admin', 'superadmin'] : ['usuario'];
 
@@ -84,7 +97,7 @@ export default function Users() {
       const res = await usuariosApi.criar(createForm);
       await auditoriaApi.log('criar_usuario', 'usuarios', null, { email: createForm.email, role: createForm.role });
       setCreateOpen(false);
-      if (res?.senha) setSenhaGerada({ email: res.email, senha: res.senha });
+      if (res?.senha) setSenhaGerada({ email: res.email, senha: res.senha, emailEnviado: res.emailEnviado });
       load();
     } catch (err) {
       setErro(err.message || 'Falha ao criar usuário');
@@ -94,12 +107,58 @@ export default function Users() {
   };
 
   const handleReset = async (u) => {
-    if (!confirm(`Resetar a senha de "${u.nome}"? Será gerada uma senha temporária.`)) return;
+    if (!confirm(`Resetar a senha de "${u.nome}"? Será gerada uma senha temporária e enviada por e-mail (se configurado).`)) return;
     try {
-      const res = await usuariosApi.adminAction('reset_senha', u.id);
+      const res = await usuariosApi.adminAction('reset_senha', u.id, { enviarEmail: true });
       await auditoriaApi.log('reset_senha', 'usuarios', u.id, { nome: u.nome });
-      if (res?.senha) setSenhaGerada({ email: u.email, senha: res.senha });
+      if (res?.senha) setSenhaGerada({ email: u.email, senha: res.senha, emailEnviado: res.emailEnviado });
     } catch (err) { alert(err.message); }
+  };
+
+  // ---- Acessos (vínculos) por usuário ----
+  const openAcessos = async (u) => {
+    setAcessosUser(u);
+    setVincForm({ franquia_id: '', area_id: '', papel_id: '' });
+    const [v, f, a, p] = await Promise.all([
+      vinculosApi.list().catch(() => []),
+      franquias.length ? Promise.resolve(franquias) : franquiasApi.list().catch(() => []),
+      areas.length ? Promise.resolve(areas) : areasApi.list().catch(() => []),
+      papeis.length ? Promise.resolve(papeis) : papeisApi.list().catch(() => []),
+    ]);
+    setFranquias(f); setAreas(a); setPapeis(p);
+    setAcessos(v.filter((x) => x.usuario_id === u.id));
+  };
+  const reloadAcessos = async () => {
+    if (!acessosUser) return;
+    const v = await vinculosApi.list().catch(() => []);
+    setAcessos(v.filter((x) => x.usuario_id === acessosUser.id));
+  };
+  const addVinculo = async (e) => {
+    e.preventDefault();
+    if (!vincForm.area_id || !vincForm.papel_id) return alert('Selecione área e papel.');
+    setSavingVinc(true);
+    try {
+      await vinculosApi.create({
+        usuario_id: acessosUser.id,
+        franquia_id: vincForm.franquia_id || null,
+        area_id: vincForm.area_id, papel_id: vincForm.papel_id, ativo: true,
+      });
+      await auditoriaApi.log('criar_vinculo', 'vinculos', null, { usuario_id: acessosUser.id });
+      setVincForm({ franquia_id: '', area_id: '', papel_id: '' });
+      reloadAcessos();
+    } catch (err) { alert(err.message || 'Falha ao adicionar acesso.'); }
+    finally { setSavingVinc(false); }
+  };
+  const toggleVinculo = async (v) => {
+    await vinculosApi.update(v.id, { ativo: !v.ativo });
+    await auditoriaApi.log('editar_vinculo', 'vinculos', v.id, { ativo: !v.ativo });
+    reloadAcessos();
+  };
+  const removeVinculo = async (v) => {
+    if (!confirm('Remover este acesso?')) return;
+    await vinculosApi.remove(v.id);
+    await auditoriaApi.log('remover_vinculo', 'vinculos', v.id, {});
+    reloadAcessos();
   };
 
   const handleToggleAtivo = async (u) => {
@@ -164,6 +223,7 @@ export default function Users() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
+                        <button title="Acessos (vínculos)" onClick={() => openAcessos(u)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded"><Link2 className="w-4 h-4" /></button>
                         <button title="Editar" onClick={() => openEdit(u)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
                         <button title="Resetar senha" onClick={() => handleReset(u)} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded"><KeyRound className="w-4 h-4" /></button>
                         {!isSelf && (
@@ -200,6 +260,10 @@ export default function Users() {
               <Label htmlFor="gerar" className="cursor-pointer">Gerar senha temporária</Label>
               <Switch id="gerar" checked={createForm.gerarSenha} onCheckedChange={(v) => setCreateForm({ ...createForm, gerarSenha: v })} />
             </div>
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+              <Label htmlFor="enviar" className="cursor-pointer flex items-center gap-2"><Mail className="w-4 h-4 text-slate-400" /> Enviar senha por e-mail</Label>
+              <Switch id="enviar" checked={createForm.enviarEmail} onCheckedChange={(v) => setCreateForm({ ...createForm, enviarEmail: v })} />
+            </div>
             {!createForm.gerarSenha && (
               <div className="space-y-2">
                 <Label>Senha</Label>
@@ -229,7 +293,9 @@ export default function Users() {
         <DialogContent>
           <DialogHeader><DialogTitle>Senha temporária</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-slate-600">Repasse ao usuário. Ele será obrigado a trocá-la no primeiro acesso.</p>
+            {senhaGerada?.emailEnviado
+              ? <p className="text-sm text-green-700 flex items-center gap-2"><Mail className="w-4 h-4" /> Enviada por e-mail para o usuário. Guarde a cópia abaixo como backup.</p>
+              : <p className="text-sm text-slate-600">Repasse ao usuário (o envio por e-mail não foi feito ou falhou). Ele será obrigado a trocá-la no primeiro acesso.</p>}
             <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
               <p className="text-xs text-slate-500">{senhaGerada?.email}</p>
               <div className="flex items-center justify-between gap-2 mt-1">
@@ -278,6 +344,72 @@ export default function Users() {
               <Button type="submit">Salvar</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Acessos (vínculos) do usuário */}
+      <Dialog open={!!acessosUser} onOpenChange={(v) => !v && setAcessosUser(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Acessos — {acessosUser?.nome}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-slate-500 -mt-2">
+            Papel global: <span className="font-medium">{ROLE_LABELS[acessosUser?.role] || 'Usuário'}</span>. Abaixo, os vínculos (franquia × área × papel) que definem o acesso operacional por área.
+          </p>
+
+          <div className="space-y-2 max-h-56 overflow-y-auto">
+            {acessos.length === 0 ? (
+              <p className="text-sm text-slate-400 py-2">Nenhum vínculo. {acessosUser?.role === 'usuario' ? 'Sem vínculos, este usuário não acessa áreas operacionais.' : ''}</p>
+            ) : acessos.map((v) => (
+              <div key={v.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-800">
+                    {v.area?.nome || '—'} <span className="text-xs text-slate-400">· {v.papel?.nome || '—'}</span>
+                  </p>
+                  <p className="text-xs text-slate-400">{v.franquia?.nome || 'Sem franquia'}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-xs ${v.ativo ? 'text-green-700' : 'text-slate-400'}`}>{v.ativo ? 'Ativo' : 'Inativo'}</span>
+                  <button onClick={() => toggleVinculo(v)} title={v.ativo ? 'Desativar' : 'Ativar'} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Power className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => removeVinculo(v)} title="Remover" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={addVinculo} className="border-t border-slate-100 pt-3 space-y-3">
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Conceder acesso</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label>Franquia</Label>
+                <Select value={vincForm.franquia_id} onValueChange={(v) => setVincForm({ ...vincForm, franquia_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="(opcional)" /></SelectTrigger>
+                  <SelectContent>{franquias.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Área</Label>
+                <Select value={vincForm.area_id} onValueChange={(v) => setVincForm({ ...vincForm, area_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>{areas.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Papel</Label>
+                <Select value={vincForm.papel_id} onValueChange={(v) => setVincForm({ ...vincForm, papel_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>{papeis.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" disabled={savingVinc} className="gap-2"><Plus className="w-4 h-4" /> {savingVinc ? 'Adicionando…' : 'Conceder'}</Button>
+            </div>
+          </form>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcessosUser(null)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

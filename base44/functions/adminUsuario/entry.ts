@@ -12,6 +12,30 @@ function gerarSenhaTemporaria(): string {
   return 'Ct' + s + '9';
 }
 
+async function enviarSenhaEmail(email: string, nome: string, senha: string): Promise<boolean> {
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  const from = Deno.env.get('RESEND_FROM') || 'CONSIGTEC <no-reply@consigtec.com.br>';
+  const appUrl = Deno.env.get('APP_URL') || '';
+  if (!resendKey) return false;
+  const linkHtml = appUrl ? `<p>Acesse: <a href="${appUrl}">${appUrl}</a></p>` : '';
+  const html =
+    `<p>Olá, ${nome || ''}.</p>` +
+    `<p>Sua senha do <b>CONSIGTEC</b> foi redefinida. Use a senha temporária abaixo — o sistema pedirá para você criar uma nova no acesso.</p>` +
+    `<p style="font-size:18px"><b>Senha temporária:</b> <code>${senha}</code></p>` +
+    linkHtml +
+    `<p style="color:#888">Se você não solicitou isso, fale com um administrador.</p>`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [email], subject: 'CONSIGTEC — sua senha foi redefinida', html }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return Response.json({ error: 'Método não permitido' }, { status: 405 });
 
@@ -40,7 +64,7 @@ Deno.serve(async (req) => {
     if (!action || !usuarioId) return Response.json({ error: 'Parâmetros inválidos' }, { status: 400 });
 
     // Alvo
-    const { data: alvo } = await admin.from('usuarios').select('role').eq('id', usuarioId).single();
+    const { data: alvo } = await admin.from('usuarios').select('role, email, nome').eq('id', usuarioId).single();
     if (!alvo) return Response.json({ error: 'Usuário não encontrado' }, { status: 404 });
 
     // Admin comum não pode agir sobre admin/superadmin
@@ -56,7 +80,11 @@ Deno.serve(async (req) => {
       const { error } = await admin.auth.admin.updateUserById(usuarioId, { password: senha });
       if (error) return Response.json({ error: error.message }, { status: 400 });
       await admin.from('usuarios').update({ must_change_password: true }).eq('id', usuarioId);
-      return Response.json({ ok: true, senha });
+      let emailEnviado = false;
+      if (body.enviarEmail && alvo.email) {
+        emailEnviado = await enviarSenhaEmail(alvo.email, alvo.nome || '', senha);
+      }
+      return Response.json({ ok: true, senha, emailEnviado });
     }
 
     if (action === 'ativar' || action === 'desativar') {

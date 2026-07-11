@@ -30,12 +30,12 @@ export const usuariosApi = {
     return data;
   },
   // Cria um usuário via função backend (usa service_role no servidor).
-  // Retorna { id, email, role, senha } — a senha temporária para repassar.
-  async criar({ nome, email, password, role, gerarSenha }) {
-    return this._callFunction('criarUsuario', { nome, email, password, role, gerarSenha });
+  // Retorna { id, email, role, senha, emailEnviado }.
+  async criar({ nome, email, password, role, gerarSenha, enviarEmail }) {
+    return this._callFunction('criarUsuario', { nome, email, password, role, gerarSenha, enviarEmail });
   },
   // Ações administrativas: reset_senha | ativar | desativar | excluir
-  async adminAction(action, usuarioId) {
-    return this._callFunction('adminUsuario', { action, usuarioId });
+  async adminAction(action, usuarioId, opts = {}) {
+    return this._callFunction('adminUsuario', { action, usuarioId, ...opts });
   },
 };

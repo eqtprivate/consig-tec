@@ -17,6 +17,31 @@ function senhaForte(p: unknown): boolean {
   return typeof p === 'string' && p.length >= 8 && /[A-Za-z]/.test(p) && /[0-9]/.test(p);
 }
 
+// Envia a senha temporária por e-mail via Resend. Retorna true se enviou.
+async function enviarSenhaEmail(email: string, nome: string, senha: string): Promise<boolean> {
+  const resendKey = Deno.env.get('RESEND_API_KEY');
+  const from = Deno.env.get('RESEND_FROM') || 'CONSIGTEC <no-reply@consigtec.com.br>';
+  const appUrl = Deno.env.get('APP_URL') || '';
+  if (!resendKey) return false;
+  const linkHtml = appUrl ? `<p>Acesse: <a href="${appUrl}">${appUrl}</a></p>` : '';
+  const html =
+    `<p>Olá, ${nome || ''}.</p>` +
+    `<p>Seu acesso ao <b>CONSIGTEC</b> foi criado. Use a senha temporária abaixo no primeiro acesso — o sistema pedirá para você definir uma senha pessoal.</p>` +
+    `<p style="font-size:18px"><b>Senha temporária:</b> <code>${senha}</code></p>` +
+    linkHtml +
+    `<p style="color:#888">Se você não esperava este e-mail, ignore-o.</p>`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [email], subject: 'CONSIGTEC — sua senha de acesso', html }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return Response.json({ error: 'Método não permitido' }, { status: 405 });
 
@@ -84,8 +109,14 @@ Deno.serve(async (req) => {
     );
     if (upsertErr) return Response.json({ error: upsertErr.message }, { status: 400 });
 
+    // Opcionalmente envia a senha por e-mail ao próprio usuário.
+    let emailEnviado = false;
+    if (body.enviarEmail) {
+      emailEnviado = await enviarSenhaEmail(email, nome || email.split('@')[0], senha);
+    }
+
     // Retorna a senha temporária para o admin repassar ao usuário.
-    return Response.json({ id: created.user.id, email, role, senha });
+    return Response.json({ id: created.user.id, email, role, senha, emailEnviado });
   } catch (e) {
     return Response.json({ error: (e as Error).message }, { status: 500 });
   }

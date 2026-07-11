@@ -85,7 +85,7 @@ export default function Sidebar() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider px-3 mb-2">Administração</p>
             {navItem('/admin/usuarios', 'Usuários', Users)}
             {navItem('/admin/vinculos', 'Vínculos', Link2)}
-            {navItem('/admin/areas', 'Áreas', Settings)}
+            {navItem('/admin/areas', 'Áreas & Papéis', Settings)}
             {navItem('/admin/notificacoes', 'Notificações', Bell)}
             {navItem('/admin/expansao', 'Expansão', TrendingUp)}
             {navItem('/admin/integracoes', 'Integrações', Plug)}

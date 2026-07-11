@@ -10,6 +10,8 @@ import ScrollToTop from './components/ScrollToTop';
 import PageNotFound from './lib/PageNotFound';
 // Add page imports here
 import Login from '@/pages/Login';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 import AppLayout from '@/components/AppLayout';
 import Dashboard from '@/pages/Dashboard';
 import AreaPage from '@/pages/AreaPage';
@@ -41,6 +43,8 @@ const AuthenticatedApp = () => {
     <ConsigtecAuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot" element={<ForgotPassword />} />
+        <Route path="/reset" element={<ResetPassword />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />

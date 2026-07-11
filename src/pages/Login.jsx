@@ -96,6 +96,9 @@ export default function Login() {
               )}
             </Button>
           </form>
+          <div className="text-center mt-4">
+            <a href="/forgot" className="text-xs text-slate-500 hover:text-slate-700">Esqueci minha senha</a>
+          </div>
         </div>
 
         <p className="text-center text-xs text-slate-500 mt-6">
