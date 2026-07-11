@@ -165,15 +165,34 @@
 .dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700 { color: hsl(var(--foreground)); }
 .dark .text-slate-600, .dark .text-slate-500 { color: hsl(var(--muted-foreground)); }
 .dark .text-slate-400 { color: hsl(var(--ct-faint)); }
-/* chips de status → tons suaves no escuro */
-.dark .bg-green-50 { background-color: rgba(0, 171, 85, .14); }
-.dark .text-green-700, .dark .text-green-600 { color: #3ad998; }
+/* ============================================================
+   Harmonização de marca (nos dois temas)
+   - verde da marca = sucesso/destaque; navy = info; amber = alerta;
+     red = erro. Os tons decorativos azul/violeta herdados do VRISTO
+     passam a navy/verde da marca, sem reescrever cada tela.
+   ============================================================ */
+/* Sucesso (verde) alinhado ao verde da marca */
+.bg-green-50 { background-color: hsl(89 45% 93%); }
+.text-green-700, .text-green-600 { color: hsl(96 55% 30%); }
+/* Info (antes azul VRISTO) → navy da marca */
+.bg-blue-50 { background-color: hsl(211 40% 94%); }
+.text-blue-700, .text-blue-600 { color: hsl(211 34% 34%); }
+/* Realce (antes violeta) → verde da marca */
+.bg-violet-50 { background-color: hsl(89 45% 93%); }
+.text-violet-700, .text-violet-600 { color: hsl(96 50% 32%); }
+
+/* Barras/gráficos da marca */
+.bar-brand { background-color: hsl(var(--brand-green)); }
+
+/* Overrides do tema ESCURO (maior especificidade → vencem) */
+.dark .bg-green-50 { background-color: rgba(140, 193, 82, .16); }
+.dark .text-green-700, .dark .text-green-600 { color: #a9d97f; }
 .dark .bg-red-50 { background-color: rgba(231, 81, 90, .15); }
 .dark .text-red-700, .dark .text-red-600 { color: #f4607f; }
 .dark .bg-amber-50 { background-color: rgba(226, 160, 63, .15); }
 .dark .text-amber-700 { color: #f7b23f; }
-.dark .bg-blue-50 { background-color: rgba(67, 97, 238, .16); }
-.dark .text-blue-700 { color: #90a0ff; }
-.dark .bg-violet-50 { background-color: rgba(128, 93, 202, .18); }
-.dark .text-violet-700 { color: #b8a9ff; }
+.dark .bg-blue-50 { background-color: rgba(90, 120, 160, .16); }
+.dark .text-blue-700, .dark .text-blue-600 { color: #9db4d6; }
+.dark .bg-violet-50 { background-color: rgba(140, 193, 82, .16); }
+.dark .text-violet-700, .dark .text-violet-600 { color: #a9d97f; }
 .num, .tabular { font-variant-numeric: tabular-nums; }

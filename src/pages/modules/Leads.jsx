@@ -79,7 +79,7 @@ export default function Leads() {
           {funil.map((f) => (
             <div key={f.status} className="text-center">
               <div className="h-16 flex items-end justify-center">
-                <div className="w-full bg-primary/70 rounded-t" style={{ height: `${(f.n / max) * 100}%`, minHeight: f.n ? 6 : 0 }} />
+                <div className="w-full bar-brand rounded-t" style={{ height: `${(f.n / max) * 100}%`, minHeight: f.n ? 6 : 0 }} />
               </div>
               <p className="text-lg font-bold text-slate-800 num mt-1">{f.n}</p>
               <p className="text-[10px] text-slate-500 uppercase tracking-wide">{STATUS[f.status]}</p>

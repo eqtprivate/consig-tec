@@ -203,7 +203,7 @@ export default function Dashboard() {
                   <div key={c.nome} className="flex items-center gap-3">
                     <span className="w-40 text-xs text-slate-600 truncate shrink-0">{c.nome}</span>
                     <div className="flex-1 h-4 bg-slate-100 rounded overflow-hidden">
-                      <div className="h-full bg-primary/60 rounded" style={{ width: `${(c.valor / concMax) * 100}%` }} />
+                      <div className="h-full bar-brand rounded" style={{ width: `${(c.valor / concMax) * 100}%` }} />
                     </div>
                     <span className="w-24 text-right text-xs font-medium text-slate-700 num">{brl(c.valor)}</span>
                     <span className="w-10 text-right text-[11px] text-slate-400">{vop > 0 ? `${Math.round((c.valor / vop) * 100)}%` : ''}</span>
@@ -236,7 +236,7 @@ export default function Dashboard() {
                   <span className="w-24 text-xs text-slate-500 shrink-0">{PROPOSTA_LABEL[f.status]}</span>
                   <div className="flex-1 h-6 bg-slate-100 rounded-md overflow-hidden">
                     <div
-                      className="h-full bg-primary/70 rounded-md transition-all"
+                      className="h-full bar-brand rounded-md transition-all"
                       style={{ width: `${(f.count / funilMax) * 100}%` }}
                     />
                   </div>
