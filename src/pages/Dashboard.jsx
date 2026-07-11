@@ -124,6 +124,25 @@ export default function Dashboard() {
   const ultimasPropostas = propostas.slice(0, 5);
   const dash = loading ? '—' : undefined;
 
+  // Indicadores da carteira (Estágio 10)
+  const vop = contratos.reduce((s, c) => s + Number(c.valor_principal || 0), 0);
+  const vf = contratos.reduce((s, c) => s + Number(c.valor_total || c.valor_principal || 0), 0);
+  const multiplo = vop > 0 ? (vf / vop) : null;
+  const ticket = contratos.length ? vop / contratos.length : 0;
+  const somaPrincipal = contratos.reduce((s, c) => s + Number(c.valor_principal || 0), 0);
+  const prazoMedio = somaPrincipal > 0
+    ? contratos.reduce((s, c) => s + Number(c.prazo || 0) * Number(c.valor_principal || 0), 0) / somaPrincipal
+    : 0;
+  // Concentração por convênio (top 5 por VOP)
+  const porConvenio = Object.values(contratos.reduce((acc, c) => {
+    const nome = c.convenio?.nome || 'Sem convênio';
+    acc[nome] = acc[nome] || { nome, valor: 0 };
+    acc[nome].valor += Number(c.valor_principal || 0);
+    return acc;
+  }, {})).sort((a, b) => b.valor - a.valor);
+  const topConvenios = porConvenio.slice(0, 5);
+  const concMax = Math.max(1, ...topConvenios.map((x) => x.valor));
+
   return (
     <div className="space-y-6">
       <div>
@@ -156,6 +175,45 @@ export default function Dashboard() {
           hint={loading ? '' : `${brl(totalComissaoPaga)} já pagas`}
         />
       </div>
+
+      {/* Indicadores da carteira (Estágio 10) */}
+      {!loading && contratos.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">Indicadores da carteira</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              ['VOP', brl(vop), 'Volume de operações'],
+              ['VF', brl(vf), 'Valor futuro'],
+              ['VF/VOP', multiplo != null ? `${multiplo.toFixed(2)}x` : '—', 'Múltiplo'],
+              ['Ticket médio', brl(ticket), `${contratos.length} contratos`],
+              ['Prazo médio', `${prazoMedio.toFixed(0)}m`, 'ponderado por VOP'],
+            ].map(([label, valor, hint]) => (
+              <div key={label}>
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
+                <p className="text-xl font-bold text-slate-900 num mt-1">{valor}</p>
+                <p className="text-[11px] text-slate-400">{hint}</p>
+              </div>
+            ))}
+          </div>
+          {topConvenios.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">Concentração por convênio (top 5)</p>
+              <div className="space-y-2">
+                {topConvenios.map((c) => (
+                  <div key={c.nome} className="flex items-center gap-3">
+                    <span className="w-40 text-xs text-slate-600 truncate shrink-0">{c.nome}</span>
+                    <div className="flex-1 h-4 bg-slate-100 rounded overflow-hidden">
+                      <div className="h-full bg-primary/60 rounded" style={{ width: `${(c.valor / concMax) * 100}%` }} />
+                    </div>
+                    <span className="w-24 text-right text-xs font-medium text-slate-700 num">{brl(c.valor)}</span>
+                    <span className="w-10 text-right text-[11px] text-slate-400">{vop > 0 ? `${Math.round((c.valor / vop) * 100)}%` : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Funil de propostas */}
