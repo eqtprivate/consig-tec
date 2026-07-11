@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
-import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronRight, Bell } from 'lucide-react';
 
 export default function Sidebar() {
   const { perfil, isAdmin, availableAreas, activeUnidade, vinculos } = useAuth();
@@ -93,6 +93,7 @@ export default function Sidebar() {
             {navItem('/admin/usuarios', 'Usuários', Users)}
             {navItem('/admin/vinculos', 'Vínculos', Link2)}
             {navItem('/admin/areas', 'Áreas', Settings)}
+            {navItem('/admin/notificacoes', 'Notificações', Bell)}
             {navItem('/admin/auditoria', 'Auditoria', ScrollText)}
           </div>
         )}

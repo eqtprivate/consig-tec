@@ -17,6 +17,7 @@ import Pendencias from '@/pages/Pendencias';
 import Users from '@/pages/admin/Users';
 import Vinculos from '@/pages/admin/Vinculos';
 import AreasAdmin from '@/pages/admin/Areas';
+import Notificacoes from '@/pages/admin/Notificacoes';
 import Auditoria from '@/pages/Auditoria';
 
 const AuthenticatedApp = () => {
@@ -46,6 +47,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/usuarios" element={<Users />} />
             <Route path="/admin/vinculos" element={<Vinculos />} />
             <Route path="/admin/areas" element={<AreasAdmin />} />
+            <Route path="/admin/notificacoes" element={<Notificacoes />} />
             <Route path="/admin/auditoria" element={<Auditoria />} />
           </Route>
         </Route>
