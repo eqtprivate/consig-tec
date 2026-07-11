@@ -92,10 +92,10 @@ export const ConsigtecAuthProvider = ({ children }) => {
     await supabase.auth.signOut();
   };
 
+  // isAdmin/isSuperadmin baseados APENAS em role, para o cliente refletir
+  // exatamente o que o banco (RLS via auth_is_grupo_admin/superadmin) permite.
   const isSuperadmin = perfil?.role === 'superadmin';
-  const isAdmin = ['admin', 'superadmin'].includes(perfil?.role)
-    || !!perfil?.is_grupo_admin
-    || vinculos.some((v) => v.papel?.codigo?.startsWith('admin'));
+  const isAdmin = ['admin', 'superadmin'].includes(perfil?.role);
 
   const availableAreas = (() => {
     if (!activeUnidade) return [];

@@ -60,8 +60,15 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'ativar' || action === 'desativar') {
-      const { error } = await admin.from('usuarios').update({ ativo: action === 'ativar' }).eq('id', usuarioId);
+      const ativar = action === 'ativar';
+      const { error } = await admin.from('usuarios').update({ ativo: ativar }).eq('id', usuarioId);
       if (error) return Response.json({ error: error.message }, { status: 400 });
+      // Banir/desbanir no Auth: corta o acesso via API (não só na UI). Sem
+      // isso, um usuário "inativo" com JWT válido ainda acessaria o PostgREST.
+      const { error: banErr } = await admin.auth.admin.updateUserById(usuarioId, {
+        ban_duration: ativar ? 'none' : '876000h',
+      });
+      if (banErr) return Response.json({ error: banErr.message }, { status: 400 });
       return Response.json({ ok: true });
     }
 

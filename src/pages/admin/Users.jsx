@@ -47,15 +47,23 @@ export default function Users() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    const updates = { nome: form.nome, cpf: form.cpf || null, ativo: form.ativo };
-    if (isSuperadmin) {
-      updates.role = form.role;
-      updates.is_grupo_admin = form.role !== 'usuario';
+    try {
+      const updates = { nome: form.nome, cpf: form.cpf || null };
+      if (isSuperadmin) {
+        updates.role = form.role;
+        updates.is_grupo_admin = form.role !== 'usuario';
+      }
+      await usuariosApi.update(editUser.id, updates);
+      // Ativar/desativar passa pela função (bane/desbane no Auth), não só o flag.
+      if (editUser.ativo !== form.ativo) {
+        await usuariosApi.adminAction(form.ativo ? 'ativar' : 'desativar', editUser.id);
+      }
+      await auditoriaApi.log('editar_usuario', 'usuarios', editUser.id, { nome: form.nome, role: updates.role });
+      setEditUser(null);
+      load();
+    } catch (err) {
+      alert(err.message || 'Não foi possível salvar. Verifique suas permissões.');
     }
-    await usuariosApi.update(editUser.id, updates);
-    await auditoriaApi.log('editar_usuario', 'usuarios', editUser.id, { nome: form.nome, role: updates.role });
-    setEditUser(null);
-    load();
   };
 
   const openCreate = () => {
