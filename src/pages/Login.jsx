@@ -30,11 +30,13 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+    <div className="min-h-screen flex items-center justify-center p-4"
+         style={{ background: 'linear-gradient(150deg, #0e1726 0%, hsl(230 60% 12%) 55%, hsl(230 50% 20%) 100%)' }}>
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center mb-4 ring-1 ring-slate-700">
-            <Building2 className="w-7 h-7 text-slate-200" />
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-extrabold text-xl mb-4"
+               style={{ background: 'linear-gradient(150deg, hsl(var(--primary)), #805dca)', boxShadow: '0 10px 30px -8px hsl(var(--primary))' }}>
+            C
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">CONSIGTEC</h1>
           <p className="text-sm text-slate-400 mt-1">Grupo Raman — Crédito Consignado</p>

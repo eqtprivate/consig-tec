@@ -9,13 +9,13 @@ import { ShieldAlert } from 'lucide-react';
 
 function ContaInativa({ onLogout }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md text-center">
-        <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center mb-4 ring-1 ring-slate-700 mx-auto">
-          <ShieldAlert className="w-7 h-7 text-amber-400" />
+        <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mb-4 ring-1 ring-border mx-auto">
+          <ShieldAlert className="w-7 h-7 text-amber-500" />
         </div>
-        <h1 className="text-xl font-bold text-white">Conta inativa</h1>
-        <p className="text-sm text-slate-400 mt-2">Seu acesso foi desativado. Fale com um administrador do grupo.</p>
+        <h1 className="text-xl font-bold text-foreground">Conta inativa</h1>
+        <p className="text-sm text-muted-foreground mt-2">Seu acesso foi desativado. Fale com um administrador do grupo.</p>
         <Button onClick={onLogout} variant="outline" className="mt-6">Sair</Button>
       </div>
     </div>
@@ -31,7 +31,7 @@ export default function AppLayout() {
   if (perfil?.must_change_password) return <TrocarSenha />;
 
   return (
-    <div className="dark dark-app h-screen flex overflow-hidden">
+    <div className="bg-background text-foreground h-screen flex overflow-hidden">
       <div className="hidden lg:block shrink-0">
         <Sidebar />
       </div>

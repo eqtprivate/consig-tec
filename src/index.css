@@ -92,58 +92,83 @@
 }
 
 /* ============================================================
-   CONSIGTEC — Tema (inspirado no NFTMax). Acento CENTRALIZADO:
+   CONSIGTEC — Tema (inspirado no VRISTO). Acento CENTRALIZADO:
    trocar apenas --primary/--ring/--sidebar-primary quando a
    logomarca final definir a paleta.
+   Claro por padrão; .dark ativa o modo escuro (toggle).
    ============================================================ */
 :root {
-  --primary: 247 74% 63%;
+  /* Acento VRISTO — azul #4361ee */
+  --primary: 230 83% 60%;
   --primary-foreground: 0 0% 100%;
-  --ring: 247 74% 63%;
-  --sidebar-primary: 247 74% 63%;
-  --radius: 0.7rem;
-  --ct-faint: 224 14% 58%;
-}
-.dark {
-  --primary: 249 82% 70%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 249 82% 70%;
-  --sidebar-primary: 249 82% 70%;
-  --background: 226 42% 7%;
-  --card: 226 30% 11%;
-  --popover: 226 30% 11%;
-  --secondary: 225 24% 15%;
-  --muted: 225 24% 15%;
-  --accent: 225 24% 15%;
-  --border: 225 20% 18%;
-  --input: 225 20% 20%;
-  --ct-faint: 224 12% 52%;
+  --ring: 230 83% 60%;
+  --sidebar-primary: 230 83% 60%;
+  --radius: 0.5rem;
+
+  /* Paleta clara VRISTO */
+  --background: 222 33% 96%;     /* #f3f5fa */
+  --foreground: 230 22% 30%;     /* #3b3f5c */
+  --card: 0 0% 100%;             /* #ffffff */
+  --card-foreground: 230 22% 30%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 230 22% 30%;
+  --secondary: 222 33% 96%;
+  --secondary-foreground: 230 22% 30%;
+  --muted: 222 33% 96%;
+  --muted-foreground: 228 16% 60%;   /* #888ea8 */
+  --accent: 230 83% 96%;
+  --accent-foreground: 230 83% 60%;
+  --border: 214 30% 92%;         /* #e6ebf3 */
+  --input: 214 30% 92%;
+  --ct-faint: 228 16% 66%;
 }
 
-/* Camada de app autenticado: fundo escuro + remapeamento das
-   classes utilitárias claras usadas pelos módulos (bg-white,
-   slate-*), para o tema escuro ficar coerente sem reescrever
-   cada tela. */
-.dark-app { background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
-.dark-app .bg-white { background-color: hsl(var(--card)); }
-.dark-app .bg-slate-50 { background-color: hsl(var(--secondary)); }
-.dark-app .bg-slate-100 { background-color: hsl(var(--secondary)); }
-.dark-app .hover\:bg-slate-50:hover { background-color: hsl(var(--secondary)); }
-.dark-app .hover\:bg-slate-100:hover { background-color: hsl(var(--secondary)); }
-.dark-app .border-slate-200 { border-color: hsl(var(--border)); }
-.dark-app .border-slate-100 { border-color: hsl(var(--border)); }
-.dark-app .text-slate-900, .dark-app .text-slate-800, .dark-app .text-slate-700 { color: hsl(var(--foreground)); }
-.dark-app .text-slate-600, .dark-app .text-slate-500 { color: hsl(var(--muted-foreground)); }
-.dark-app .text-slate-400 { color: hsl(var(--ct-faint)); }
+.dark {
+  --primary: 230 84% 64%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 230 84% 64%;
+  --sidebar-primary: 230 84% 64%;
+
+  /* Paleta escura VRISTO */
+  --background: 230 60% 6%;      /* #060818 */
+  --foreground: 210 30% 88%;
+  --card: 214 46% 10%;           /* #0e1726 */
+  --card-foreground: 210 30% 88%;
+  --popover: 214 46% 10%;
+  --popover-foreground: 210 30% 88%;
+  --secondary: 214 44% 14%;
+  --secondary-foreground: 210 30% 88%;
+  --muted: 214 44% 14%;
+  --muted-foreground: 218 20% 62%;
+  --accent: 214 44% 16%;
+  --accent-foreground: 210 30% 88%;
+  --border: 216 44% 20%;         /* #1b2e4b */
+  --input: 216 44% 20%;
+  --ct-faint: 218 18% 52%;
+}
+
+/* Remapeamento das classes utilitárias claras usadas pelos
+   módulos (bg-white, slate-*) para tokens quando em modo ESCURO,
+   para o tema flipar sem reescrever cada tela. */
+.dark .bg-white { background-color: hsl(var(--card)); }
+.dark .bg-slate-50 { background-color: hsl(var(--secondary)); }
+.dark .bg-slate-100 { background-color: hsl(var(--secondary)); }
+.dark .hover\:bg-slate-50:hover { background-color: hsl(var(--secondary)); }
+.dark .hover\:bg-slate-100:hover { background-color: hsl(var(--secondary)); }
+.dark .border-slate-200 { border-color: hsl(var(--border)); }
+.dark .border-slate-100 { border-color: hsl(var(--border)); }
+.dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700 { color: hsl(var(--foreground)); }
+.dark .text-slate-600, .dark .text-slate-500 { color: hsl(var(--muted-foreground)); }
+.dark .text-slate-400 { color: hsl(var(--ct-faint)); }
 /* chips de status → tons suaves no escuro */
-.dark-app .bg-green-50 { background-color: rgba(47, 208, 138, .14); }
-.dark-app .text-green-700, .dark-app .text-green-600 { color: #3ad998; }
-.dark-app .bg-red-50 { background-color: rgba(244, 96, 127, .15); }
-.dark-app .text-red-700, .dark-app .text-red-600 { color: #f4607f; }
-.dark-app .bg-amber-50 { background-color: rgba(245, 165, 36, .15); }
-.dark-app .text-amber-700 { color: #f7b23f; }
-.dark-app .bg-blue-50 { background-color: rgba(123, 140, 255, .16); }
-.dark-app .text-blue-700 { color: #9db0ff; }
-.dark-app .bg-violet-50 { background-color: rgba(139, 120, 255, .18); }
-.dark-app .text-violet-700 { color: #b8a9ff; }
+.dark .bg-green-50 { background-color: rgba(0, 171, 85, .14); }
+.dark .text-green-700, .dark .text-green-600 { color: #3ad998; }
+.dark .bg-red-50 { background-color: rgba(231, 81, 90, .15); }
+.dark .text-red-700, .dark .text-red-600 { color: #f4607f; }
+.dark .bg-amber-50 { background-color: rgba(226, 160, 63, .15); }
+.dark .text-amber-700 { color: #f7b23f; }
+.dark .bg-blue-50 { background-color: rgba(67, 97, 238, .16); }
+.dark .text-blue-700 { color: #90a0ff; }
+.dark .bg-violet-50 { background-color: rgba(128, 93, 202, .18); }
+.dark .text-violet-700 { color: #b8a9ff; }
 .num, .tabular { font-variant-numeric: tabular-nums; }
