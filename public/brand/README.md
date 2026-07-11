@@ -16,17 +16,22 @@ então pode ser referenciado direto no código (Sidebar, Login, favicon).
 | `favicon.svg` / `favicon.png` | Ícone da aba do navegador (32×32 e 180×180) |
 | `marca.pdf` | Manual de marca / arquivo original do designer (referência) |
 
-## Cores da marca
+## Cores da marca (aplicadas)
 
-Quando definir a paleta final, registre aqui os HEX (ou HSL) para eu
-centralizar no tema. O acento hoje está em **um único token** (`--primary`
-em `src/index.css`), então a troca é de 1 linha:
+| Cor | HEX | HSL | Uso no app |
+|---|---|---|---|
+| Navy | `#2E4053` | `211 30% 24%` | wordmark, ação primária (claro), fundo do Login |
+| Verde | `#8CC152` | `89 47% 54%` | símbolo, foco/ring, destaques, ação primária (escuro) |
 
-```
-Primária:   #______   (HSL ___ ___% ___%)
-Secundária: #______
-Acento:     #______
-```
+Tokens em `src/index.css`: `--brand-navy`, `--brand-green`, `--primary`,
+`--ring`, `--sidebar-primary`. No tema **claro** o acento interativo é o
+navy (legível em fundo claro); no **escuro**, o verde (destaca no fundo
+escuro). O verde é o foco/ring nos dois.
+
+## Arquivos aplicados
+- Sidebar: `consigtec_logo_white.png` (claro) / `consigtec_logo_dark.png` (escuro)
+- Login: `consigtec_logo_dark.png` (sobre gradiente navy)
+- Favicon: `consigtec_logo_icon.png`
 
 ## Como subir
 

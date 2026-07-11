@@ -92,59 +92,64 @@
 }
 
 /* ============================================================
-   CONSIGTEC — Tema (inspirado no VRISTO). Acento CENTRALIZADO:
-   trocar apenas --primary/--ring/--sidebar-primary quando a
-   logomarca final definir a paleta.
+   CONSIGTEC — Tema da MARCA. Paleta: navy (#2E4053) + verde
+   (#8CC152) da logomarca. Acento centralizado em --primary/--ring/
+   --sidebar-primary; verde da marca em --brand-green.
    Claro por padrão; .dark ativa o modo escuro (toggle).
    ============================================================ */
 :root {
-  /* Acento VRISTO — azul #4361ee */
-  --primary: 230 83% 60%;
+  /* Marca */
+  --brand-navy: 211 30% 24%;     /* #2E4053 — wordmark */
+  --brand-green: 89 47% 54%;     /* #8CC152 — símbolo */
+
+  /* Acento interativo = navy (legível em fundo claro) */
+  --primary: 211 30% 24%;
   --primary-foreground: 0 0% 100%;
-  --ring: 230 83% 60%;
-  --sidebar-primary: 230 83% 60%;
+  --ring: 89 47% 54%;            /* foco verde */
+  --sidebar-primary: 89 47% 54%;
   --radius: 0.5rem;
 
-  /* Paleta clara VRISTO */
-  --background: 222 33% 96%;     /* #f3f5fa */
-  --foreground: 230 22% 30%;     /* #3b3f5c */
-  --card: 0 0% 100%;             /* #ffffff */
-  --card-foreground: 230 22% 30%;
+  /* Painéis (navy-slate claro) */
+  --background: 214 33% 96%;
+  --foreground: 211 28% 26%;
+  --card: 0 0% 100%;
+  --card-foreground: 211 28% 26%;
   --popover: 0 0% 100%;
-  --popover-foreground: 230 22% 30%;
-  --secondary: 222 33% 96%;
-  --secondary-foreground: 230 22% 30%;
-  --muted: 222 33% 96%;
-  --muted-foreground: 228 16% 60%;   /* #888ea8 */
-  --accent: 230 83% 96%;
-  --accent-foreground: 230 83% 60%;
-  --border: 214 30% 92%;         /* #e6ebf3 */
-  --input: 214 30% 92%;
-  --ct-faint: 228 16% 66%;
+  --popover-foreground: 211 28% 26%;
+  --secondary: 214 33% 96%;
+  --secondary-foreground: 211 28% 26%;
+  --muted: 214 33% 96%;
+  --muted-foreground: 214 14% 52%;
+  --accent: 89 40% 94%;          /* tint verde suave */
+  --accent-foreground: 211 30% 24%;
+  --border: 214 28% 90%;
+  --input: 214 28% 90%;
+  --ct-faint: 214 14% 62%;
 }
 
 .dark {
-  --primary: 230 84% 64%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 230 84% 64%;
-  --sidebar-primary: 230 84% 64%;
+  /* Acento interativo = verde (destaca em fundo escuro) */
+  --primary: 89 47% 54%;
+  --primary-foreground: 211 40% 12%;
+  --ring: 89 47% 54%;
+  --sidebar-primary: 89 47% 54%;
 
-  /* Paleta escura VRISTO */
-  --background: 230 60% 6%;      /* #060818 */
-  --foreground: 210 30% 88%;
-  --card: 214 46% 10%;           /* #0e1726 */
-  --card-foreground: 210 30% 88%;
-  --popover: 214 46% 10%;
-  --popover-foreground: 210 30% 88%;
-  --secondary: 214 44% 14%;
-  --secondary-foreground: 210 30% 88%;
-  --muted: 214 44% 14%;
-  --muted-foreground: 218 20% 62%;
-  --accent: 214 44% 16%;
-  --accent-foreground: 210 30% 88%;
-  --border: 216 44% 20%;         /* #1b2e4b */
-  --input: 216 44% 20%;
-  --ct-faint: 218 18% 52%;
+  /* Painéis (navy escuro) */
+  --background: 213 44% 7%;
+  --foreground: 210 28% 88%;
+  --card: 213 40% 11%;
+  --card-foreground: 210 28% 88%;
+  --popover: 213 40% 11%;
+  --popover-foreground: 210 28% 88%;
+  --secondary: 213 34% 15%;
+  --secondary-foreground: 210 28% 88%;
+  --muted: 213 34% 15%;
+  --muted-foreground: 214 18% 62%;
+  --accent: 213 34% 17%;
+  --accent-foreground: 89 47% 60%;
+  --border: 213 34% 20%;
+  --input: 213 34% 20%;
+  --ct-faint: 214 16% 50%;
 }
 
 /* Remapeamento das classes utilitárias claras usadas pelos

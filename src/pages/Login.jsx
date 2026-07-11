@@ -31,15 +31,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4"
-         style={{ background: 'linear-gradient(150deg, #0e1726 0%, hsl(230 60% 12%) 55%, hsl(230 50% 20%) 100%)' }}>
+         style={{ background: 'linear-gradient(150deg, #1a2733 0%, #2E4053 60%, #37506a 100%)' }}>
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-extrabold text-xl mb-4"
-               style={{ background: 'linear-gradient(150deg, hsl(var(--primary)), #805dca)', boxShadow: '0 10px 30px -8px hsl(var(--primary))' }}>
-            C
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">CONSIGTEC</h1>
-          <p className="text-sm text-slate-400 mt-1">Grupo Raman — Crédito Consignado</p>
+          <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-16 w-auto mb-3" />
+          <p className="text-sm text-slate-300">Grupo Raman — Crédito Consignado</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-2xl p-8">

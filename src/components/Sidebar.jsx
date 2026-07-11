@@ -42,16 +42,9 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-card border-r border-border flex flex-col h-full">
       <div className="px-5 py-5 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold tracking-tight"
-               style={{ background: 'linear-gradient(150deg, hsl(var(--primary)), #805dca)', boxShadow: '0 8px 20px -8px hsl(var(--primary))' }}>
-            C
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-foreground tracking-tight">CONSIGTEC</h1>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Grupo Raman</p>
-          </div>
-        </div>
+        <img src="/brand/consigtec_logo_white.png" alt="CONSIGTEC" className="h-10 w-auto block dark:hidden" />
+        <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-10 w-auto hidden dark:block" />
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-2">Grupo Raman</p>
       </div>
 
       {activeUnidade && (
