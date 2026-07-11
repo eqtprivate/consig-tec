@@ -9,6 +9,7 @@ import Averbacoes from '@/pages/modules/Averbacoes';
 import Formalizacao from '@/pages/modules/Formalizacao';
 import Financeiro from '@/pages/modules/Financeiro';
 import Comissoes from '@/pages/modules/Comissoes';
+import Cessao from '@/pages/modules/Cessao';
 
 // Módulos indexados pelo código da área.
 const MODULES = {
@@ -18,6 +19,7 @@ const MODULES = {
   averbacao: Averbacoes,
   financeiro: Financeiro,
   comissoes: Comissoes,
+  cessao_fidc: Cessao,
 };
 
 export default function AreaPage() {
