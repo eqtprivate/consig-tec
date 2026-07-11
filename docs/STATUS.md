@@ -29,12 +29,12 @@ Legenda: ✅ feito · 🟡 parcial/esqueleto · 🟠 divergente (precisa realinh
 | 8 | **Cessão, Lastro & FIDC** | ✅ | Fundos/Gestoras/Termos/Itens→CCB/PDD/Assinaturas multi-fundo (migr. 0012) |
 | 9 | Pendências, SLA & Notificações | ✅ | Motor Resend `dispatchNotificacao` + fila (migr. 0013). Falta SLA/escalonamento automático |
 | 10 | Dashboards executivo/investidor | 🟡 | KPIs de operação ✅ (funil/volume/comissões); falta VOP/VF/PDD/concentração semeados |
-| 11 | Cobrança, Default & Renegociação | ⬜ | — |
-| 12 | Chamados & Inconsistências | ⬜ | — |
-| 13 | LGPD completo | ⬜ | — |
-| 14 | Carteiras Adquiridas | ⬜ | — |
-| 15 | Refinanciamento | ⬜ | — |
-| 16 | Integrações & Portais | ⬜ | UY3, Kanastra/Utility, WhatsApp, BI, portais |
+| 11 | Cobrança, Default & Renegociação | ✅ | cobrancas + gatilhos (falha repasse/inadimplência/glosa) (migr. 0015) |
+| 12 | Chamados & Inconsistências | ✅ | chamados (chamado/inconsistência/lgpd) — área suporte (migr. 0015) |
+| 13 | LGPD completo | ✅ | lgpd_solicitacoes (titular) + consentimentos; restrito a admin (migr. 0015) |
+| 14 | Carteiras Adquiridas | ✅ | carteiras_adquiridas (due diligence/precificação) — admin/Expansão (migr. 0016) |
+| 15 | Refinanciamento | ✅ | refinanciamentos (fila/simulação/nova CCB) — admin/Expansão (migr. 0016) |
+| 16 | Integrações & Portais | ✅ | integracoes (painel de status UY3/FIDC/WhatsApp/Resend/PixConsig) (migr. 0016). Falta a implementação real de cada API/webhook |
 
 ## O que já existe hoje (entregue)
 - **Estágio 0**: empresas (hierarquia), franquias, áreas, papéis, usuários, vínculos, pendências, auditoria, logs de acesso, configurações, consentimentos (tabela), sla_etapas (tabela).
@@ -49,11 +49,16 @@ Legenda: ✅ feito · 🟡 parcial/esqueleto · 🟠 divergente (precisa realinh
 5. **Dashboards** com KPIs reais da carteira (1.928 contratos, VOP R$ 9,06 mi, VF R$ 37 mi, PDD, concentração).
 6. **Nomenclatura** do escopo (`Tomadores`, `EntidadesCadastro`, `CCBs`, `RecebiveisPMT`) para rastreabilidade.
 
-## Caminho (MVP do roadmap) — espinha completa ✅
-`0 ✅ → 1 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 6 ✅ → 7 ✅ → 8 ✅ → 9 ✅ → 10 🟡 (dashboard real a semear)`
+## Roadmap completo — todos os 17 estágios (0–16) implementados ✅
+Espinha + fases F2/F3/F4/F5 no ar. Migrações **0001–0016**.
 
-Migrações aplicadas: 0001–0013. Falta: Est. 2 (leads/campanhas), Est. 10 (KPIs reais VOP/VF/PDD semeados), Est. 11–16.
-Segurança: escalonamento de privilégio corrigido (0008), desativação bane no Auth. Pendente no painel: desligar signups + proteção de senha vazada.
+**O que resta é implementação/integração real, não estrutura:**
+- Dashboard: semear a carteira histórica real (1.928 contratos) para KPIs de captação.
+- Integrações (Est. 16): implementar de fato UY3 (CCB/CNAB/webhooks), Kanastra/Utility (FIDC), WhatsApp, PixConsig (quando a API existir) — hoje é registro/handoff manual + painel de status.
+- SLA/escalonamento automático (Est. 9) e templates de e-mail data-driven.
+- Segurança (painel Supabase): desligar signups + ativar proteção de senha vazada.
+
+Dependências externas: RESEND_API_KEY (envio real), x-api-key PixConsig (sandbox), credenciais UY3/Kanastra.
 com 1–2 convênios reais (Sumaré/SP, Alenquer/PA) e dashboard semeado.
 
 ## Dependências externas (para destravar estágios)
