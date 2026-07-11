@@ -23,4 +23,35 @@ export const comissoesApi = {
     if (error) throw error;
     return data;
   },
+  // Estágio 7 — motor de rateio no banco
+  async calcularContrato(contratoId) {
+    const { data, error } = await supabase.rpc('calcular_comissoes_contrato', { p_contrato: contratoId });
+    if (error) throw error;
+    return data; // nº de comissões geradas (0 se já existiam)
+  },
+};
+
+export const regrasComissaoApi = {
+  async list() {
+    const { data, error } = await supabase
+      .from('regras_comissao')
+      .select('*, convenio:convenios(id, nome)')
+      .order('convenio_id', { nullsFirst: true });
+    if (error) throw error;
+    return data;
+  },
+  async create(item) {
+    const { data, error } = await supabase.from('regras_comissao').insert(item).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async update(id, updates) {
+    const { data, error } = await supabase.from('regras_comissao').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async remove(id) {
+    const { error } = await supabase.from('regras_comissao').delete().eq('id', id);
+    if (error) throw error;
+  },
 };
