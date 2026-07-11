@@ -3,7 +3,7 @@ import Clientes from '@/pages/modules/Clientes';
 import Propostas from '@/pages/modules/Propostas';
 
 const TABS = [
-  { key: 'clientes', label: 'Clientes' },
+  { key: 'clientes', label: 'Tomadores' },
   { key: 'propostas', label: 'Propostas' },
 ];
 
@@ -17,7 +17,7 @@ export default function CrmVendas() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t.key ? 'border-slate-800 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-700'
+              tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
             {t.label}
