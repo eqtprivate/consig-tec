@@ -4,7 +4,7 @@ export const propostasApi = {
   async list(filters = {}) {
     let query = supabase
       .from('propostas')
-      .select('*, cliente:clientes(*), convenio:convenios(*)')
+      .select('*, cliente:clientes(*), convenio:convenios(*), matricula:matriculas(id, matricula, orgao, situacao, margem_disponivel)')
       .order('created_at', { ascending: false });
     if (filters.franquia_id) query = query.eq('franquia_id', filters.franquia_id);
     if (filters.status) query = query.eq('status', filters.status);
@@ -12,6 +12,16 @@ export const propostasApi = {
     const { data, error } = await query;
     if (error) throw error;
     return data;
+  },
+  // Estágio 4 — reserva/liberação de margem apartada (funções no banco)
+  async reservarMargem(propostaId) {
+    const { data, error } = await supabase.rpc('reservar_margem_proposta', { p_proposta: propostaId });
+    if (error) throw error;
+    return data;
+  },
+  async liberarMargem(propostaId) {
+    const { error } = await supabase.rpc('liberar_margem_proposta', { p_proposta: propostaId });
+    if (error) throw error;
   },
   async create(proposta) {
     const { data, error } = await supabase.from('propostas').insert(proposta).select().single();

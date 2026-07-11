@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { propostasApi } from '@/lib/api/propostas';
 import { clientesApi } from '@/lib/api/clientes';
 import { conveniosApi } from '@/lib/api/convenios';
+import { matriculasApi } from '@/lib/api/matriculas';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { brl, num } from '@/lib/format';
@@ -11,43 +12,49 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, ShieldCheck } from 'lucide-react';
 
 const STATUS = { rascunho: 'Rascunho', em_analise: 'Em análise', aprovada: 'Aprovada', reprovada: 'Reprovada', cancelada: 'Cancelada' };
 const CORES = {
   rascunho: 'bg-slate-100 text-slate-600', em_analise: 'bg-blue-50 text-blue-700',
   aprovada: 'bg-green-50 text-green-700', reprovada: 'bg-red-50 text-red-700', cancelada: 'bg-slate-100 text-slate-400',
 };
-const emptyForm = { cliente_id: '', convenio_id: '', valor_solicitado: '', prazo: '', taxa_mensal: '', valor_parcela: '', status: 'rascunho', observacoes: '' };
+const emptyForm = { cliente_id: '', matricula_id: '', convenio_id: '', valor_solicitado: '', prazo: '', taxa_mensal: '', valor_parcela: '', status: 'rascunho', observacoes: '' };
 
 export default function Propostas() {
   const { activeUnidade } = useAuth();
   const [propostas, setPropostas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [convenios, setConvenios] = useState([]);
+  const [matriculas, setMatriculas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [reservando, setReservando] = useState(null);
 
   const load = async () => {
     setLoading(true);
-    const [p, c, cv] = await Promise.all([
+    const [p, c, cv, m] = await Promise.all([
       propostasApi.list(activeUnidade ? { franquia_id: activeUnidade.id } : {}).catch(() => []),
       clientesApi.list().catch(() => []),
       conveniosApi.list().catch(() => []),
+      matriculasApi.list().catch(() => []),
     ]);
-    setPropostas(p); setClientes(c); setConvenios(cv); setLoading(false);
+    setPropostas(p); setClientes(c); setConvenios(cv); setMatriculas(m); setLoading(false);
   };
   useEffect(() => { load(); }, [activeUnidade]);
+
+  const matsDoCliente = (clienteId) => matriculas.filter((m) => m.cliente_id === clienteId);
+  const matSelecionada = matriculas.find((m) => m.id === form.matricula_id);
 
   const openCreate = () => { setEdit(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (p) => {
     setEdit(p);
     setForm({
-      cliente_id: p.cliente_id, convenio_id: p.convenio_id || '', valor_solicitado: p.valor_solicitado ?? '',
-      prazo: p.prazo ?? '', taxa_mensal: p.taxa_mensal ?? '', valor_parcela: p.valor_parcela ?? '',
-      status: p.status, observacoes: p.observacoes || '',
+      cliente_id: p.cliente_id, matricula_id: p.matricula_id || '', convenio_id: p.convenio_id || '',
+      valor_solicitado: p.valor_solicitado ?? '', prazo: p.prazo ?? '', taxa_mensal: p.taxa_mensal ?? '',
+      valor_parcela: p.valor_parcela ?? '', status: p.status, observacoes: p.observacoes || '',
     });
     setOpen(true);
   };
@@ -56,7 +63,7 @@ export default function Propostas() {
     e.preventDefault();
     if (!form.cliente_id) return alert('Selecione o cliente.');
     const payload = {
-      cliente_id: form.cliente_id, convenio_id: form.convenio_id || null,
+      cliente_id: form.cliente_id, matricula_id: form.matricula_id || null, convenio_id: form.convenio_id || null,
       valor_solicitado: num(form.valor_solicitado), prazo: num(form.prazo),
       taxa_mensal: num(form.taxa_mensal), valor_parcela: num(form.valor_parcela),
       status: form.status, observacoes: form.observacoes || null,
@@ -69,6 +76,21 @@ export default function Propostas() {
       await auditoriaApi.log('criar_proposta', 'propostas', null, {});
     }
     setOpen(false); load();
+  };
+
+  const reservarMargem = async (p) => {
+    if (!p.matricula_id) return alert('Vincule uma matrícula à proposta antes de reservar margem.');
+    setReservando(p.id);
+    try {
+      const r = await propostasApi.reservarMargem(p.id);
+      await auditoriaApi.log('reservar_margem', 'propostas', p.id, { valor: r?.valor });
+      alert(`Margem reservada: ${brl(r?.valor)} na matrícula ${p.matricula?.matricula || ''}.`);
+      load();
+    } catch (err) {
+      alert(err.message || 'Não foi possível reservar a margem.');
+    } finally {
+      setReservando(null);
+    }
   };
 
   return (
