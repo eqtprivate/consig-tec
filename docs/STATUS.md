@@ -18,17 +18,17 @@ Legenda: ✅ feito · 🟡 parcial/esqueleto · 🟠 divergente (precisa realinh
 
 | # | Estágio | Status | Falta para fechar |
 |---|---------|--------|-------------------|
-| 0 | Fundação & Setup | ✅ | Motor **Resend** (`dispatchNotificacao`), LGPD-mín/consentimentos em uso, SLA/escalonamento |
-| 1 | **Convênios via PixConsig (ACL)** | 🟠 | Espelho local + `pixconsig_*_id` + overlay comercial + import CSV/manual; cartão benefício (margem apartada) |
-| 2 | CRM / Vendas | 🟡 | Leads, funil, call center, simulação, campanhas, métricas |
-| 3 | Tomadores & Vínculos | ✅ | Matrículas múltiplas + margem apartada por vínculo + elegibilidade cartão benefício (func. `matricula_elegivel_cartao`) |
-| 4 | Margem & Averbação | 🟡 | Margem apartada (consulta/reserva), handoff UY3 |
-| 5 | Formalização, Anti-fraude & CCB | ⬜ | CCB (UY3), selfie/prova de vida, assinatura (Clicksign via UY3) |
-| 6 | Recebíveis PMT & Conciliação | 🟡 | **Motor de PMT** (função testável), CNAB444, conciliação folha |
-| 7 | Comissões | 🟡 | **Motor de rateio** franquia/líder/corban/spread |
-| 8 | **Cessão, Lastro & FIDC** | ⬜ | Fundos/Gestoras/TermosCessao/CNAB444/PDD/securitização |
-| 9 | Pendências, SLA & Notificações | 🟡 | Resend + SLA/escalonamento |
-| 10 | Dashboards executivo/investidor | 🟡 | KPIs reais (VOP/VF/PDD/concentração) semeados com a carteira real |
+| 0 | Fundação & Setup | ✅ | Motor **Resend** ✅ (`dispatchNotificacao`); LGPD-mín/consentimentos em uso |
+| 1 | **Convênios via PixConsig (ACL)** | ✅ | Espelho local + `pixconsig_*_id` + overlay + import CSV + cartão benefício (migr. 0005 aplicada) |
+| 2 | CRM / Vendas | 🟡 | Tomadores+Propostas ✅; falta leads, funil visual, campanhas |
+| 3 | Tomadores & Vínculos | ✅ | Matrículas múltiplas + margem apartada + elegibilidade (`matricula_elegivel_cartao`) |
+| 4 | Margem & Averbação | ✅ | Reserva de margem (`reservar/liberar_margem_proposta`) + averbação via proposta + handoff UY3 (migr. 0007) |
+| 5 | Formalização, Anti-fraude & CCB | ✅ | formalizacoes/analises_antifraude/ccbs + módulo abas (migr. 0009) |
+| 6 | Recebíveis PMT & Conciliação | ✅ | Motor PMT (`calcular_pmt`/`simular_pmt`/`gerar_cronograma_contrato`) + repasses (migr. 0010) |
+| 7 | Comissões | ✅ | Motor de rateio (`calcular_comissoes_contrato`) + regras_comissao (migr. 0011) |
+| 8 | **Cessão, Lastro & FIDC** | ✅ | Fundos/Gestoras/Termos/Itens→CCB/PDD/Assinaturas multi-fundo (migr. 0012) |
+| 9 | Pendências, SLA & Notificações | ✅ | Motor Resend `dispatchNotificacao` + fila (migr. 0013). Falta SLA/escalonamento automático |
+| 10 | Dashboards executivo/investidor | 🟡 | KPIs de operação ✅ (funil/volume/comissões); falta VOP/VF/PDD/concentração semeados |
 | 11 | Cobrança, Default & Renegociação | ⬜ | — |
 | 12 | Chamados & Inconsistências | ⬜ | — |
 | 13 | LGPD completo | ⬜ | — |
@@ -49,8 +49,11 @@ Legenda: ✅ feito · 🟡 parcial/esqueleto · 🟠 divergente (precisa realinh
 5. **Dashboards** com KPIs reais da carteira (1.928 contratos, VOP R$ 9,06 mi, VF R$ 37 mi, PDD, concentração).
 6. **Nomenclatura** do escopo (`Tomadores`, `EntidadesCadastro`, `CCBs`, `RecebiveisPMT`) para rastreabilidade.
 
-## Caminho (MVP do roadmap)
-`0 ✅ → 1 PixConsig ✅ → 3 Tomadores ✅ → 4 Margem apartada (próximo) → 5 Formalização/CCB (handoff manual) → 6 PMT → 7 Comissão → 8 Cessão (registro) → 9 → 10 (dashboard real 🟡)`
+## Caminho (MVP do roadmap) — espinha completa ✅
+`0 ✅ → 1 ✅ → 3 ✅ → 4 ✅ → 5 ✅ → 6 ✅ → 7 ✅ → 8 ✅ → 9 ✅ → 10 🟡 (dashboard real a semear)`
+
+Migrações aplicadas: 0001–0013. Falta: Est. 2 (leads/campanhas), Est. 10 (KPIs reais VOP/VF/PDD semeados), Est. 11–16.
+Segurança: escalonamento de privilégio corrigido (0008), desativação bane no Auth. Pendente no painel: desligar signups + proteção de senha vazada.
 com 1–2 convênios reais (Sumaré/SP, Alenquer/PA) e dashboard semeado.
 
 ## Dependências externas (para destravar estágios)
