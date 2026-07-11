@@ -24,11 +24,14 @@ CREATE TABLE IF NOT EXISTS entidades_cadastro (
   tipo text,
   cidade text,
   uf char(2),
+  codigo_ibge text,
+  populacao integer,
+  servidores integer,
   norma_autorizadora text,
   sistema_averbacao text,
   vigencia_inicio date,
-  vigencia_fim date,
-  capag text,
+  vigencia_fim date,           -- PixConsig não possui; virá null
+  capag text,                  -- PixConsig entrega só a classificação (sem data/fonte)
   origem_dado origem_dado NOT NULL DEFAULT 'manual',
   ultima_sincronizacao timestamptz,
   status_sync text,
@@ -51,6 +54,32 @@ ALTER TABLE convenios ADD COLUMN IF NOT EXISTS capag text;
 ALTER TABLE convenios ADD COLUMN IF NOT EXISTS origem_dado origem_dado NOT NULL DEFAULT 'manual';
 ALTER TABLE convenios ADD COLUMN IF NOT EXISTS ultima_sincronizacao timestamptz;
 ALTER TABLE convenios ADD COLUMN IF NOT EXISTS status_sync text;
+-- Campos reais confirmados pela PixConsig (resposta v1)
+ALTER TABLE convenios ADD COLUMN IF NOT EXISTS status_detalhado text;        -- enum interno cru da PixConsig (ATIVA, AGUARDANDO_DECRETO...)
+ALTER TABLE convenios ADD COLUMN IF NOT EXISTS decreto_enviado boolean;
+ALTER TABLE convenios ADD COLUMN IF NOT EXISTS arquivo_decreto_url text;     -- link do PDF do decreto (não é o DOM)
+ALTER TABLE convenios ADD COLUMN IF NOT EXISTS data_atribuicao timestamptz;  -- início do relógio de credenciamento
+ALTER TABLE convenios ADD COLUMN IF NOT EXISTS margem_disponivel numeric(5,2);
+-- Idempotência para o caso da 0005 já ter sido aplicada antes destes campos:
+ALTER TABLE entidades_cadastro ADD COLUMN IF NOT EXISTS codigo_ibge text;
+ALTER TABLE entidades_cadastro ADD COLUMN IF NOT EXISTS populacao integer;
+ALTER TABLE entidades_cadastro ADD COLUMN IF NOT EXISTS servidores integer;
+
+-- ============================================================
+-- PROPRIEDADE DOS DADOS (confirmado com a PixConsig, v1)
+-- ------------------------------------------------------------
+-- VÊM da PixConsig (espelho, read-only): cnpj, nome, cidade/uf, endereço,
+--   codigo_ibge, populacao, servidores, status(+status_detalhado),
+--   data_atribuicao, capag (classificação), arquivo_decreto_url,
+--   decreto_enviado, sistema de averbação (processadora), tipo_margem,
+--   percentual_margem_apartada (margemDecretoCartao), margem_disponivel.
+-- NÃO existem na PixConsig -> propriedade do CONSIGTEC (overlay):
+--   taxa, spread, comissao_prefeitura, prazo_min/max, valor_max.
+--   (convenios.taxa_mensal/prazo_maximo e overlay_comercial_convenio.spread/
+--    comissao_prefeitura são preenchidos pelo CONSIGTEC, não sincronizados.)
+-- Sem `version` na PixConsig -> sync = full inicial + delta diário +
+--   full-sync semanal, tratando o delta como candidatos (sobrescreve espelho).
+-- ============================================================
 
 DO $$ BEGIN
   ALTER TABLE convenios ADD CONSTRAINT convenios_pixconsig_convenio_id_key UNIQUE (pixconsig_convenio_id);
