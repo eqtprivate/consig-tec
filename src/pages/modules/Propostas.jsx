@@ -113,6 +113,7 @@ export default function Propostas() {
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Convênio</th>
                 <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Valor</th>
                 <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Prazo</th>
+                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Vínculo</th>
                 <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
                 <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
               </tr>
@@ -124,9 +125,16 @@ export default function Propostas() {
                   <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{p.convenio?.nome || '—'}</td>
                   <td className="px-4 py-3 text-right text-slate-700">{brl(p.valor_solicitado)}</td>
                   <td className="px-4 py-3 text-right text-slate-600 hidden sm:table-cell">{p.prazo ? `${p.prazo}x` : '—'}</td>
+                  <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{p.matricula ? `#${p.matricula.matricula}` : <span className="text-slate-300">—</span>}</td>
                   <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[p.status]}`}>{STATUS[p.status]}</span></td>
-                  <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(p)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => reservarMargem(p)}
+                      disabled={!p.matricula_id || reservando === p.id}
+                      title={p.matricula_id ? 'Reservar margem apartada' : 'Vincule uma matrícula para reservar'}
+                      className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded disabled:opacity-40 disabled:hover:bg-transparent"
+                    ><ShieldCheck className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(p)} title="Editar" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -154,6 +162,27 @@ export default function Propostas() {
                   <SelectContent>{convenios.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Vínculo / Matrícula</Label>
+              <Select value={form.matricula_id} onValueChange={(v) => setForm({ ...form, matricula_id: v })} disabled={!form.cliente_id}>
+                <SelectTrigger><SelectValue placeholder={form.cliente_id ? 'Selecionar vínculo' : 'Selecione o cliente primeiro'} /></SelectTrigger>
+                <SelectContent>
+                  {matsDoCliente(form.cliente_id).map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {(m.convenio?.nome || m.orgao || 'Vínculo')} · #{m.matricula} · disp. {brl(m.margem_disponivel)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {matSelecionada && (
+                <p className="text-xs text-slate-400">
+                  Margem disponível no vínculo: <span className="font-medium text-slate-600">{brl(matSelecionada.margem_disponivel)}</span>
+                  {form.valor_parcela && Number(form.valor_parcela) > Number(matSelecionada.margem_disponivel || 0) && (
+                    <span className="text-red-600"> · parcela excede a margem</span>
+                  )}
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2"><Label>Valor</Label><Input type="number" step="0.01" value={form.valor_solicitado} onChange={(e) => setForm({ ...form, valor_solicitado: e.target.value })} required /></div>
