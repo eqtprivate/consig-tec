@@ -10,6 +10,9 @@ import Formalizacao from '@/pages/modules/Formalizacao';
 import Financeiro from '@/pages/modules/Financeiro';
 import Comissoes from '@/pages/modules/Comissoes';
 import Cessao from '@/pages/modules/Cessao';
+import Cobranca from '@/pages/modules/Cobranca';
+import Chamados from '@/pages/modules/Chamados';
+import Juridico from '@/pages/modules/Juridico';
 
 // Módulos indexados pelo código da área.
 const MODULES = {
@@ -20,6 +23,9 @@ const MODULES = {
   financeiro: Financeiro,
   comissoes: Comissoes,
   cessao_fidc: Cessao,
+  cobranca: Cobranca,
+  suporte: Chamados,
+  juridico: Juridico,
 };
 
 export default function AreaPage() {
