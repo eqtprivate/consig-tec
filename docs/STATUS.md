@@ -21,7 +21,7 @@ Legenda: ✅ feito · 🟡 parcial/esqueleto · 🟠 divergente (precisa realinh
 | 0 | Fundação & Setup | ✅ | Motor **Resend** (`dispatchNotificacao`), LGPD-mín/consentimentos em uso, SLA/escalonamento |
 | 1 | **Convênios via PixConsig (ACL)** | 🟠 | Espelho local + `pixconsig_*_id` + overlay comercial + import CSV/manual; cartão benefício (margem apartada) |
 | 2 | CRM / Vendas | 🟡 | Leads, funil, call center, simulação, campanhas, métricas |
-| 3 | Tomadores & Vínculos | 🟡 | Múltiplos vínculos/matrículas, elegibilidade cartão benefício |
+| 3 | Tomadores & Vínculos | ✅ | Matrículas múltiplas + margem apartada por vínculo + elegibilidade cartão benefício (func. `matricula_elegivel_cartao`) |
 | 4 | Margem & Averbação | 🟡 | Margem apartada (consulta/reserva), handoff UY3 |
 | 5 | Formalização, Anti-fraude & CCB | ⬜ | CCB (UY3), selfie/prova de vida, assinatura (Clicksign via UY3) |
 | 6 | Recebíveis PMT & Conciliação | 🟡 | **Motor de PMT** (função testável), CNAB444, conciliação folha |
@@ -50,7 +50,7 @@ Legenda: ✅ feito · 🟡 parcial/esqueleto · 🟠 divergente (precisa realinh
 6. **Nomenclatura** do escopo (`Tomadores`, `EntidadesCadastro`, `CCBs`, `RecebiveisPMT`) para rastreabilidade.
 
 ## Caminho (MVP do roadmap)
-`0 (fechar) → 1 PixConsig → 3 Tomadores → 4 Margem apartada → 5 Formalização/CCB (handoff manual) → 6 PMT → 7 Comissão → 8 Cessão (registro) → 9 → 10 (dashboard real)`
+`0 ✅ → 1 PixConsig ✅ → 3 Tomadores ✅ → 4 Margem apartada (próximo) → 5 Formalização/CCB (handoff manual) → 6 PMT → 7 Comissão → 8 Cessão (registro) → 9 → 10 (dashboard real 🟡)`
 com 1–2 convênios reais (Sumaré/SP, Alenquer/PA) e dashboard semeado.
 
 ## Dependências externas (para destravar estágios)
