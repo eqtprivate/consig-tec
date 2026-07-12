@@ -6,11 +6,24 @@ import { pendenciasApi } from '@/lib/api/pendencias';
 import { propostasApi } from '@/lib/api/propostas';
 import { contratosApi } from '@/lib/api/contratos';
 import { comissoesApi } from '@/lib/api/comissoes';
+import { dashboardApi } from '@/lib/api/dashboard';
 import { brl, dataBR } from '@/lib/format';
 import {
   AlertCircle, ArrowRight, Building2, FileText, FileCheck2,
   DollarSign, TrendingUp, Wallet,
 } from 'lucide-react';
+
+// Etapas da esteira (visão executiva do grupo)
+const ESTEIRA = [
+  { key: 'margem_elegivel', label: 'Margem elegível', fmt: 'brl', tone: 'text-slate-900' },
+  { key: 'margem_reservada', label: 'Reservada (propostas)', fmt: 'brl', tone: 'text-amber-600' },
+  { key: 'margem_efetivada', label: 'Efetivada (averbada)', fmt: 'brl', tone: 'text-blue-600' },
+  { key: 'vop', label: 'VOP (contratos)', fmt: 'brl', tone: 'text-green-700' },
+  { key: 'saldo_devedor', label: 'Saldo devedor', fmt: 'brl', tone: 'text-slate-900' },
+  { key: 'saldo_atraso', label: 'Em atraso', fmt: 'brl', tone: 'text-red-600' },
+  { key: 'comissoes_previstas', label: 'Comissões previstas', fmt: 'brl', tone: 'text-slate-900' },
+  { key: 'valor_cedido', label: 'Cedido (FIDC)', fmt: 'brl', tone: 'text-slate-900' },
+];
 
 const AREA_ICONS = {
   convenios: '🏛️', crm: '💬', averbacao: '📋', formalizacao: '📝',
@@ -59,6 +72,7 @@ export default function Dashboard() {
   const [propostas, setPropostas] = useState([]);
   const [contratos, setContratos] = useState([]);
   const [comissoes, setComissoes] = useState([]);
+  const [exec, setExec] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,6 +93,10 @@ export default function Dashboard() {
       setLoading(false);
     });
   }, [activeUnidade]);
+
+  useEffect(() => {
+    if (isAdmin) dashboardApi.executivo().then(setExec).catch(() => setExec(null));
+  }, [isAdmin]);
 
   const visibleAreas = allAreas.filter((a) =>
     isAdmin || availableAreas.some((va) => va.codigo === a.codigo)
@@ -151,6 +169,35 @@ export default function Dashboard() {
           {activeUnidade ? `${activeUnidade.nome}` : 'Selecione uma unidade'} • Visão geral da operação
         </p>
       </div>
+
+      {/* Esteira consolidada (visão executiva do grupo) */}
+      {isAdmin && exec && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-slate-900">Esteira consolidada <span className="text-xs font-normal text-slate-400">(grupo)</span></h2>
+            <div className="flex items-center gap-3 text-xs text-slate-500">
+              <span>{Number(exec.contratos_ativos || 0)} contratos ativos</span>
+              <span className={Number(exec.contratos_inadimplentes) ? 'text-red-600' : ''}>{Number(exec.contratos_inadimplentes || 0)} inadimplentes</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+            {ESTEIRA.map((e, i) => (
+              <div key={e.key} className="relative">
+                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">{e.label}</p>
+                <p className={`text-lg font-bold num mt-0.5 ${e.tone}`}>{brl(Number(exec[e.key] || 0))}</p>
+                {i < ESTEIRA.length - 1 && <ArrowRight className="hidden lg:block w-3.5 h-3.5 text-slate-300 absolute -right-2.5 top-6" />}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
+            <span>Tomadores elegíveis: <b className="text-slate-700">{Number(exec.tomadores_elegiveis || 0)}</b></span>
+            <span>Margem prioritária: <b className="text-slate-700">{brl(Number(exec.margem_prioritaria || 0))}</b></span>
+            <span>Cobranças abertas: <b className={Number(exec.cobrancas_abertas) ? 'text-red-600' : 'text-slate-700'}>{Number(exec.cobrancas_abertas || 0)}</b> ({brl(Number(exec.valor_cobrancas || 0))})</span>
+            <span>Comissões pagas: <b className="text-slate-700">{brl(Number(exec.comissoes_pagas || 0))}</b></span>
+            <span>Termos de cessão: <b className="text-slate-700">{Number(exec.termos_cessao || 0)}</b></span>
+          </div>
+        </div>
+      )}
 
       {/* KPIs de crédito */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
