@@ -34,5 +34,26 @@ export const parcelasApi = {
     if (error) throw error;
     return data; // [{ numero, vencimento, valor, juros, amortizacao, saldo }]
   },
+  // Estágio 6 — baixa de parcela (cascateia para quitação do contrato)
+  async registrarPagamento(parcelaId, valor, data) {
+    const { error } = await supabase.rpc('registrar_pagamento_parcela', {
+      p_parcela: parcelaId, ...(valor != null ? { p_valor: valor } : {}), ...(data ? { p_data: data } : {}),
+    });
+    if (error) throw error;
+  },
+};
+
+// Carteira (Estágio 6): visão e manutenção do pós-contrato.
+export const carteiraApi = {
+  async contratos() {
+    const { data, error } = await supabase.rpc('carteira_contratos');
+    if (error) throw error;
+    return data;
+  },
+  async atualizar() {
+    const { data, error } = await supabase.rpc('atualizar_carteira');
+    if (error) throw error;
+    return Array.isArray(data) ? data[0] : data; // { parcelas_atrasadas, contratos_inadimplentes, contratos_quitados }
+  },
 };
 

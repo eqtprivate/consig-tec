@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { contratosApi } from '@/lib/api/contratos';
-import { parcelasApi } from '@/lib/api/parcelas';
+import { parcelasApi, carteiraApi } from '@/lib/api/parcelas';
 import { repassesApi } from '@/lib/api/repasses';
 import { conveniosApi } from '@/lib/api/convenios';
 import { auditoriaApi } from '@/lib/api/auditoria';
@@ -13,7 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Wallet, CheckCircle2, ListPlus, Plus } from 'lucide-react';
 
-const TABS = [{ key: 'receb', label: 'Recebíveis' }, { key: 'concil', label: 'Conciliação (repasse)' }];
+const TABS = [{ key: 'receb', label: 'Recebíveis' }, { key: 'carteira', label: 'Carteira' }, { key: 'concil', label: 'Conciliação (repasse)' }];
+const C_CT = { ativo: 'bg-green-50 text-green-700', quitado: 'bg-slate-100 text-slate-500', inadimplente: 'bg-red-50 text-red-700', cancelado: 'bg-slate-100 text-slate-400' };
+const C_CT_LBL = { ativo: 'Ativo', quitado: 'Quitado', inadimplente: 'Inadimplente', cancelado: 'Cancelado' };
 const STATUS = { aberta: 'Aberta', paga: 'Paga', atrasada: 'Atrasada', renegociada: 'Renegociada' };
 const CORES = {
   aberta: 'bg-slate-100 text-slate-600', paga: 'bg-green-50 text-green-700',
@@ -61,7 +63,7 @@ function RecebiveisTab() {
   };
 
   const pagar = async (p) => {
-    await parcelasApi.update(p.id, { status: 'paga', valor_pago: p.valor, data_pagamento: new Date().toISOString().slice(0, 10) });
+    await parcelasApi.registrarPagamento(p.id, p.valor, new Date().toISOString().slice(0, 10));
     await auditoriaApi.log('pagar_parcela', 'parcelas', p.id, {});
     recarregar();
   };
@@ -275,6 +277,111 @@ function ConciliacaoTab() {
 }
 
 /* ------------------------------ Wrapper ------------------------------ */
+/* ------------------------------ Carteira ------------------------------ */
+function CarteiraTab() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [atualizando, setAtualizando] = useState(false);
+  const [filtro, setFiltro] = useState('todos');
+
+  const load = async () => {
+    setLoading(true);
+    setRows(await carteiraApi.contratos().catch(() => []));
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const atualizar = async () => {
+    setAtualizando(true);
+    try {
+      const r = await carteiraApi.atualizar();
+      await auditoriaApi.log('atualizar_carteira', 'contratos', null, r || {});
+      alert(`Carteira atualizada: ${r?.parcelas_atrasadas || 0} parcela(s) em atraso, ${r?.contratos_inadimplentes || 0} contrato(s) inadimplente(s), ${r?.contratos_quitados || 0} quitado(s).`);
+      load();
+    } catch (err) { alert(err.message || 'Falha ao atualizar carteira.'); }
+    finally { setAtualizando(false); }
+  };
+
+  const view = rows.filter((r) => (filtro === 'todos' ? true : filtro === 'atraso' ? r.parcelas_atrasadas > 0 : r.status === filtro));
+  const saldoTotal = rows.reduce((s, r) => s + Number(r.saldo_devedor || 0), 0);
+  const emAtraso = rows.filter((r) => r.parcelas_atrasadas > 0);
+  const saldoAtraso = emAtraso.reduce((s, r) => s + Number(r.saldo_devedor || 0), 0);
+  const ativos = rows.filter((r) => r.status === 'ativo').length;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <p className="text-sm text-slate-500">Carteira de contratos — saldo devedor, parcelas em aberto e inadimplência</p>
+        <Button variant="outline" onClick={atualizar} disabled={atualizando} className="gap-2"><CheckCircle2 className="w-4 h-4" /> {atualizando ? 'Atualizando…' : 'Atualizar carteira'}</Button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Kpi label="Saldo devedor total" value={brl(saldoTotal)} />
+        <Kpi label="Contratos ativos" value={String(ativos)} />
+        <Kpi label="Em atraso" value={String(emAtraso.length)} tone={emAtraso.length ? 'warn' : 'ok'} />
+        <Kpi label="Saldo em atraso" value={brl(saldoAtraso)} tone={saldoAtraso ? 'warn' : 'ok'} />
+      </div>
+
+      <div className="w-52">
+        <Select value={filtro} onValueChange={setFiltro}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os contratos</SelectItem>
+            <SelectItem value="ativo">Ativos</SelectItem>
+            <SelectItem value="atraso">Com atraso</SelectItem>
+            <SelectItem value="inadimplente">Inadimplentes</SelectItem>
+            <SelectItem value="quitado">Quitados</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+        : view.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum contrato.</div>
+        : (
+          <table className="w-full text-sm min-w-[720px]">
+            <thead><tr className="border-b border-slate-200 bg-slate-50">
+              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Contrato / Cliente</th>
+              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Pagas/Abertas/Atraso</th>
+              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Saldo devedor</th>
+              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Próx. venc.</th>
+              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Atraso</th>
+            </tr></thead>
+            <tbody>
+              {view.map((r) => (
+                <tr key={r.contrato_id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-slate-800">{r.cliente || '—'}</p>
+                    <p className="text-xs text-slate-500 font-mono">{r.numero_contrato || r.contrato_id.slice(0, 8)}{r.convenio ? ` · ${r.convenio}` : ''}</p>
+                  </td>
+                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${C_CT[r.status]}`}>{C_CT_LBL[r.status] || r.status}</span></td>
+                  <td className="px-4 py-3 text-right text-slate-600">
+                    <span className="text-green-700">{r.parcelas_pagas}</span> / <span>{r.parcelas_abertas}</span> / <span className={r.parcelas_atrasadas ? 'text-red-600 font-medium' : ''}>{r.parcelas_atrasadas}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium text-slate-800">{brl(r.saldo_devedor)}</td>
+                  <td className="px-4 py-3 text-right text-slate-600 hidden md:table-cell">{dataBR(r.proximo_vencimento)}</td>
+                  <td className={`px-4 py-3 text-right ${r.dias_atraso > 0 ? 'text-red-600 font-medium' : 'text-slate-300'}`}>{r.dias_atraso > 0 ? `${r.dias_atraso}d` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Kpi({ label, value, tone }) {
+  const color = tone === 'warn' ? 'text-red-600' : tone === 'ok' ? 'text-green-700' : 'text-slate-900';
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4">
+      <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">{label}</p>
+      <p className={`text-xl font-bold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
 export default function Financeiro() {
   const [tab, setTab] = useState('receb');
   return (
@@ -287,7 +394,7 @@ export default function Financeiro() {
           </button>
         ))}
       </div>
-      {tab === 'receb' ? <RecebiveisTab /> : <ConciliacaoTab />}
+      {tab === 'receb' ? <RecebiveisTab /> : tab === 'carteira' ? <CarteiraTab /> : <ConciliacaoTab />}
     </div>
   );
 }
