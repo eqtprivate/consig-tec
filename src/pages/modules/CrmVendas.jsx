@@ -6,13 +6,17 @@ import Propostas from '@/pages/modules/Propostas';
 import Campanhas from '@/pages/modules/Campanhas';
 import PainelCallCenter from '@/pages/modules/PainelCallCenter';
 import ConfigCallCenter from '@/pages/modules/ConfigCallCenter';
+import Agenda from '@/pages/modules/Agenda';
+import ComercialPlanejamento from '@/pages/modules/ComercialPlanejamento';
 
 const TABS = [
   { key: 'leads', label: 'Leads & Discagem' },
+  { key: 'agenda', label: 'Agenda' },
   { key: 'oportunidades', label: 'Oportunidades' },
   { key: 'clientes', label: 'Tomadores' },
   { key: 'propostas', label: 'Propostas' },
   { key: 'campanhas', label: 'Campanhas' },
+  { key: 'comercial', label: 'Comercial' },
   { key: 'painel', label: 'Painel' },
   { key: 'config', label: 'Config' },
 ];
@@ -22,10 +26,12 @@ export default function CrmVendas() {
   const render = () => {
     switch (tab) {
       case 'leads': return <Leads />;
+      case 'agenda': return <Agenda />;
       case 'oportunidades': return <Oportunidades />;
       case 'clientes': return <Clientes />;
       case 'propostas': return <Propostas />;
       case 'campanhas': return <Campanhas />;
+      case 'comercial': return <ComercialPlanejamento />;
       case 'painel': return <PainelCallCenter />;
       case 'config': return <ConfigCallCenter />;
       default: return null;

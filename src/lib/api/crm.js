@@ -48,6 +48,24 @@ export const produtividadeApi = {
   },
 };
 
+export const metasComerciaisApi = {
+  async list(filters = {}) {
+    let q = supabase.from('metas_comerciais').select('*, convenio:convenios(id, nome), responsavel:usuarios(nome)').order('competencia', { ascending: false });
+    if (filters.competencia) q = q.eq('competencia', filters.competencia);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async create(item) { const { data, error } = await supabase.from('metas_comerciais').insert(item).select().single(); if (error) throw error; return data; },
+  async update(id, u) { const { data, error } = await supabase.from('metas_comerciais').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+  async remove(id) { const { error } = await supabase.from('metas_comerciais').delete().eq('id', id); if (error) throw error; },
+  async realizado(competencia) {
+    const { data, error } = await supabase.rpc('realizado_comercial', { p_competencia: competencia });
+    if (error) throw error;
+    return data; // [{ convenio_id, vendas, valor }]
+  },
+};
+
 export const motivosPerdaApi = {
   async list() {
     const { data, error } = await supabase.from('motivos_perda').select('*').eq('ativo', true).order('ordem');
