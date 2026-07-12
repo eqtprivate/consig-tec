@@ -12,6 +12,13 @@ export const clientesApi = {
     if (error) throw error;
     return data;
   },
+  async getByCpf(cpf) {
+    const limpo = (cpf || '').replace(/\D/g, '');
+    if (!limpo) return null;
+    const { data, error } = await supabase.from('clientes').select('*').eq('cpf', limpo).maybeSingle();
+    if (error) throw error;
+    return data;
+  },
   async create(cliente) {
     const { data, error } = await supabase.from('clientes').insert(cliente).select().single();
     if (error) throw error;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { produtividadeApi, metasApi } from '@/lib/api/crm';
+import { produtividadeApi, metasApi, oportunidadesApi } from '@/lib/api/crm';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
@@ -22,6 +22,7 @@ export default function PainelCallCenter() {
   const [ate, setAte] = useState(hojeStr());
   const [prod, setProd] = useState([]);
   const [metas, setMetas] = useState([]);
+  const [perdas, setPerdas] = useState([]);
   const [operadores, setOperadores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [competencia] = useState(competenciaAtual());
@@ -33,12 +34,13 @@ export default function PainelCallCenter() {
 
   const load = async () => {
     setLoading(true);
-    const [p, m, u] = await Promise.all([
+    const [p, m, u, pe] = await Promise.all([
       produtividadeApi.periodo(de, ate).catch(() => []),
       metasApi.list({ competencia }).catch(() => []),
       usuariosApi.list().catch(() => []),
+      oportunidadesApi.perdas(de, ate).catch(() => []),
     ]);
-    setProd(p); setMetas(m); setOperadores(u.filter((x) => x.ativo)); setLoading(false);
+    setProd(p); setMetas(m); setOperadores(u.filter((x) => x.ativo)); setPerdas(pe); setLoading(false);
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [de, ate]);
 
@@ -68,6 +70,14 @@ export default function PainelCallCenter() {
     ganhas: a.ganhas + Number(r.ganhas || 0),
     valor: a.valor + Number(r.valor_ganho || 0),
   }), { interacoes: 0, atendimentos: 0, qualificados: 0, ganhas: 0, valor: 0 });
+
+  const perdasPorMotivo = Object.values(perdas.reduce((acc, o) => {
+    const nome = o.motivo?.nome || 'Sem motivo informado';
+    acc[nome] = acc[nome] || { nome, qtd: 0, valor: 0 };
+    acc[nome].qtd += 1; acc[nome].valor += Number(o.valor_estimado || 0);
+    return acc;
+  }, {})).sort((a, b) => b.qtd - a.qtd);
+  const maxPerda = Math.max(1, ...perdasPorMotivo.map((x) => x.qtd));
 
   return (
     <div className="space-y-4">
@@ -147,6 +157,23 @@ export default function PainelCallCenter() {
           </table>
         )}
       </div>
+
+      {/* Relatório de perdas por motivo */}
+      {perdasPorMotivo.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">Perdas por motivo — {perdas.length} oportunidade(s)</h3>
+          <div className="space-y-2">
+            {perdasPorMotivo.map((p) => (
+              <div key={p.nome} className="flex items-center gap-3">
+                <span className="w-40 text-xs text-slate-600 truncate shrink-0">{p.nome}</span>
+                <div className="flex-1 h-4 bg-slate-100 rounded overflow-hidden"><div className="h-full bg-red-400 rounded" style={{ width: `${(p.qtd / maxPerda) * 100}%` }} /></div>
+                <span className="w-8 text-right text-sm font-semibold text-slate-700 num">{p.qtd}</span>
+                <span className="w-24 text-right text-xs text-slate-400 num">{brl(p.valor)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Metas do mês */}
       <div className="bg-white rounded-xl border border-slate-200 p-4">

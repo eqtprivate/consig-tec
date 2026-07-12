@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { leadsApi, campanhasApi, interacoesApi, oportunidadesApi, motivosPerdaApi, roteiroApi } from '@/lib/api/crm';
+import { clientesApi } from '@/lib/api/clientes';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
@@ -187,16 +188,34 @@ export default function Leads() {
     finally { setSavingInt(false); }
   };
   const qualificar = async () => {
-    if (!confirm('Qualificar este lead e criar uma oportunidade?')) return;
+    if (!confirm('Qualificar este lead? Isto cria/vincula o tomador e abre uma oportunidade.')) return;
     try {
-      // registra a qualificação e cria a oportunidade
+      // 1) Tomador: reaproveita por CPF ou cria a partir do lead
+      let clienteId = atender.cliente_id || null;
+      let dedup = false;
+      if (!clienteId && atender.cpf) {
+        const existente = await clientesApi.getByCpf(atender.cpf).catch(() => null);
+        if (existente) { clienteId = existente.id; dedup = true; }
+      }
+      if (!clienteId) {
+        const novo = await clientesApi.create({
+          nome: atender.nome, cpf: (atender.cpf || '').replace(/\D/g, '') || null,
+          telefone: atender.telefone || null, email: atender.email || null,
+          franquia_id: activeUnidade?.id || null,
+        });
+        clienteId = novo.id;
+      }
+      // 2) Vincula o lead ao tomador
+      await leadsApi.update(atender.id, { cliente_id: clienteId });
+      // 3) Registra qualificação (trigger move o lead p/ 'qualificado')
       await interacoesApi.create({ lead_id: atender.id, operador_id: perfil?.id || null, franquia_id: activeUnidade?.id || null, tipo: 'ligacao', resultado: 'qualificado', observacao: 'Lead qualificado' });
+      // 4) Abre a oportunidade já com o tomador
       await oportunidadesApi.create({
-        lead_id: atender.id, operador_id: perfil?.id || null, franquia_id: activeUnidade?.id || null,
+        lead_id: atender.id, cliente_id: clienteId, operador_id: perfil?.id || null, franquia_id: activeUnidade?.id || null,
         produto: 'cartao_beneficio', valor_estimado: atender.valor_estimado ?? null, etapa: 'qualificacao', probabilidade: 50,
       });
-      await auditoriaApi.log('qualificar_lead', 'leads', atender.id, {});
-      alert('Oportunidade criada. Acompanhe na aba Oportunidades.');
+      await auditoriaApi.log('qualificar_lead', 'leads', atender.id, { cliente_id: clienteId, dedup });
+      alert(dedup ? 'Tomador já existia (CPF) — vinculado. Oportunidade criada.' : 'Tomador criado e oportunidade aberta.');
       setAtender(null); load();
     } catch (err) { alert(err.message || 'Falha ao qualificar.'); }
   };

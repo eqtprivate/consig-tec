@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, IdCard, CreditCard } from 'lucide-react';
+import Tomador360 from '@/pages/modules/Tomador360';
+import { Plus, Pencil, Trash2, IdCard, CreditCard, Eye } from 'lucide-react';
 
 const num = (v) => (v === '' || v == null ? null : Number(v));
 const emptyCliente = { nome: '', cpf: '', data_nascimento: '', telefone: '', email: '' };
@@ -44,6 +45,7 @@ export default function Clientes() {
   // dialog de vínculos
   const [vincOpen, setVincOpen] = useState(false);
   const [vincCliente, setVincCliente] = useState(null);
+  const [ficha, setFicha] = useState(null);
   const [matForm, setMatForm] = useState(emptyMatricula);
   const [matEdit, setMatEdit] = useState(null);
   const [matSaving, setMatSaving] = useState(false);
@@ -205,6 +207,7 @@ export default function Clientes() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <button onClick={() => setFicha(c)} title="Ficha 360º" className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded"><Eye className="w-4 h-4" /></button>
                       <button onClick={() => openVinculos(c)} title="Vínculos" className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded"><IdCard className="w-4 h-4" /></button>
                       <button onClick={() => openEdit(c)} title="Editar" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
                     </td>
@@ -354,6 +357,8 @@ export default function Clientes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {ficha && <Tomador360 cliente={ficha} onClose={() => setFicha(null)} />}
     </div>
   );
 }

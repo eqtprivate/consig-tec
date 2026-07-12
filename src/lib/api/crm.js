@@ -105,6 +105,7 @@ export const oportunidadesApi = {
       .order('created_at', { ascending: false });
     if (filters.franquia_id) q = q.eq('franquia_id', filters.franquia_id);
     if (filters.etapa) q = q.eq('etapa', filters.etapa);
+    if (filters.cliente_id) q = q.eq('cliente_id', filters.cliente_id);
     const { data, error } = await q;
     if (error) throw error;
     return data;
@@ -116,6 +117,15 @@ export const oportunidadesApi = {
   },
   async update(id, updates) {
     const { data, error } = await supabase.from('oportunidades').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  // Oportunidades perdidas no período (para relatório de perdas por motivo)
+  async perdas(de, ate) {
+    const { data, error } = await supabase.from('oportunidades')
+      .select('valor_estimado, motivo:motivos_perda(nome)')
+      .eq('etapa', 'perdida')
+      .gte('created_at', de).lte('created_at', `${ate}T23:59:59`);
     if (error) throw error;
     return data;
   },
