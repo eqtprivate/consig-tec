@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { conveniosApi } from '@/lib/api/convenios';
 import { entidadesApi } from '@/lib/api/entidades';
 import { overlayApi } from '@/lib/api/overlay';
+import { produtosConvenioApi } from '@/lib/api/produtosConvenio';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { importarConveniosCSV } from '@/lib/pixconsigImport';
 import { Button } from '@/components/ui/button';
@@ -11,10 +12,19 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Package } from 'lucide-react';
 
 const TIPOS = { publico: 'Público', privado: 'Privado', inss: 'INSS', militar: 'Militar' };
 const MARGENS = { apartada: 'Apartada', principal: 'Principal', cartao: 'Cartão' };
+const PRODUTOS = {
+  cartao_beneficio: 'Cartão Benefício', consignado: 'Consignado',
+  cartao_credito: 'Cartão de Crédito', saque_complementar: 'Saque Complementar',
+};
+const emptyProd = {
+  produto: 'cartao_beneficio', nome: '', tipo_margem: 'cartao', taxa_mensal: '',
+  prazo_min: '', prazo_max: '', valor_min: '', valor_max: '', idade_min: '', idade_max: '',
+  margem_percentual: '', rotativo: true, saque_vinculado: true, ativo: true,
+};
 const ORIGENS = { manual: 'Manual', csv: 'CSV', pixconsig: 'PixConsig' };
 const ORIGEM_CORES = { manual: 'bg-slate-100 text-slate-600', csv: 'bg-amber-50 text-amber-700', pixconsig: 'bg-blue-50 text-blue-700' };
 
@@ -38,6 +48,14 @@ export default function Convenios() {
   const [csv, setCsv] = useState('');
   const [importing, setImporting] = useState(false);
   const [importRes, setImportRes] = useState(null);
+
+  // Produtos por convênio
+  const [prodOpen, setProdOpen] = useState(false);
+  const [prodConv, setProdConv] = useState(null);
+  const [produtos, setProdutos] = useState([]);
+  const [prodEdit, setProdEdit] = useState(null);
+  const [prodForm, setProdForm] = useState(emptyProd);
+  const [prodFormOpen, setProdFormOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -116,6 +134,53 @@ export default function Convenios() {
     }
   };
 
+  // ---- Produtos por convênio ----
+  const openProdutos = async (c) => {
+    setProdConv(c); setProdEdit(null); setProdFormOpen(false);
+    setProdutos(await produtosConvenioApi.list({ convenio_id: c.id }).catch(() => []));
+    setProdOpen(true);
+  };
+  const reloadProdutos = async () => setProdutos(await produtosConvenioApi.list({ convenio_id: prodConv.id }).catch(() => []));
+  const openProdCreate = () => {
+    setProdEdit(null);
+    setProdForm({ ...emptyProd, tipo_margem: prodConv?.tipo_margem || 'cartao', taxa_mensal: prodConv?.taxa_mensal ?? '', prazo_max: prodConv?.prazo_maximo ?? '', margem_percentual: prodConv?.percentual_margem_apartada ?? '' });
+    setProdFormOpen(true);
+  };
+  const openProdEdit = (p) => {
+    setProdEdit(p);
+    setProdForm({
+      produto: p.produto, nome: p.nome ?? '', tipo_margem: p.tipo_margem || 'cartao', taxa_mensal: p.taxa_mensal ?? '',
+      prazo_min: p.prazo_min ?? '', prazo_max: p.prazo_max ?? '', valor_min: p.valor_min ?? '', valor_max: p.valor_max ?? '',
+      idade_min: p.idade_min ?? '', idade_max: p.idade_max ?? '', margem_percentual: p.margem_percentual ?? '',
+      rotativo: p.rotativo, saque_vinculado: p.saque_vinculado, ativo: p.ativo,
+    });
+    setProdFormOpen(true);
+  };
+  const saveProd = async (e) => {
+    e.preventDefault();
+    const payload = {
+      convenio_id: prodConv.id, produto: prodForm.produto, nome: prodForm.nome || null, tipo_margem: prodForm.tipo_margem,
+      taxa_mensal: num(prodForm.taxa_mensal), prazo_min: num(prodForm.prazo_min), prazo_max: num(prodForm.prazo_max),
+      valor_min: num(prodForm.valor_min), valor_max: num(prodForm.valor_max), idade_min: num(prodForm.idade_min), idade_max: num(prodForm.idade_max),
+      margem_percentual: num(prodForm.margem_percentual), rotativo: prodForm.rotativo, saque_vinculado: prodForm.saque_vinculado, ativo: prodForm.ativo,
+    };
+    try {
+      if (prodEdit) await produtosConvenioApi.update(prodEdit.id, payload);
+      else await produtosConvenioApi.create(payload);
+      await auditoriaApi.log(prodEdit ? 'editar_produto_convenio' : 'criar_produto_convenio', 'produtos_convenio', prodEdit?.id || null, { convenio: prodConv.nome, produto: prodForm.produto });
+      setProdFormOpen(false);
+      reloadProdutos();
+    } catch (err) {
+      alert(err.message || 'Falha ao salvar produto (verifique se já existe esse produto no convênio).');
+    }
+  };
+  const removeProd = async (p) => {
+    if (!confirm(`Remover o produto "${p.nome || PRODUTOS[p.produto]}"?`)) return;
+    await produtosConvenioApi.remove(p.id);
+    await auditoriaApi.log('remover_produto_convenio', 'produtos_convenio', p.id, { produto: p.produto });
+    reloadProdutos();
+  };
+
   const onFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -165,6 +230,7 @@ export default function Convenios() {
                   <td className="px-4 py-3"><span className={`text-xs ${c.ativo ? 'text-green-700' : 'text-slate-400'}`}>{c.ativo ? 'Ativo' : 'Inativo'}</span></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
+                      <button onClick={() => openProdutos(c)} title="Produtos do convênio" className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded"><Package className="w-4 h-4" /></button>
                       <button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
                       <button onClick={() => handleDelete(c)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                     </div>
@@ -241,6 +307,102 @@ export default function Convenios() {
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
               <Button type="submit">{editItem ? 'Salvar' : 'Criar'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Produtos do convênio */}
+      <Dialog open={prodOpen} onOpenChange={setProdOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Produtos — {prodConv?.nome}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-slate-500">Parâmetros por produto (taxa, prazo, valor, idade e margem). Usados na consulta de margem e na simulação.</p>
+              <Button size="sm" onClick={openProdCreate} className="gap-1"><Plus className="w-4 h-4" /> Produto</Button>
+            </div>
+            {produtos.length === 0 ? (
+              <div className="p-8 text-center text-sm text-slate-400">Nenhum produto parametrizado.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="text-left px-3 py-2 font-medium text-slate-500 uppercase text-xs">Produto</th>
+                    <th className="text-left px-3 py-2 font-medium text-slate-500 uppercase text-xs">Margem</th>
+                    <th className="text-right px-3 py-2 font-medium text-slate-500 uppercase text-xs">Taxa</th>
+                    <th className="text-right px-3 py-2 font-medium text-slate-500 uppercase text-xs">Prazo</th>
+                    <th className="text-left px-3 py-2 font-medium text-slate-500 uppercase text-xs">Status</th>
+                    <th className="text-right px-3 py-2 font-medium text-slate-500 uppercase text-xs">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {produtos.map((p) => (
+                    <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-3 py-2 font-medium text-slate-800">{p.nome || PRODUTOS[p.produto] || p.produto}</td>
+                      <td className="px-3 py-2 text-slate-600">{MARGENS[p.tipo_margem] || '—'}{p.margem_percentual != null ? ` · ${p.margem_percentual}%` : ''}</td>
+                      <td className="px-3 py-2 text-right text-slate-600">{p.taxa_mensal != null ? `${p.taxa_mensal}%` : '—'}</td>
+                      <td className="px-3 py-2 text-right text-slate-600">{[p.prazo_min, p.prazo_max].filter((x) => x != null).join('–') || '—'}</td>
+                      <td className="px-3 py-2"><span className={`text-xs ${p.ativo ? 'text-green-700' : 'text-slate-400'}`}>{p.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => openProdEdit(p)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => removeProd(p)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setProdOpen(false)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Novo/Editar produto */}
+      <Dialog open={prodFormOpen} onOpenChange={setProdFormOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{prodEdit ? 'Editar produto' : 'Novo produto'}</DialogTitle></DialogHeader>
+          <form onSubmit={saveProd} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Produto</Label>
+                <Select value={prodForm.produto} onValueChange={(v) => setProdForm({ ...prodForm, produto: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(PRODUTOS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Nome (rótulo)</Label><Input value={prodForm.nome} onChange={(e) => setProdForm({ ...prodForm, nome: e.target.value })} placeholder="opcional" /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2">
+                <Label>Tipo margem</Label>
+                <Select value={prodForm.tipo_margem} onValueChange={(v) => setProdForm({ ...prodForm, tipo_margem: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(MARGENS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Taxa a.m. %</Label><Input type="number" step="0.0001" value={prodForm.taxa_mensal} onChange={(e) => setProdForm({ ...prodForm, taxa_mensal: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Margem %</Label><Input type="number" step="0.01" value={prodForm.margem_percentual} onChange={(e) => setProdForm({ ...prodForm, margem_percentual: e.target.value })} placeholder="% da margem" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Prazo mín.</Label><Input type="number" value={prodForm.prazo_min} onChange={(e) => setProdForm({ ...prodForm, prazo_min: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Prazo máx.</Label><Input type="number" value={prodForm.prazo_max} onChange={(e) => setProdForm({ ...prodForm, prazo_max: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Valor mín.</Label><Input type="number" step="0.01" value={prodForm.valor_min} onChange={(e) => setProdForm({ ...prodForm, valor_min: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Valor máx.</Label><Input type="number" step="0.01" value={prodForm.valor_max} onChange={(e) => setProdForm({ ...prodForm, valor_max: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Idade mín.</Label><Input type="number" value={prodForm.idade_min} onChange={(e) => setProdForm({ ...prodForm, idade_min: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Idade máx.</Label><Input type="number" value={prodForm.idade_max} onChange={(e) => setProdForm({ ...prodForm, idade_max: e.target.value })} /></div>
+            </div>
+            <div className="flex items-center justify-between"><Label htmlFor="p-rot">Rotativo</Label><Switch id="p-rot" checked={prodForm.rotativo} onCheckedChange={(v) => setProdForm({ ...prodForm, rotativo: v })} /></div>
+            <div className="flex items-center justify-between"><Label htmlFor="p-saq">Saque vinculado</Label><Switch id="p-saq" checked={prodForm.saque_vinculado} onCheckedChange={(v) => setProdForm({ ...prodForm, saque_vinculado: v })} /></div>
+            <div className="flex items-center justify-between"><Label htmlFor="p-ativo">Produto ativo</Label><Switch id="p-ativo" checked={prodForm.ativo} onCheckedChange={(v) => setProdForm({ ...prodForm, ativo: v })} /></div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setProdFormOpen(false)}>Cancelar</Button>
+              <Button type="submit">{prodEdit ? 'Salvar' : 'Criar'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

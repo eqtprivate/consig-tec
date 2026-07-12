@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { Construction } from 'lucide-react';
 import Convenios from '@/pages/modules/Convenios';
 import CrmVendas from '@/pages/modules/CrmVendas';
-import Averbacoes from '@/pages/modules/Averbacoes';
+import MargemAverbacao from '@/pages/modules/MargemAverbacao';
 import Formalizacao from '@/pages/modules/Formalizacao';
 import Financeiro from '@/pages/modules/Financeiro';
 import Comissoes from '@/pages/modules/Comissoes';
@@ -19,7 +19,7 @@ const MODULES = {
   convenios: Convenios,
   crm: CrmVendas,
   formalizacao: Formalizacao,
-  averbacao: Averbacoes,
+  averbacao: MargemAverbacao,
   financeiro: Financeiro,
   comissoes: Comissoes,
   cessao_fidc: Cessao,

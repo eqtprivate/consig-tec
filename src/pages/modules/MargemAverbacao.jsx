@@ -1,0 +1,30 @@
+import React, { useState } from 'react';
+import ConsultaMargem from '@/pages/modules/ConsultaMargem';
+import Averbacoes from '@/pages/modules/Averbacoes';
+
+const TABS = [
+  { key: 'consulta', label: 'Consulta de Margem' },
+  { key: 'averbacoes', label: 'Averbações' },
+];
+
+export default function MargemAverbacao() {
+  const [tab, setTab] = useState('consulta');
+  return (
+    <div className="space-y-5">
+      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+              tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'consulta' ? <ConsultaMargem /> : <Averbacoes />}
+    </div>
+  );
+}
