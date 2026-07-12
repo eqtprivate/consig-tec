@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { Building, ChevronDown, Check, LogOut, Menu, Sun, Moon } from 'lucide-react';
 import { getTheme, toggleTheme } from '@/lib/theme';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function TopBar({ onToggleSidebar }) {
   const { perfil, uniqueUnidades, activeUnidade, switchUnidade, logout } = useAuth();
@@ -65,6 +66,7 @@ export default function TopBar({ onToggleSidebar }) {
       )}
 
       <div className="flex items-center gap-2">
+        <NotificationBell />
         <button
           onClick={onToggleTheme}
           className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md"

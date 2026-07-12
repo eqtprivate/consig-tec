@@ -6,6 +6,15 @@ export const notificacoesApi = {
     if (error) throw error;
     return data;
   },
+  async recentes(limit = 15) {
+    const { data, error } = await supabase
+      .from('notificacoes')
+      .select('id, evento, assunto, status_envio, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data;
+  },
   async enqueue(item) {
     const { data, error } = await supabase.from('notificacoes').insert(item).select().single();
     if (error) throw error;
