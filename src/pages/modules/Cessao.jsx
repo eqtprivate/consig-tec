@@ -84,6 +84,19 @@ function TermosTab() {
   };
   const rmItem = async (id) => { await termosCessaoApi.removeItem(id); setDetItens(await termosCessaoApi.itens(detTermo.id)); };
 
+  const [montando, setMontando] = useState(false);
+  const montarLastro = async () => {
+    setMontando(true);
+    try {
+      const n = await termosCessaoApi.montarLastro(detTermo.id);
+      await auditoriaApi.log('montar_lastro_cessao', 'termos_cessao', detTermo.id, { titulos: n });
+      alert(n > 0 ? `${n} título(s) elegível(is) adicionado(s) ao lastro.` : 'Nenhum título elegível não cedido (CCB assinada + contrato ativo).');
+      setDetItens(await termosCessaoApi.itens(detTermo.id));
+      load();
+    } catch (err) { alert(err.message || 'Falha ao montar lastro.'); }
+    finally { setMontando(false); }
+  };
+
   const totalItens = detItens.reduce((s, i) => s + Number(i.valor || 0), 0);
 
   return (
@@ -172,6 +185,9 @@ function TermosTab() {
       <Dialog open={!!detTermo} onOpenChange={(v) => !v && setDetTermo(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>Títulos cedidos — {detTermo?.referencia || detTermo?.id?.slice(0, 8)}</DialogTitle></DialogHeader>
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={montarLastro} disabled={montando} className="gap-2"><Layers className="w-4 h-4" /> {montando ? 'Montando…' : 'Montar lastro automático'}</Button>
+          </div>
           <div className="space-y-2 max-h-56 overflow-y-auto">
             {detItens.length === 0 ? <p className="text-sm text-slate-400 py-2">Nenhum título neste termo.</p>
             : detItens.map((i) => (

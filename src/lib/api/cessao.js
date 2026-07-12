@@ -51,4 +51,10 @@ export const termosCessaoApi = {
     const { error } = await supabase.from('itens_cessao').delete().eq('id', id);
     if (error) throw error;
   },
+  // Monta o lastro com os títulos elegíveis (CCB assinada, contrato ativo) — Estágio 8.
+  async montarLastro(termoId) {
+    const { data, error } = await supabase.rpc('montar_lastro_cessao', { p_termo: termoId });
+    if (error) throw error;
+    return data; // nº de títulos adicionados
+  },
 };
