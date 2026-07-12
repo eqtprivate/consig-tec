@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { areasApi } from '@/lib/api/areas';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { Construction } from 'lucide-react';
-import Convenios from '@/pages/modules/Convenios';
+import ConveniosArea from '@/pages/modules/ConveniosArea';
 import CrmVendas from '@/pages/modules/CrmVendas';
 import MargemAverbacao from '@/pages/modules/MargemAverbacao';
 import Formalizacao from '@/pages/modules/Formalizacao';
@@ -16,7 +16,7 @@ import Juridico from '@/pages/modules/Juridico';
 
 // Módulos indexados pelo código da área.
 const MODULES = {
-  convenios: Convenios,
+  convenios: ConveniosArea,
   crm: CrmVendas,
   formalizacao: Formalizacao,
   averbacao: MargemAverbacao,
