@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
+import { Plus, Pencil, ShieldCheck, ShieldAlert, ShieldQuestion, FileCheck2 } from 'lucide-react';
 
 const TABS = [
   { key: 'form', label: 'Formalização & Antifraude' },
@@ -271,6 +271,22 @@ function CcbTab() {
     setOpen(false); load();
   };
 
+  const [gerando, setGerando] = useState(null);
+  const gerarContrato = async (a) => {
+    if (!confirm(`Gerar contrato a partir da CCB ${a.numero || ''}?`)) return;
+    setGerando(a.id);
+    try {
+      const ct = await ccbsApi.gerarContrato(a.id);
+      await auditoriaApi.log('gerar_contrato_ccb', 'contratos', ct?.id || null, { ccb: a.id, numero: ct?.numero_contrato });
+      alert(`Contrato ${ct?.numero_contrato || ''} gerado com cronograma. Veja na aba Contratos.`);
+      load();
+    } catch (err) {
+      alert(err.message || 'Falha ao gerar contrato.');
+    } finally {
+      setGerando(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -297,8 +313,18 @@ function CcbTab() {
                   <td className="px-4 py-3 text-slate-700 hidden md:table-cell">{a.proposta?.cliente?.nome || a.contrato?.cliente?.nome || '—'}</td>
                   <td className="px-4 py-3 text-right text-slate-700 num">{brl(a.valor_principal)}</td>
                   <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{dataBR(a.emitida_em)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${C_CORES[a.status]}`}>{C_STATUS[a.status]}</span></td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(a)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${C_CORES[a.status]}`}>{C_STATUS[a.status]}</span>
+                    {a.contrato?.numero_contrato && <span className="block text-[10px] text-green-700 mt-0.5">→ {a.contrato.numero_contrato}</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      {a.status === 'assinada' && !a.contrato_id && (
+                        <button onClick={() => gerarContrato(a)} disabled={gerando === a.id} title="Gerar contrato" className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded"><FileCheck2 className="w-4 h-4" /></button>
+                      )}
+                      <button onClick={() => openEdit(a)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -333,6 +359,9 @@ function CcbTab() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(C_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
+                {form.status === 'assinada' && (
+                  <p className="text-[11px] text-green-700">Ao salvar, o contrato será gerado automaticamente (nº, parcela e cronograma Price).</p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

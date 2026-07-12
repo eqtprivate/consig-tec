@@ -23,4 +23,10 @@ export const ccbsApi = {
     if (error) throw error;
     return data;
   },
+  // Gera (ou recupera) o contrato a partir da CCB assinada — Estágio 5.
+  async gerarContrato(id) {
+    const { data, error } = await supabase.rpc('gerar_contrato_de_ccb', { p_ccb: id });
+    if (error) throw error;
+    return data;
+  },
 };
