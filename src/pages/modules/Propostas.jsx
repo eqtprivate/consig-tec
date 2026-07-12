@@ -197,6 +197,9 @@ export default function Propostas() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
+                {['reprovada', 'cancelada'].includes(form.status) && (
+                  <p className="text-[11px] text-amber-600">A margem reservada será liberada automaticamente ao salvar.</p>
+                )}
               </div>
             </div>
             <div className="space-y-2"><Label>Observações</Label><Textarea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} /></div>
