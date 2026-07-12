@@ -5,7 +5,7 @@ import { produtosConvenioApi } from '@/lib/api/produtosConvenio';
 import { propostasApi } from '@/lib/api/propostas';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
-import { brl, num } from '@/lib/format';
+import { brl, num, dataBR } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -228,6 +228,7 @@ export default function ConsultaMargem() {
                       <td className="px-4 py-3 text-right">
                         <span className="font-medium text-slate-800">{brl(m.margem_disponivel)}</span>
                         <span className="block text-[10px] text-slate-400">de {brl(m.margem_bruta)}</span>
+                        <span className="block text-[10px] text-slate-400">{m.margem_atualizada_em ? `base ${dataBR(m.margem_atualizada_em)}` : 'base não atualizada'}</span>
                       </td>
                       <td className="px-4 py-3">
                         {ok

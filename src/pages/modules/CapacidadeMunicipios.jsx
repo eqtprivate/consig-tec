@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { capacidadeApi } from '@/lib/api/capacidade';
 import { metasComerciaisApi } from '@/lib/api/crm';
-import { brl } from '@/lib/format';
+import { brl, dataBR } from '@/lib/format';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, Users, Wallet, Star } from 'lucide-react';
 
@@ -122,7 +122,7 @@ export default function CapacidadeMunicipios() {
                   <tr key={r.convenio_id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <p className="font-medium text-slate-800">{r.cidade || r.nome}{r.uf ? `/${r.uf}` : ''}</p>
-                      <p className="text-xs text-slate-500">{r.nome}{r.ativo ? '' : ' · inativo'}</p>
+                      <p className="text-xs text-slate-500">{r.nome}{r.ativo ? '' : ' · inativo'}{r.base_atualizada_em ? ` · base ${dataBR(r.base_atualizada_em)}` : ''}</p>
                     </td>
                     <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${prio.cls}`}>{prio.label}</span></td>
                     <td className="px-4 py-3 text-right text-slate-700">{r.tomadores}</td>

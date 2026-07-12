@@ -5,6 +5,7 @@ import { overlayApi } from '@/lib/api/overlay';
 import { produtosConvenioApi } from '@/lib/api/produtosConvenio';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { importarConveniosCSV } from '@/lib/pixconsigImport';
+import { importarBaseMargemCSV } from '@/lib/margemImport';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Upload, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Package, Wallet } from 'lucide-react';
 
 const TIPOS = { publico: 'Público', privado: 'Privado', inss: 'INSS', militar: 'Militar' };
 const MARGENS = { apartada: 'Apartada', principal: 'Principal', cartao: 'Cartão' };
@@ -48,6 +49,13 @@ export default function Convenios() {
   const [csv, setCsv] = useState('');
   const [importing, setImporting] = useState(false);
   const [importRes, setImportRes] = useState(null);
+
+  // Atualização da base de margem
+  const [margemOpen, setMargemOpen] = useState(false);
+  const [margemConv, setMargemConv] = useState('');
+  const [margemCsv, setMargemCsv] = useState('');
+  const [margemBusy, setMargemBusy] = useState(false);
+  const [margemRes, setMargemRes] = useState(null);
 
   // Produtos por convênio
   const [prodOpen, setProdOpen] = useState(false);
@@ -134,6 +142,28 @@ export default function Convenios() {
     }
   };
 
+  // ---- Base de margem (arquivo da averbadora) ----
+  const handleMargem = async () => {
+    if (!margemConv) { setMargemRes({ erro: 'Selecione o convênio.' }); return; }
+    setMargemBusy(true); setMargemRes(null);
+    try {
+      const res = await importarBaseMargemCSV(margemConv, margemCsv);
+      setMargemRes(res);
+      await auditoriaApi.log('atualizar_base_margem', 'matriculas', margemConv, { atualizados: res.atualizados, total: res.total });
+    } catch (err) {
+      setMargemRes({ erro: err.message || 'Falha na atualização.' });
+    } finally {
+      setMargemBusy(false);
+    }
+  };
+  const onFileMargem = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setMargemCsv(String(reader.result || ''));
+    reader.readAsText(file);
+  };
+
   // ---- Produtos por convênio ----
   const openProdutos = async (c) => {
     setProdConv(c); setProdEdit(null); setProdFormOpen(false);
@@ -194,6 +224,7 @@ export default function Convenios() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">Convênios (espelho PixConsig) + overlay comercial</p>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setMargemConv(''); setMargemCsv(''); setMargemRes(null); setMargemOpen(true); }} className="gap-2"><Wallet className="w-4 h-4" /> Base de margem</Button>
           <Button variant="outline" onClick={() => { setCsv(''); setImportRes(null); setImportOpen(true); }} className="gap-2"><Upload className="w-4 h-4" /> Importar CSV</Button>
           <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo convênio</Button>
         </div>
@@ -309,6 +340,44 @@ export default function Convenios() {
               <Button type="submit">{editItem ? 'Salvar' : 'Criar'}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Atualizar base de margem */}
+      <Dialog open={margemOpen} onOpenChange={setMargemOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Atualizar base de margem (arquivo da averbadora)</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">
+              Sem integração online, a margem é atualizada pelo arquivo periódico da averbadora.
+              Casa por <code className="font-mono text-xs">cpf</code> (+ <code className="font-mono text-xs">matricula</code>, se houver) dentro do convênio e carimba a data de atualização.
+            </p>
+            <div className="space-y-2">
+              <Label>Convênio / Município</Label>
+              <Select value={margemConv} onValueChange={setMargemConv}>
+                <SelectTrigger><SelectValue placeholder="Selecionar convênio" /></SelectTrigger>
+                <SelectContent>
+                  {convenios.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}{c.entidade?.uf ? ` — ${c.entidade.uf}` : ''}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Input type="file" accept=".csv,text/csv" onChange={onFileMargem} />
+            <Textarea rows={6} value={margemCsv} onChange={(e) => setMargemCsv(e.target.value)} placeholder="cpf,matricula,margem,situacao,salario" className="font-mono text-xs" />
+            {margemRes && (
+              margemRes.erro ? (
+                <p className="text-sm text-red-600">{margemRes.erro}</p>
+              ) : (
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
+                  <b>{margemRes.atualizados}</b> vínculo(s) atualizado(s) de <b>{margemRes.total}</b> ·
+                  {' '}{margemRes.nao_encontrados} não encontrado(s) · {margemRes.ignorados} ignorado(s).
+                </div>
+              )
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setMargemOpen(false)}>Fechar</Button>
+            <Button onClick={handleMargem} disabled={margemBusy || !margemCsv.trim() || !margemConv}>{margemBusy ? 'Atualizando…' : 'Atualizar margem'}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
