@@ -51,6 +51,10 @@ const AREA_SUBITEMS = {
     { key: 'lgpd', label: 'LGPD — Titular' },
     { key: 'chamados', label: 'Chamados jurídicos' },
   ],
+  suporte: [
+    { key: 'internos', label: 'Chamados Internos' },
+    { key: 'suporte', label: 'Chamados (suporte)' },
+  ],
 };
 
 function Badge({ value, tone = 'default' }) {

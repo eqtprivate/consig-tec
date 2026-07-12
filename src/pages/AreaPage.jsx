@@ -11,7 +11,7 @@ import Financeiro from '@/pages/modules/Financeiro';
 import Comissoes from '@/pages/modules/Comissoes';
 import Cessao from '@/pages/modules/Cessao';
 import Cobranca from '@/pages/modules/Cobranca';
-import Chamados from '@/pages/modules/Chamados';
+import Suporte from '@/pages/modules/Suporte';
 import Juridico from '@/pages/modules/Juridico';
 import AdminHub from '@/pages/modules/AdminHub';
 
@@ -25,7 +25,7 @@ const MODULES = {
   comissoes: Comissoes,
   cessao_fidc: Cessao,
   cobranca: Cobranca,
-  suporte: Chamados,
+  suporte: Suporte,
   juridico: Juridico,
   admin: AdminHub,
 };
