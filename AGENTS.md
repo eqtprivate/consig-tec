@@ -32,3 +32,13 @@ npx skills add base44/skills
 - Prefer the existing Base44 CLI workflow over adding new npm scripts for Base44-specific tasks.
 - Reuse the existing SDK client and Vite plugin patterns before adding new Base44 integration paths.
 - Run the relevant checks from `package.json` before finishing code changes.
+
+## Versionamento (adotado)
+
+- A cada ENTREGA/deploy, subir a versão em `package.json` conforme semver:
+  - **patch** (1.0.x): correções e ajustes pequenos
+  - **minor** (1.x.0): novas telas/funcionalidades
+  - **major** (x.0.0): mudanças grandes de fluxo
+- O rodapé da sidebar mostra `CONSIGTEC v{version} · {data do build}` (via
+  `vite.config` → `__APP_VERSION__`/`__BUILD_TIME__` e `src/lib/version.js`).
+- Bump a versão no MESMO commit da entrega (não em commit separado).
