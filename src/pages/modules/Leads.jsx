@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { leadsApi, campanhasApi, interacoesApi, oportunidadesApi, motivosPerdaApi, roteiroApi } from '@/lib/api/crm';
 import { clientesApi } from '@/lib/api/clientes';
+import { conveniosApi } from '@/lib/api/convenios';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
@@ -30,8 +31,11 @@ const RESULTADO = {
   atendeu: 'Atendeu', nao_atendeu: 'Não atendeu', caixa_postal: 'Caixa postal', numero_errado: 'Número errado',
   sem_interesse: 'Sem interesse', agendar_retorno: 'Agendar retorno', qualificado: 'Qualificado', nao_perturbe: 'Não perturbe',
 };
-const emptyForm = { nome: '', telefone: '', email: '', cpf: '', origem: '', campanha_id: '', status: 'novo', valor_estimado: '', observacao: '' };
+const emptyForm = { nome: '', telefone: '', email: '', cpf: '', origem: '', campanha_id: '', convenio_id: '', status: 'novo', valor_estimado: '', observacao: '' };
 const num = (v) => (v === '' || v == null ? null : Number(v));
+const PRIOR_ORDER = { alta: 0, media: 1, baixa: 2, sem_prioridade: 3 };
+const PRIOR_LABEL = { alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+const PRIOR_COR = { alta: 'bg-green-50 text-green-700', media: 'bg-amber-50 text-amber-700', baixa: 'bg-slate-100 text-slate-500' };
 const fmtDT = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 
 export default function Leads() {
@@ -53,26 +57,29 @@ export default function Leads() {
   const [roteiro, setRoteiro] = useState([]);
   const [showRoteiro, setShowRoteiro] = useState(false);
 
-  // Operadores, filtro, importação e distribuição
+  // Operadores, convênios, filtro, importação e distribuição
   const [operadores, setOperadores] = useState([]);
+  const [convenios, setConvenios] = useState([]);
   const [filtroResp, setFiltroResp] = useState('todos'); // todos | meus | <id>
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importCampanha, setImportCampanha] = useState('');
+  const [importConvenio, setImportConvenio] = useState('');
   const [importing, setImporting] = useState(false);
   const [distribuindo, setDistribuindo] = useState(false);
 
   const load = async () => {
     setLoading(true);
     const f = activeUnidade ? { franquia_id: activeUnidade.id } : {};
-    const [l, c, u, mp, rt] = await Promise.all([
+    const [l, c, u, mp, rt, cv] = await Promise.all([
       leadsApi.list(f).catch(() => []),
       campanhasApi.list(f).catch(() => []),
       usuariosApi.list().catch(() => []),
       motivosPerdaApi.list().catch(() => []),
       roteiroApi.list().catch(() => []),
+      conveniosApi.list().catch(() => []),
     ]);
-    setLeads(l); setCampanhas(c);
+    setLeads(l); setCampanhas(c); setConvenios(cv);
     setOperadores(u.filter((x) => x.ativo));
     setMotivos(mp); setRoteiro(rt);
     setLoading(false);
@@ -107,6 +114,7 @@ export default function Leads() {
         email: iEmail >= 0 ? p[iEmail] || null : null,
         origem: (iOrig >= 0 ? p[iOrig] : null) || 'mailing',
         campanha_id: importCampanha || null,
+        convenio_id: importConvenio || null,
         status: 'novo',
         franquia_id: activeUnidade?.id || null,
       };
@@ -117,7 +125,7 @@ export default function Leads() {
       await leadsApi.createMany(registros);
       await auditoriaApi.log('importar_mailing', 'leads', null, { qtd: registros.length });
       alert(`${registros.length} lead(s) importado(s).`);
-      setImportOpen(false); setImportText(''); setImportCampanha(''); load();
+      setImportOpen(false); setImportText(''); setImportCampanha(''); setImportConvenio(''); load();
     } catch (err) { alert(err.message || 'Falha na importação.'); }
     finally { setImporting(false); }
   };
@@ -150,12 +158,12 @@ export default function Leads() {
   const openCreate = () => { setEdit(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (l) => {
     setEdit(l);
-    setForm({ nome: l.nome, telefone: l.telefone || '', email: l.email || '', cpf: l.cpf || '', origem: l.origem || '', campanha_id: l.campanha_id || '', status: l.status, valor_estimado: l.valor_estimado ?? '', observacao: l.observacao || '' });
+    setForm({ nome: l.nome, telefone: l.telefone || '', email: l.email || '', cpf: l.cpf || '', origem: l.origem || '', campanha_id: l.campanha_id || '', convenio_id: l.convenio_id || '', status: l.status, valor_estimado: l.valor_estimado ?? '', observacao: l.observacao || '' });
     setOpen(true);
   };
   const handleSave = async (e) => {
     e.preventDefault();
-    const payload = { nome: form.nome, telefone: form.telefone || null, email: form.email || null, cpf: form.cpf || null, origem: form.origem || null, campanha_id: form.campanha_id || null, status: form.status, valor_estimado: num(form.valor_estimado), observacao: form.observacao || null };
+    const payload = { nome: form.nome, telefone: form.telefone || null, email: form.email || null, cpf: form.cpf || null, origem: form.origem || null, campanha_id: form.campanha_id || null, convenio_id: form.convenio_id || null, status: form.status, valor_estimado: num(form.valor_estimado), observacao: form.observacao || null };
     try {
       if (edit) { await leadsApi.update(edit.id, payload); await auditoriaApi.log('editar_lead', 'leads', edit.id, {}); }
       else { await leadsApi.create({ ...payload, franquia_id: activeUnidade?.id || null }); await auditoriaApi.log('criar_lead', 'leads', null, {}); }
@@ -211,7 +219,8 @@ export default function Leads() {
       await interacoesApi.create({ lead_id: atender.id, operador_id: perfil?.id || null, franquia_id: activeUnidade?.id || null, tipo: 'ligacao', resultado: 'qualificado', observacao: 'Lead qualificado' });
       // 4) Abre a oportunidade já com o tomador
       await oportunidadesApi.create({
-        lead_id: atender.id, cliente_id: clienteId, operador_id: perfil?.id || null, franquia_id: activeUnidade?.id || null,
+        lead_id: atender.id, cliente_id: clienteId, convenio_id: atender.convenio_id || null,
+        operador_id: perfil?.id || null, franquia_id: activeUnidade?.id || null,
         produto: 'cartao_beneficio', valor_estimado: atender.valor_estimado ?? null, etapa: 'qualificacao', probabilidade: 50,
       });
       await auditoriaApi.log('qualificar_lead', 'leads', atender.id, { cliente_id: clienteId, dedup });
@@ -222,9 +231,16 @@ export default function Leads() {
 
   const funil = ORDER.map((s) => ({ status: s, n: leads.filter((l) => l.status === s).length }));
   const max = Math.max(1, ...funil.map((f) => f.n));
-  const leadsView = leads.filter((l) =>
-    filtroResp === 'todos' ? true : filtroResp === 'meus' ? l.responsavel_id === perfil?.id : l.responsavel_id === filtroResp
-  );
+  const prioridadeLead = (l) => PRIOR_ORDER[l.convenio?.prioridade_comercial] ?? 3;
+  const leadsView = leads
+    .filter((l) => filtroResp === 'todos' ? true : filtroResp === 'meus' ? l.responsavel_id === perfil?.id : l.responsavel_id === filtroResp)
+    .sort((a, b) => {
+      const pa = prioridadeLead(a), pb = prioridadeLead(b);
+      if (pa !== pb) return pa - pb; // município prioritário primeiro
+      const ta = a.proximo_contato ? new Date(a.proximo_contato).getTime() : Infinity;
+      const tb = b.proximo_contato ? new Date(b.proximo_contato).getTime() : Infinity;
+      return ta - tb; // depois por retorno agendado (mais urgente antes)
+    });
 
   return (
     <div className="space-y-4">
@@ -286,7 +302,14 @@ export default function Leads() {
                 const vencido = l.proximo_contato && new Date(l.proximo_contato).getTime() <= agora;
                 return (
                   <tr key={l.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{l.nome}</td>
+                    <td className="px-4 py-3 font-medium text-slate-800">
+                      <span className="inline-flex items-center gap-2">
+                        {l.nome}
+                        {PRIOR_LABEL[l.convenio?.prioridade_comercial] && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${PRIOR_COR[l.convenio.prioridade_comercial]}`} title={`Município ${PRIOR_LABEL[l.convenio.prioridade_comercial]} — ${l.convenio.nome}`}>{PRIOR_LABEL[l.convenio.prioridade_comercial]}</span>
+                        )}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       {l.telefone ? (
                         <span className="inline-flex items-center gap-2">
@@ -337,6 +360,13 @@ export default function Leads() {
                 </Select>
               </div>
               <div className="space-y-2"><Label>Origem</Label><Input value={form.origem} onChange={(e) => setForm({ ...form, origem: e.target.value })} placeholder="mailing, indicação..." /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>Convênio / Município</Label>
+              <Select value={form.convenio_id} onValueChange={(v) => setForm({ ...form, convenio_id: v })}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>{convenios.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}{PRIOR_LABEL[c.prioridade_comercial] ? ` · ${PRIOR_LABEL[c.prioridade_comercial]}` : ''}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -447,12 +477,21 @@ export default function Leads() {
         <DialogContent>
           <DialogHeader><DialogTitle>Importar mailing</DialogTitle></DialogHeader>
           <form onSubmit={importarCSV} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Campanha (opcional)</Label>
-              <Select value={importCampanha} onValueChange={setImportCampanha}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{campanhas.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Campanha (opcional)</Label>
+                <Select value={importCampanha} onValueChange={setImportCampanha}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{campanhas.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Convênio/Município (opcional)</Label>
+                <Select value={importConvenio} onValueChange={setImportConvenio}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{convenios.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Dados (CSV — colunas: nome, telefone, cpf, email, origem)</Label>

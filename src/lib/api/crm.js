@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 export const leadsApi = {
   async list(filters = {}) {
     let query = supabase.from('leads')
-      .select('*, campanha:campanhas(id, nome), responsavel:usuarios(nome)')
+      .select('*, campanha:campanhas(id, nome), responsavel:usuarios(nome), convenio:convenios(id, nome, prioridade_comercial)')
       .order('created_at', { ascending: false });
     if (filters.franquia_id) query = query.eq('franquia_id', filters.franquia_id);
     if (filters.status) query = query.eq('status', filters.status);

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { conveniosApi } from '@/lib/api/convenios';
 import { metasComerciaisApi } from '@/lib/api/crm';
+import { notificacoesApi } from '@/lib/api/notificacoes';
+import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { brl, num } from '@/lib/format';
@@ -10,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Target, Pencil } from 'lucide-react';
+import { Target, Pencil, BellRing } from 'lucide-react';
 
 const PRIOR = { alta: 'Alta', media: 'Média', baixa: 'Baixa', sem_prioridade: 'Sem prioridade' };
 const PRIOR_ORDER = { alta: 0, media: 1, baixa: 2, sem_prioridade: 3 };
@@ -42,6 +44,37 @@ export default function ComercialPlanejamento() {
 
   const metaDe = (cid) => metas.find((m) => m.convenio_id === cid);
   const realDe = (cid) => realizado.find((r) => r.convenio_id === cid) || { vendas: 0, valor: 0 };
+
+  // Ritmo esperado até hoje (proporcional ao dia do mês)
+  const hojeD = new Date();
+  const ritmo = hojeD.getDate() / new Date(hojeD.getFullYear(), hojeD.getMonth() + 1, 0).getDate();
+  const abaixoRitmo = (c) => {
+    const m = metaDe(c.id);
+    if (!m?.meta_vendas) return false;
+    if (!['alta', 'media'].includes(c.prioridade_comercial)) return false;
+    return Number(realDe(c.id).vendas) < m.meta_vendas * ritmo * 0.8; // 80% do ritmo
+  };
+
+  const enviarAlertas = async () => {
+    const abaixo = convenios.filter(abaixoRitmo);
+    if (abaixo.length === 0) return alert('Nenhum município prioritário abaixo do ritmo. 👏');
+    if (!confirm(`Enviar alerta de ${abaixo.length} município(s) abaixo da meta aos administradores?`)) return;
+    try {
+      const admins = (await usuariosApi.list().catch(() => [])).filter((u) => u.ativo && ['admin', 'superadmin'].includes(u.role) && u.email).map((u) => u.email);
+      if (admins.length === 0) return alert('Nenhum admin com e-mail para notificar.');
+      const linhas = abaixo.map((c) => {
+        const m = metaDe(c.id); const r = realDe(c.id);
+        return `<li><b>${c.nome}</b> (${PRIOR[c.prioridade_comercial]}): ${r.vendas}/${m.meta_vendas} vendas — ritmo esperado ~${Math.round(m.meta_vendas * ritmo)}</li>`;
+      }).join('');
+      await notificacoesApi.enqueue({
+        evento: 'alerta_meta_comercial', destinatarios: admins, canal: 'email',
+        assunto: `CONSIGTEC — ${abaixo.length} município(s) abaixo da meta (${competencia})`,
+        corpo: `<p>Municípios prioritários abaixo do ritmo da meta em ${competencia}:</p><ul>${linhas}</ul><p>Acesse o Planejamento Comercial para agir.</p>`,
+      });
+      await auditoriaApi.log('alerta_meta_comercial', 'metas_comerciais', null, { qtd: abaixo.length });
+      alert(`Alerta enfileirado para ${admins.length} admin(s). Envio pelo Resend (Admin → Notificações → Processar fila).`);
+    } catch (err) { alert(err.message || 'Falha ao enfileirar alerta.'); }
+  };
 
   const abrir = (c) => {
     setAlvo(c);
@@ -76,8 +109,9 @@ export default function ComercialPlanejamento() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm text-slate-500 inline-flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Planejamento comercial — prioridade dos municípios e metas ({competencia})</p>
+        {isAdmin && <Button variant="outline" onClick={enviarAlertas} className="gap-2"><BellRing className="w-4 h-4" /> Enviar alertas de meta</Button>}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -101,7 +135,10 @@ export default function ComercialPlanejamento() {
                 return (
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-800">{c.nome}</td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${PRIOR_COR[c.prioridade_comercial]}`}>{PRIOR[c.prioridade_comercial]}</span></td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${PRIOR_COR[c.prioridade_comercial]}`}>{PRIOR[c.prioridade_comercial]}</span>
+                      {abaixoRitmo(c) && <span className="ml-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600" title="Abaixo do ritmo da meta"><BellRing className="w-3 h-3" /> ritmo</span>}
+                    </td>
                     <td className="px-4 py-3 text-right text-slate-600 num hidden sm:table-cell">{c.potencial_vendas ?? '—'}</td>
                     <td className="px-4 py-3 text-right text-slate-700 num">{meta?.meta_vendas ?? '—'}</td>
                     <td className="px-4 py-3 text-right num font-medium text-green-700">{real.vendas} · {brl(real.valor)}</td>
