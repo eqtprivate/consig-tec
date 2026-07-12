@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { produtividadeApi, metasApi, oportunidadesApi } from '@/lib/api/crm';
+import { produtividadeApi, metasApi, oportunidadesApi, metasComerciaisApi } from '@/lib/api/crm';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Phone } from 'lucide-react';
+import { Plus, Pencil, Target } from 'lucide-react';
 
 function primeiroDiaMes() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; }
 function hojeStr() { return new Date().toISOString().slice(0, 10); }
@@ -60,6 +60,29 @@ export default function PainelCallCenter() {
       else { await metasApi.create(payload); await auditoriaApi.log('criar_meta', 'metas_operador', null, {}); }
       setOpen(false); load();
     } catch (err) { alert(err.message || 'Falha ao salvar meta (pode já existir para o operador nesta competência).'); }
+  };
+
+  const derivarMetas = async () => {
+    const ops = operadores;
+    if (ops.length === 0) return alert('Nenhum operador ativo.');
+    if (!confirm(`Derivar as metas comerciais de ${competencia} e distribuir entre ${ops.length} operador(es)?`)) return;
+    try {
+      const com = await metasComerciaisApi.list({ competencia }).catch(() => []);
+      const totVendas = com.reduce((s, m) => s + Number(m.meta_vendas || 0), 0);
+      const totValor = com.reduce((s, m) => s + Number(m.meta_valor || 0), 0);
+      if (totVendas === 0 && totValor === 0) return alert('Sem metas comerciais definidas para este mês.');
+      const perVendas = Math.ceil(totVendas / ops.length);
+      const perValor = Math.round((totValor / ops.length) * 100) / 100;
+      for (const op of ops) {
+        const existente = metas.find((m) => m.operador_id === op.id);
+        const payload = { operador_id: op.id, franquia_id: activeUnidade?.id || null, competencia, meta_vendas: perVendas, meta_valor: perValor };
+        if (existente) await metasApi.update(existente.id, { meta_vendas: perVendas, meta_valor: perValor });
+        else await metasApi.create(payload);
+      }
+      await auditoriaApi.log('derivar_metas_operador', 'metas_operador', null, { operadores: ops.length, competencia });
+      alert(`Metas derivadas: ${perVendas} venda(s) e ${brl(perValor)} por operador.`);
+      load();
+    } catch (err) { alert(err.message || 'Falha ao derivar metas.'); }
   };
 
   // Totais
@@ -177,9 +200,14 @@ export default function PainelCallCenter() {
 
       {/* Metas do mês */}
       <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 className="text-sm font-semibold text-slate-800">Metas — {competencia}</h3>
-          {isAdmin && <Button size="sm" onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova meta</Button>}
+          {isAdmin && (
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={derivarMetas} className="gap-2"><Target className="w-4 h-4" /> Derivar das comerciais</Button>
+              <Button size="sm" onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova meta</Button>
+            </div>
+          )}
         </div>
         {metas.length === 0 ? <p className="text-sm text-slate-400">Nenhuma meta definida para {competencia}.</p>
         : (

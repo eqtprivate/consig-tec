@@ -132,7 +132,9 @@ export default function Leads() {
 
   // ---- Distribuir leads não atribuídos (round-robin) ----
   const distribuir = async () => {
-    const semDono = leads.filter((l) => !l.responsavel_id && !['convertido', 'perdido'].includes(l.status));
+    const semDono = leads
+      .filter((l) => !l.responsavel_id && !['convertido', 'perdido'].includes(l.status))
+      .sort((a, b) => (PRIOR_ORDER[a.convenio?.prioridade_comercial] ?? 3) - (PRIOR_ORDER[b.convenio?.prioridade_comercial] ?? 3));
     if (semDono.length === 0) return alert('Não há leads sem operador para distribuir.');
     if (operadores.length === 0) return alert('Nenhum operador ativo.');
     if (!confirm(`Distribuir ${semDono.length} lead(s) entre ${operadores.length} operador(es)?`)) return;
