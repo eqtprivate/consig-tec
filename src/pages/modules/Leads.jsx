@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { leadsApi, campanhasApi, interacoesApi, oportunidadesApi } from '@/lib/api/crm';
+import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { brl } from '@/lib/format';
@@ -9,7 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Phone, CalendarClock, CheckCircle2 } from 'lucide-react';
+import { Plus, Pencil, Phone, CalendarClock, CheckCircle2, Upload, MessageCircle, Shuffle } from 'lucide-react';
+
+const soDigitos = (s) => (s || '').replace(/\D/g, '');
+const telHref = (t) => `tel:+55${soDigitos(t)}`;
+const waHref = (t) => `https://wa.me/55${soDigitos(t)}`;
 
 const STATUS = { novo: 'Novo', contatado: 'Contatado', qualificado: 'Qualificado', convertido: 'Convertido', perdido: 'Perdido' };
 const ORDER = ['novo', 'contatado', 'qualificado', 'convertido', 'perdido'];
@@ -27,7 +32,7 @@ const num = (v) => (v === '' || v == null ? null : Number(v));
 const fmtDT = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 
 export default function Leads() {
-  const { activeUnidade, perfil } = useAuth();
+  const { activeUnidade, perfil, isAdmin } = useAuth();
   const [leads, setLeads] = useState([]);
   const [campanhas, setCampanhas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +47,90 @@ export default function Leads() {
   const [intForm, setIntForm] = useState(emptyInt);
   const [savingInt, setSavingInt] = useState(false);
 
+  // Operadores, filtro, importação e distribuição
+  const [operadores, setOperadores] = useState([]);
+  const [filtroResp, setFiltroResp] = useState('todos'); // todos | meus | <id>
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importCampanha, setImportCampanha] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [distribuindo, setDistribuindo] = useState(false);
+
   const load = async () => {
     setLoading(true);
     const f = activeUnidade ? { franquia_id: activeUnidade.id } : {};
-    const [l, c] = await Promise.all([leadsApi.list(f).catch(() => []), campanhasApi.list(f).catch(() => [])]);
-    setLeads(l); setCampanhas(c); setLoading(false);
+    const [l, c, u] = await Promise.all([
+      leadsApi.list(f).catch(() => []),
+      campanhasApi.list(f).catch(() => []),
+      usuariosApi.list().catch(() => []),
+    ]);
+    setLeads(l); setCampanhas(c);
+    setOperadores(u.filter((x) => x.ativo));
+    setLoading(false);
   };
   useEffect(() => { load(); }, [activeUnidade]);
+
+  const nomeOperador = (id) => operadores.find((o) => o.id === id)?.nome || '—';
+
+  // ---- Importar mailing (CSV) ----
+  const importarCSV = async (e) => {
+    e.preventDefault();
+    const linhas = importText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (linhas.length === 0) return alert('Cole os dados do mailing.');
+    // Detecta cabeçalho
+    let header = null;
+    const primeira = linhas[0].toLowerCase();
+    if (/nome|telefone|cpf/.test(primeira)) header = linhas.shift().split(/[;,\t]/).map((h) => h.trim().toLowerCase());
+    const col = (arr, nomes) => { const i = header ? header.findIndex((h) => nomes.includes(h)) : -1; return i; };
+    const iNome = header ? col(header, ['nome']) : 0;
+    const iTel = header ? col(header, ['telefone', 'fone', 'celular']) : 1;
+    const iCpf = header ? col(header, ['cpf']) : 2;
+    const iEmail = header ? col(header, ['email', 'e-mail']) : 3;
+    const iOrig = header ? col(header, ['origem']) : 4;
+    const registros = linhas.map((linha) => {
+      const p = linha.split(/[;,\t]/).map((x) => x.trim());
+      const nome = (iNome >= 0 ? p[iNome] : '') || '';
+      if (!nome) return null;
+      return {
+        nome,
+        telefone: iTel >= 0 ? p[iTel] || null : null,
+        cpf: iCpf >= 0 ? p[iCpf] || null : null,
+        email: iEmail >= 0 ? p[iEmail] || null : null,
+        origem: (iOrig >= 0 ? p[iOrig] : null) || 'mailing',
+        campanha_id: importCampanha || null,
+        status: 'novo',
+        franquia_id: activeUnidade?.id || null,
+      };
+    }).filter(Boolean);
+    if (registros.length === 0) return alert('Nenhuma linha válida (é preciso ao menos o nome).');
+    setImporting(true);
+    try {
+      await leadsApi.createMany(registros);
+      await auditoriaApi.log('importar_mailing', 'leads', null, { qtd: registros.length });
+      alert(`${registros.length} lead(s) importado(s).`);
+      setImportOpen(false); setImportText(''); setImportCampanha(''); load();
+    } catch (err) { alert(err.message || 'Falha na importação.'); }
+    finally { setImporting(false); }
+  };
+
+  // ---- Distribuir leads não atribuídos (round-robin) ----
+  const distribuir = async () => {
+    const semDono = leads.filter((l) => !l.responsavel_id && !['convertido', 'perdido'].includes(l.status));
+    if (semDono.length === 0) return alert('Não há leads sem operador para distribuir.');
+    if (operadores.length === 0) return alert('Nenhum operador ativo.');
+    if (!confirm(`Distribuir ${semDono.length} lead(s) entre ${operadores.length} operador(es)?`)) return;
+    setDistribuindo(true);
+    try {
+      for (let i = 0; i < semDono.length; i++) {
+        const op = operadores[i % operadores.length];
+        await leadsApi.update(semDono[i].id, { responsavel_id: op.id });
+      }
+      await auditoriaApi.log('distribuir_leads', 'leads', null, { qtd: semDono.length });
+      alert('Leads distribuídos.');
+      load();
+    } catch (err) { alert(err.message || 'Falha ao distribuir.'); }
+    finally { setDistribuindo(false); }
+  };
 
   // Fila de trabalho: ativos (não perdidos/convertidos) ordenados por urgência
   const agora = Date.now();
@@ -110,12 +192,27 @@ export default function Leads() {
 
   const funil = ORDER.map((s) => ({ status: s, n: leads.filter((l) => l.status === s).length }));
   const max = Math.max(1, ...funil.map((f) => f.n));
+  const leadsView = leads.filter((l) =>
+    filtroResp === 'todos' ? true : filtroResp === 'meus' ? l.responsavel_id === perfil?.id : l.responsavel_id === filtroResp
+  );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-sm text-slate-500">Leads e discagem — fila de trabalho do call center</p>
-        <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo lead</Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={filtroResp} onValueChange={setFiltroResp}>
+            <SelectTrigger className="h-9 w-40 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os leads</SelectItem>
+              <SelectItem value="meus">Meus leads</SelectItem>
+              {operadores.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {isAdmin && <Button variant="outline" onClick={distribuir} disabled={distribuindo} className="gap-2"><Shuffle className="w-4 h-4" /> Distribuir</Button>}
+          {isAdmin && <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2"><Upload className="w-4 h-4" /> Importar</Button>}
+          <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo lead</Button>
+        </div>
       </div>
 
       {/* Resumo da fila + funil */}
@@ -142,24 +239,33 @@ export default function Leads() {
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : leads.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum lead.</div>
+        : leadsView.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum lead.</div>
         : (
           <table className="w-full text-sm">
             <thead><tr className="border-b border-slate-200 bg-slate-50">
               <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nome</th>
               <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Telefone</th>
+              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden xl:table-cell">Operador</th>
               <th className="text-center px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Tent.</th>
               <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Próx. contato</th>
               <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
               <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
-              {leads.map((l) => {
+              {leadsView.map((l) => {
                 const vencido = l.proximo_contato && new Date(l.proximo_contato).getTime() <= agora;
                 return (
                   <tr key={l.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-800">{l.nome}</td>
-                    <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{l.telefone || '—'}</td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {l.telefone ? (
+                        <span className="inline-flex items-center gap-2">
+                          <a href={telHref(l.telefone)} className="text-slate-600 hover:text-primary">{l.telefone}</a>
+                          <a href={waHref(l.telefone)} target="_blank" rel="noreferrer" title="WhatsApp" className="text-green-600 hover:text-green-700"><MessageCircle className="w-3.5 h-3.5" /></a>
+                        </span>
+                      ) : <span className="text-slate-400">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 hidden xl:table-cell text-xs">{l.responsavel_id ? nomeOperador(l.responsavel_id) : <span className="text-slate-300">não atribuído</span>}</td>
                     <td className="px-4 py-3 text-center text-slate-500 hidden sm:table-cell num">{l.tentativas || 0}</td>
                     <td className={`px-4 py-3 hidden lg:table-cell text-xs ${vencido ? 'text-amber-600 font-medium' : 'text-slate-500'}`}>
                       {l.proximo_contato ? <span className="inline-flex items-center gap-1"><CalendarClock className="w-3 h-3" /> {fmtDT(l.proximo_contato)}</span> : '—'}
@@ -216,8 +322,13 @@ export default function Leads() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" /> {atender?.nome}</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center gap-4 text-sm text-slate-600 -mt-1">
-            <span>{atender?.telefone || 'sem telefone'}</span>
+          <div className="flex items-center gap-3 text-sm text-slate-600 -mt-1 flex-wrap">
+            {atender?.telefone ? (
+              <span className="inline-flex items-center gap-2">
+                <a href={telHref(atender.telefone)} className="inline-flex items-center gap-1 text-primary font-medium"><Phone className="w-3.5 h-3.5" /> {atender.telefone}</a>
+                <a href={waHref(atender.telefone)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-green-600"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</a>
+              </span>
+            ) : <span className="text-slate-400">sem telefone</span>}
             {atender?.cpf && <span className="text-slate-400">CPF {atender.cpf}</span>}
             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CHIP[atender?.status]}`}>{STATUS[atender?.status]}</span>
           </div>
@@ -268,6 +379,32 @@ export default function Leads() {
             <Button type="button" variant="outline" onClick={qualificar} className="text-green-700">Qualificar → Oportunidade</Button>
             <Button type="button" variant="outline" onClick={() => setAtender(null)}>Fechar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Importar mailing (CSV) */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Importar mailing</DialogTitle></DialogHeader>
+          <form onSubmit={importarCSV} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Campanha (opcional)</Label>
+              <Select value={importCampanha} onValueChange={setImportCampanha}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>{campanhas.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Dados (CSV — colunas: nome, telefone, cpf, email, origem)</Label>
+              <Textarea rows={8} value={importText} onChange={(e) => setImportText(e.target.value)}
+                placeholder={'nome;telefone;cpf;email;origem\nMaria Silva;11999998888;12345678900;maria@x.com;mailing\nJoão Souza;11988887777;;;lista fria'} />
+              <p className="text-xs text-slate-400">Aceita separador vírgula, ponto-e-vírgula ou tab. A 1ª linha pode ser cabeçalho. Só o nome é obrigatório.</p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setImportOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={importing} className="gap-2"><Upload className="w-4 h-4" /> {importing ? 'Importando…' : 'Importar'}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

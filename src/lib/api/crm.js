@@ -21,6 +21,31 @@ export const leadsApi = {
     if (error) throw error;
     return data;
   },
+  async createMany(items) {
+    const { data, error } = await supabase.from('leads').insert(items).select('id');
+    if (error) throw error;
+    return data;
+  },
+};
+
+export const metasApi = {
+  async list(filters = {}) {
+    let q = supabase.from('metas_operador').select('*, operador:usuarios(nome)').order('competencia', { ascending: false });
+    if (filters.competencia) q = q.eq('competencia', filters.competencia);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async create(item) { const { data, error } = await supabase.from('metas_operador').insert(item).select().single(); if (error) throw error; return data; },
+  async update(id, u) { const { data, error } = await supabase.from('metas_operador').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+};
+
+export const produtividadeApi = {
+  async periodo(de, ate) {
+    const { data, error } = await supabase.rpc('produtividade_callcenter', { p_de: de, p_ate: ate });
+    if (error) throw error;
+    return data;
+  },
 };
 
 export const interacoesApi = {

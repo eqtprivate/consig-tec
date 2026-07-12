@@ -4,6 +4,7 @@ import Oportunidades from '@/pages/modules/Oportunidades';
 import Clientes from '@/pages/modules/Clientes';
 import Propostas from '@/pages/modules/Propostas';
 import Campanhas from '@/pages/modules/Campanhas';
+import PainelCallCenter from '@/pages/modules/PainelCallCenter';
 
 const TABS = [
   { key: 'leads', label: 'Leads & Discagem' },
@@ -11,6 +12,7 @@ const TABS = [
   { key: 'clientes', label: 'Tomadores' },
   { key: 'propostas', label: 'Propostas' },
   { key: 'campanhas', label: 'Campanhas' },
+  { key: 'painel', label: 'Painel' },
 ];
 
 export default function CrmVendas() {
@@ -22,6 +24,7 @@ export default function CrmVendas() {
       case 'clientes': return <Clientes />;
       case 'propostas': return <Propostas />;
       case 'campanhas': return <Campanhas />;
+      case 'painel': return <PainelCallCenter />;
       default: return null;
     }
   };
