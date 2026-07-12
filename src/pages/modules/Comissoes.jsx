@@ -72,7 +72,7 @@ function ComissoesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Comissões por contrato e beneficiário</p>
+        <p className="text-sm text-slate-500">Comissões por contrato e beneficiário — provisionadas automaticamente ao gerar o contrato</p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setCalcOpen(true)} className="gap-2"><Calculator className="w-4 h-4" /> Calcular (motor)</Button>
           <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova</Button>
