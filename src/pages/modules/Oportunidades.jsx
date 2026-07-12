@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { oportunidadesApi } from '@/lib/api/crm';
+import { oportunidadesApi, motivosPerdaApi } from '@/lib/api/crm';
 import { clientesApi } from '@/lib/api/clientes';
 import { conveniosApi } from '@/lib/api/convenios';
 import { propostasApi } from '@/lib/api/propostas';
@@ -23,7 +23,7 @@ const ETAPA_COR = {
 const PRODUTO = { cartao_beneficio: 'Cartão benefício', consignado: 'Consignado', cartao_credito: 'Cartão de crédito', saque_complementar: 'Saque complementar' };
 const emptyForm = {
   cliente_id: '', convenio_id: '', produto: 'cartao_beneficio', valor_estimado: '', taxa_estimada: '',
-  prazo_estimado: '', valor_parcela: '', etapa: 'qualificacao', probabilidade: '50', motivo_perda: '', observacao: '',
+  prazo_estimado: '', valor_parcela: '', etapa: 'qualificacao', probabilidade: '50', motivo_perda_id: '', motivo_perda: '', observacao: '',
 };
 
 export default function Oportunidades() {
@@ -31,6 +31,7 @@ export default function Oportunidades() {
   const [itens, setItens] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [convenios, setConvenios] = useState([]);
+  const [motivos, setMotivos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
@@ -40,12 +41,13 @@ export default function Oportunidades() {
   const load = async () => {
     setLoading(true);
     const f = activeUnidade ? { franquia_id: activeUnidade.id } : {};
-    const [o, c, cv] = await Promise.all([
+    const [o, c, cv, mp] = await Promise.all([
       oportunidadesApi.list(f).catch(() => []),
       clientesApi.list().catch(() => []),
       conveniosApi.list().catch(() => []),
+      motivosPerdaApi.list().catch(() => []),
     ]);
-    setItens(o); setClientes(c); setConvenios(cv); setLoading(false);
+    setItens(o); setClientes(c); setConvenios(cv); setMotivos(mp); setLoading(false);
   };
   useEffect(() => { load(); }, [activeUnidade]);
 
@@ -55,7 +57,7 @@ export default function Oportunidades() {
     setForm({
       cliente_id: o.cliente_id || '', convenio_id: o.convenio_id || '', produto: o.produto, valor_estimado: o.valor_estimado ?? '',
       taxa_estimada: o.taxa_estimada ?? '', prazo_estimado: o.prazo_estimado ?? '', valor_parcela: o.valor_parcela ?? '',
-      etapa: o.etapa, probabilidade: String(o.probabilidade ?? 50), motivo_perda: o.motivo_perda || '', observacao: o.observacao || '',
+      etapa: o.etapa, probabilidade: String(o.probabilidade ?? 50), motivo_perda_id: o.motivo_perda_id || '', motivo_perda: o.motivo_perda || '', observacao: o.observacao || '',
     });
     setOpen(true);
   };
@@ -80,6 +82,7 @@ export default function Oportunidades() {
       cliente_id: form.cliente_id || null, convenio_id: form.convenio_id || null, produto: form.produto,
       valor_estimado: num(form.valor_estimado), taxa_estimada: num(form.taxa_estimada), prazo_estimado: num(form.prazo_estimado),
       valor_parcela: num(form.valor_parcela), etapa: form.etapa, probabilidade: num(form.probabilidade) ?? 50,
+      motivo_perda_id: form.etapa === 'perdida' ? (form.motivo_perda_id || null) : null,
       motivo_perda: form.etapa === 'perdida' ? (form.motivo_perda || null) : null, observacao: form.observacao || null,
     };
     try {
@@ -215,7 +218,16 @@ export default function Oportunidades() {
               <div className="space-y-2"><Label>Probabilidade %</Label><Input type="number" min="0" max="100" value={form.probabilidade} onChange={(e) => setForm({ ...form, probabilidade: e.target.value })} /></div>
             </div>
             {form.etapa === 'perdida' && (
-              <div className="space-y-2"><Label>Motivo da perda</Label><Textarea rows={2} value={form.motivo_perda} onChange={(e) => setForm({ ...form, motivo_perda: e.target.value })} /></div>
+              <>
+                <div className="space-y-2">
+                  <Label>Motivo da perda</Label>
+                  <Select value={form.motivo_perda_id} onValueChange={(v) => setForm({ ...form, motivo_perda_id: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                    <SelectContent>{motivos.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2"><Label>Detalhe (opcional)</Label><Textarea rows={2} value={form.motivo_perda} onChange={(e) => setForm({ ...form, motivo_perda: e.target.value })} /></div>
+              </>
             )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>

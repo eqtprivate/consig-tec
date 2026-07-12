@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { leadsApi, campanhasApi, interacoesApi, oportunidadesApi } from '@/lib/api/crm';
+import { leadsApi, campanhasApi, interacoesApi, oportunidadesApi, motivosPerdaApi, roteiroApi } from '@/lib/api/crm';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Phone, CalendarClock, CheckCircle2, Upload, MessageCircle, Shuffle } from 'lucide-react';
+import { Plus, Pencil, Phone, CalendarClock, CheckCircle2, Upload, MessageCircle, Shuffle, BookOpen } from 'lucide-react';
+
+const RESULTADOS_PERDA = ['sem_interesse', 'nao_perturbe', 'numero_errado'];
 
 const soDigitos = (s) => (s || '').replace(/\D/g, '');
 const telHref = (t) => `tel:+55${soDigitos(t)}`;
@@ -43,9 +45,12 @@ export default function Leads() {
   // Atendimento (discagem)
   const [atender, setAtender] = useState(null);
   const [interacoes, setInteracoes] = useState([]);
-  const emptyInt = { tipo: 'ligacao', resultado: 'atendeu', observacao: '', proximo_contato: '' };
+  const emptyInt = { tipo: 'ligacao', resultado: 'atendeu', observacao: '', proximo_contato: '', motivo_perda_id: '' };
   const [intForm, setIntForm] = useState(emptyInt);
   const [savingInt, setSavingInt] = useState(false);
+  const [motivos, setMotivos] = useState([]);
+  const [roteiro, setRoteiro] = useState([]);
+  const [showRoteiro, setShowRoteiro] = useState(false);
 
   // Operadores, filtro, importação e distribuição
   const [operadores, setOperadores] = useState([]);
@@ -59,13 +64,16 @@ export default function Leads() {
   const load = async () => {
     setLoading(true);
     const f = activeUnidade ? { franquia_id: activeUnidade.id } : {};
-    const [l, c, u] = await Promise.all([
+    const [l, c, u, mp, rt] = await Promise.all([
       leadsApi.list(f).catch(() => []),
       campanhasApi.list(f).catch(() => []),
       usuariosApi.list().catch(() => []),
+      motivosPerdaApi.list().catch(() => []),
+      roteiroApi.list().catch(() => []),
     ]);
     setLeads(l); setCampanhas(c);
     setOperadores(u.filter((x) => x.ativo));
+    setMotivos(mp); setRoteiro(rt);
     setLoading(false);
   };
   useEffect(() => { load(); }, [activeUnidade]);
@@ -168,6 +176,9 @@ export default function Leads() {
         tipo: intForm.tipo, resultado: intForm.resultado, observacao: intForm.observacao || null,
         proximo_contato: intForm.proximo_contato ? new Date(intForm.proximo_contato).toISOString() : null,
       });
+      if (RESULTADOS_PERDA.includes(intForm.resultado) && intForm.motivo_perda_id) {
+        await leadsApi.update(atender.id, { motivo_perda_id: intForm.motivo_perda_id }).catch(() => {});
+      }
       await auditoriaApi.log('registrar_interacao', 'leads', atender.id, { resultado: intForm.resultado });
       setInteracoes(await interacoesApi.list({ lead_id: atender.id }).catch(() => []));
       setIntForm(emptyInt);
@@ -333,6 +344,27 @@ export default function Leads() {
             <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CHIP[atender?.status]}`}>{STATUS[atender?.status]}</span>
           </div>
 
+          {/* Roteiro de atendimento */}
+          {roteiro.length > 0 && (
+            <div className="border border-slate-200 rounded-lg">
+              <button type="button" onClick={() => setShowRoteiro((v) => !v)} className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700">
+                <span className="inline-flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" /> Roteiro de atendimento</span>
+                <span className="text-xs text-slate-400">{showRoteiro ? 'ocultar' : 'mostrar'}</span>
+              </button>
+              {showRoteiro && (
+                <div className="px-3 pb-3 space-y-2 max-h-40 overflow-y-auto">
+                  {roteiro.map((r) => (
+                    <div key={r.id} className="text-xs">
+                      <span className="uppercase text-[10px] text-slate-400 tracking-wide">{r.categoria}</span>
+                      <p className="text-slate-700 font-medium">{r.titulo}</p>
+                      <p className="text-slate-500">{(r.conteudo || '').replace('{NOME}', atender?.nome || '').replace('{VALOR}', atender?.valor_estimado ? brl(atender.valor_estimado) : '—').replace('{PARCELA}', '—')}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Timeline */}
           <div className="space-y-2 max-h-40 overflow-y-auto border-t border-slate-100 pt-3">
             {interacoes.length === 0 ? <p className="text-sm text-slate-400">Nenhuma interação ainda.</p>
@@ -365,6 +397,15 @@ export default function Leads() {
                 </Select>
               </div>
             </div>
+            {RESULTADOS_PERDA.includes(intForm.resultado) && (
+              <div className="space-y-1.5">
+                <Label>Motivo da perda</Label>
+                <Select value={intForm.motivo_perda_id} onValueChange={(v) => setIntForm({ ...intForm, motivo_perda_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>{motivos.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
             <Textarea rows={2} value={intForm.observacao} onChange={(e) => setIntForm({ ...intForm, observacao: e.target.value })} placeholder="Observação do contato" />
             <div className="grid grid-cols-2 gap-3 items-end">
               <div className="space-y-1.5">

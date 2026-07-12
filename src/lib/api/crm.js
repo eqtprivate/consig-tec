@@ -48,6 +48,38 @@ export const produtividadeApi = {
   },
 };
 
+export const motivosPerdaApi = {
+  async list() {
+    const { data, error } = await supabase.from('motivos_perda').select('*').eq('ativo', true).order('ordem');
+    if (error) throw error;
+    return data;
+  },
+  async listAll() {
+    const { data, error } = await supabase.from('motivos_perda').select('*').order('ordem');
+    if (error) throw error;
+    return data;
+  },
+  async create(item) { const { data, error } = await supabase.from('motivos_perda').insert(item).select().single(); if (error) throw error; return data; },
+  async update(id, u) { const { data, error } = await supabase.from('motivos_perda').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+  async remove(id) { const { error } = await supabase.from('motivos_perda').delete().eq('id', id); if (error) throw error; },
+};
+
+export const roteiroApi = {
+  async list() {
+    const { data, error } = await supabase.from('roteiro_scripts').select('*').eq('ativo', true).order('ordem');
+    if (error) throw error;
+    return data;
+  },
+  async listAll() {
+    const { data, error } = await supabase.from('roteiro_scripts').select('*').order('categoria').order('ordem');
+    if (error) throw error;
+    return data;
+  },
+  async create(item) { const { data, error } = await supabase.from('roteiro_scripts').insert(item).select().single(); if (error) throw error; return data; },
+  async update(id, u) { const { data, error } = await supabase.from('roteiro_scripts').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+  async remove(id) { const { error } = await supabase.from('roteiro_scripts').delete().eq('id', id); if (error) throw error; },
+};
+
 export const interacoesApi = {
   async list(filters = {}) {
     let q = supabase.from('interacoes')

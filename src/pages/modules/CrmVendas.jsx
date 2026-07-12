@@ -5,6 +5,7 @@ import Clientes from '@/pages/modules/Clientes';
 import Propostas from '@/pages/modules/Propostas';
 import Campanhas from '@/pages/modules/Campanhas';
 import PainelCallCenter from '@/pages/modules/PainelCallCenter';
+import ConfigCallCenter from '@/pages/modules/ConfigCallCenter';
 
 const TABS = [
   { key: 'leads', label: 'Leads & Discagem' },
@@ -13,6 +14,7 @@ const TABS = [
   { key: 'propostas', label: 'Propostas' },
   { key: 'campanhas', label: 'Campanhas' },
   { key: 'painel', label: 'Painel' },
+  { key: 'config', label: 'Config' },
 ];
 
 export default function CrmVendas() {
@@ -25,6 +27,7 @@ export default function CrmVendas() {
       case 'propostas': return <Propostas />;
       case 'campanhas': return <Campanhas />;
       case 'painel': return <PainelCallCenter />;
+      case 'config': return <ConfigCallCenter />;
       default: return null;
     }
   };

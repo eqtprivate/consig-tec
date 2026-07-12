@@ -96,6 +96,24 @@ export default function PainelCallCenter() {
         ))}
       </div>
 
+      {/* Ranking de vendas (gamificação) */}
+      {prod.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3">🏆 Ranking do período</h3>
+          <div className="space-y-2">
+            {[...prod].sort((a, b) => Number(b.ganhas) - Number(a.ganhas) || Number(b.valor_ganho) - Number(a.valor_ganho)).slice(0, 5).map((r, i) => (
+              <div key={r.operador_id} className="flex items-center gap-3">
+                <span className="w-7 text-center text-lg">{['🥇', '🥈', '🥉'][i] || <span className="text-xs text-slate-400">{i + 1}º</span>}</span>
+                <span className="flex-1 text-sm font-medium text-slate-800 truncate">{r.operador}</span>
+                <span className="text-xs text-slate-500">{r.ganhas} venda(s)</span>
+                <span className="w-28 text-right text-sm font-semibold text-green-700 num">{brl(r.valor_ganho)}</span>
+                <span className="w-16 text-right text-xs text-slate-400">{pct(Number(r.atendimentos), Number(r.interacoes))}% cont.</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Produtividade por operador */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
