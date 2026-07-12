@@ -296,7 +296,7 @@ function CarteiraTab() {
     try {
       const r = await carteiraApi.atualizar();
       await auditoriaApi.log('atualizar_carteira', 'contratos', null, r || {});
-      alert(`Carteira atualizada: ${r?.parcelas_atrasadas || 0} parcela(s) em atraso, ${r?.contratos_inadimplentes || 0} contrato(s) inadimplente(s), ${r?.contratos_quitados || 0} quitado(s).`);
+      alert(`Carteira atualizada: ${r?.parcelas_atrasadas || 0} parcela(s) em atraso, ${r?.contratos_inadimplentes || 0} contrato(s) inadimplente(s), ${r?.contratos_quitados || 0} quitado(s), ${r?.cobrancas_geradas || 0} cobrança(s) gerada(s).`);
       load();
     } catch (err) { alert(err.message || 'Falha ao atualizar carteira.'); }
     finally { setAtualizando(false); }

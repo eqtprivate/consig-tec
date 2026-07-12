@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, Zap } from 'lucide-react';
 
 const GATILHO = { falha_repasse: 'Falha de repasse', inadimplencia: 'Inadimplência', glosa: 'Glosa', divergencia: 'Divergência' };
 const STATUS = { aberta: 'Aberta', em_acordo: 'Em acordo', resolvida: 'Resolvida', perdida: 'Perdida' };
@@ -34,6 +34,18 @@ export default function Cobranca() {
   };
   useEffect(() => { load(); }, [activeUnidade]);
 
+  const [gerando, setGerando] = useState(false);
+  const gerarInadimplencia = async () => {
+    setGerando(true);
+    try {
+      const n = await cobrancasApi.gerarInadimplencia();
+      await auditoriaApi.log('gerar_cobrancas_inadimplencia', 'cobrancas', null, { geradas: n });
+      alert(n > 0 ? `${n} cobrança(s) de inadimplência gerada(s).` : 'Nenhuma parcela atrasada sem cobrança — nada a gerar. (Rode "Atualizar carteira" no Financeiro para marcar atrasos.)');
+      load();
+    } catch (err) { alert(err.message || 'Falha ao gerar cobranças.'); }
+    finally { setGerando(false); }
+  };
+
   const openCreate = () => { setEdit(null); setForm(emptyForm); setOpen(true); };
   const openEdit = (c) => {
     setEdit(c);
@@ -54,7 +66,10 @@ export default function Cobranca() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">Cobrança, default e renegociação — gatilhos incl. falha de repasse/folha</p>
-        <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova cobrança</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={gerarInadimplencia} disabled={gerando} className="gap-2"><Zap className="w-4 h-4" /> {gerando ? 'Gerando…' : 'Gerar de inadimplência'}</Button>
+          <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova cobrança</Button>
+        </div>
       </div>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>

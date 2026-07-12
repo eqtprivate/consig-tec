@@ -13,6 +13,12 @@ export const cobrancasApi = {
   },
   async create(item) { const { data, error } = await supabase.from('cobrancas').insert(item).select().single(); if (error) throw error; return data; },
   async update(id, u) { const { data, error } = await supabase.from('cobrancas').update(u).eq('id', id).select().single(); if (error) throw error; return data; },
+  // Gera cobranças a partir das parcelas atrasadas (Estágio 11).
+  async gerarInadimplencia() {
+    const { data, error } = await supabase.rpc('gerar_cobrancas_inadimplencia');
+    if (error) throw error;
+    return data; // nº de cobranças criadas
+  },
 };
 
 export const chamadosApi = {
