@@ -2,24 +2,45 @@ import React, { useState } from 'react';
 import { clientesApi } from '@/lib/api/clientes';
 import { matriculasApi, elegivelCartaoBeneficio } from '@/lib/api/matriculas';
 import { produtosConvenioApi } from '@/lib/api/produtosConvenio';
+import { propostasApi } from '@/lib/api/propostas';
+import { auditoriaApi } from '@/lib/api/auditoria';
+import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { brl, num } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, CheckCircle2, XCircle, Calculator } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, Calculator, FileUp } from 'lucide-react';
 
 const soDigitos = (v) => (v || '').replace(/\D/g, '');
 
+// Idade em anos a partir da data de nascimento (ISO). null se não informada.
+function idadeDe(dataNascimento) {
+  if (!dataNascimento) return null;
+  const d = new Date(dataNascimento);
+  if (isNaN(d)) return null;
+  const hoje = new Date();
+  let anos = hoje.getFullYear() - d.getFullYear();
+  const m = hoje.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && hoje.getDate() < d.getDate())) anos--;
+  return anos;
+}
+
 // Regras de elegibilidade do produto sobre uma matrícula (espelham as
 // checagens da função SQL matricula_elegivel_cartao + limites do produto).
-function checarElegibilidade(matricula, produto) {
+function checarElegibilidade(matricula, produto, idade) {
   const motivos = [];
   if (!elegivelCartaoBeneficio(matricula)) motivos.push('Vínculo sem margem apartada elegível (situação/convênio/margem).');
   if (produto) {
     if (produto.ativo === false) motivos.push('Produto inativo.');
     const margemProduto = margemDoProduto(matricula, produto);
     if (margemProduto <= 0) motivos.push('Margem disponível insuficiente para o produto.');
+    if (idade != null) {
+      if (produto.idade_min != null && idade < produto.idade_min) motivos.push(`Idade abaixo do mínimo do produto (${produto.idade_min} anos).`);
+      if (produto.idade_max != null && idade > produto.idade_max) motivos.push(`Idade acima do máximo do produto (${produto.idade_max} anos).`);
+    } else if (produto.idade_min != null || produto.idade_max != null) {
+      motivos.push('Data de nascimento do tomador não informada (produto exige faixa etária).');
+    }
   }
   return { elegivel: motivos.length === 0, motivos };
 }
@@ -33,6 +54,7 @@ function margemDoProduto(matricula, produto) {
 }
 
 export default function ConsultaMargem() {
+  const { activeUnidade } = useAuth();
   const [cpf, setCpf] = useState('');
   const [buscando, setBuscando] = useState(false);
   const [cliente, setCliente] = useState(null);
@@ -47,6 +69,10 @@ export default function ConsultaMargem() {
 
   const [sim, setSim] = useState(null);   // { margem, valorMaximo, prazo }
   const [calc, setCalc] = useState(null); // parcela p/ valor desejado
+  const [gerando, setGerando] = useState(false);
+  const [propostaMsg, setPropostaMsg] = useState('');
+
+  const idade = idadeDe(cliente?.data_nascimento);
 
   const buscar = async (e) => {
     e?.preventDefault();
@@ -66,7 +92,7 @@ export default function ConsultaMargem() {
     }
   };
 
-  const resetSelecao = () => { setMatSel(null); setProdutos([]); setProdSel(null); setPrazo(''); setValorDesejado(''); setSim(null); setCalc(null); };
+  const resetSelecao = () => { setMatSel(null); setProdutos([]); setProdSel(null); setPrazo(''); setValorDesejado(''); setSim(null); setCalc(null); setPropostaMsg(''); };
 
   const selecionarMatricula = async (m) => {
     setMatSel(m); setProdSel(null); setPrazo(''); setValorDesejado(''); setSim(null); setCalc(null);
@@ -106,7 +132,28 @@ export default function ConsultaMargem() {
     setCalc({ valor: v, parcela, prazo: n, acimaValor, acimaMargem, margemProduto });
   };
 
-  const eleg = matSel ? checarElegibilidade(matSel, prodSel) : null;
+  const gerarProposta = async (valor, parcela, n) => {
+    if (!cliente || !matSel || !prodSel) return;
+    if (!valor || valor <= 0) { setPropostaMsg('Simule um valor antes de gerar a proposta.'); return; }
+    if (!confirm(`Gerar proposta de ${brl(valor)} em ${n}x (${prodSel.nome || prodSel.produto})?`)) return;
+    setGerando(true); setPropostaMsg('');
+    try {
+      const prop = await propostasApi.create({
+        cliente_id: cliente.id, convenio_id: matSel.convenio_id || null, matricula_id: matSel.id,
+        produto: prodSel.produto, valor_solicitado: valor, prazo: n, taxa_mensal: prodSel.taxa_mensal,
+        valor_parcela: parcela, status: 'em_analise',
+        franquia_id: activeUnidade?.id || cliente.franquia_id || null,
+      });
+      await auditoriaApi.log('gerar_proposta_consulta_margem', 'propostas', prop.id, { cliente: cliente.nome, produto: prodSel.produto, valor });
+      setPropostaMsg(`Proposta criada (em análise). Acompanhe em CRM → Propostas / Margem → Averbações.`);
+    } catch (err) {
+      setPropostaMsg(err.message || 'Falha ao gerar proposta.');
+    } finally {
+      setGerando(false);
+    }
+  };
+
+  const eleg = matSel ? checarElegibilidade(matSel, prodSel, idade) : null;
 
   return (
     <div className="space-y-5">
@@ -127,7 +174,7 @@ export default function ConsultaMargem() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold text-slate-800">{cliente.nome}</p>
-              <p className="text-xs text-slate-500">CPF {cliente.cpf} {cliente.telefone ? `· ${cliente.telefone}` : ''}</p>
+              <p className="text-xs text-slate-500">CPF {cliente.cpf} {cliente.telefone ? `· ${cliente.telefone}` : ''} {idade != null ? `· ${idade} anos` : '· idade não informada'}</p>
             </div>
             <span className="text-xs text-slate-400">{matriculas.length} vínculo(s)</span>
           </div>
@@ -234,11 +281,18 @@ export default function ConsultaMargem() {
               )}
 
               {sim && (
-                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div><p className="text-[10px] uppercase text-slate-400">Margem usada</p><p className="font-semibold text-slate-800">{brl(sim.margem)}</p></div>
-                  <div><p className="text-[10px] uppercase text-slate-400">Prazo</p><p className="font-semibold text-slate-800">{sim.prazo}x</p></div>
-                  <div><p className="text-[10px] uppercase text-slate-400">Taxa</p><p className="font-semibold text-slate-800">{sim.taxa}% a.m.</p></div>
-                  <div><p className="text-[10px] uppercase text-slate-400">Valor máx. financiável</p><p className="font-bold text-primary text-lg">{brl(sim.valorMaximo)}</p></div>
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div><p className="text-[10px] uppercase text-slate-400">Margem usada</p><p className="font-semibold text-slate-800">{brl(sim.margem)}</p></div>
+                    <div><p className="text-[10px] uppercase text-slate-400">Prazo</p><p className="font-semibold text-slate-800">{sim.prazo}x</p></div>
+                    <div><p className="text-[10px] uppercase text-slate-400">Taxa</p><p className="font-semibold text-slate-800">{sim.taxa}% a.m.</p></div>
+                    <div><p className="text-[10px] uppercase text-slate-400">Valor máx. financiável</p><p className="font-bold text-primary text-lg">{brl(sim.valorMaximo)}</p></div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button size="sm" className="gap-1" disabled={gerando || !eleg?.elegivel || sim.valorMaximo <= 0} onClick={() => gerarProposta(sim.valorMaximo, sim.margem, sim.prazo)}>
+                      <FileUp className="w-4 h-4" /> Gerar proposta com o máximo
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -262,7 +316,18 @@ export default function ConsultaMargem() {
                 {calc?.erro && <p className="text-xs text-red-600 mt-1">{calc.erro}</p>}
                 {calc && !calc.erro && calc.acimaMargem && <p className="text-xs text-red-600 mt-1">Parcela acima da margem elegível ({brl(calc.margemProduto)}).</p>}
                 {calc && !calc.erro && calc.acimaValor && <p className="text-xs text-red-600 mt-1">Valor acima do teto do produto ({brl(prodSel.valor_max)}).</p>}
+                {calc && !calc.erro && !calc.acimaMargem && !calc.acimaValor && (
+                  <div className="flex justify-end mt-2">
+                    <Button size="sm" variant="outline" className="gap-1" disabled={gerando || !eleg?.elegivel} onClick={() => gerarProposta(calc.valor, calc.parcela, calc.prazo)}>
+                      <FileUp className="w-4 h-4" /> Gerar proposta com este valor
+                    </Button>
+                  </div>
+                )}
               </div>
+
+              {propostaMsg && (
+                <p className={`text-sm ${propostaMsg.startsWith('Proposta criada') ? 'text-green-700' : 'text-red-600'}`}>{propostaMsg}</p>
+              )}
             </>
           )}
         </div>
