@@ -73,6 +73,8 @@ export default function Dashboard() {
   const [contratos, setContratos] = useState([]);
   const [comissoes, setComissoes] = useState([]);
   const [exec, setExec] = useState(null);
+  const [serie, setSerie] = useState([]);
+  const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -95,7 +97,10 @@ export default function Dashboard() {
   }, [activeUnidade]);
 
   useEffect(() => {
-    if (isAdmin) dashboardApi.executivo().then(setExec).catch(() => setExec(null));
+    if (!isAdmin) return;
+    dashboardApi.executivo().then(setExec).catch(() => setExec(null));
+    dashboardApi.evolucaoMensal(6).then(setSerie).catch(() => setSerie([]));
+    dashboardApi.rankingConvenios(8).then(setRanking).catch(() => setRanking([]));
   }, [isAdmin]);
 
   const visibleAreas = allAreas.filter((a) =>
@@ -196,6 +201,66 @@ export default function Dashboard() {
             <span>Comissões pagas: <b className="text-slate-700">{brl(Number(exec.comissoes_pagas || 0))}</b></span>
             <span>Termos de cessão: <b className="text-slate-700">{Number(exec.termos_cessao || 0)}</b></span>
           </div>
+        </div>
+      )}
+
+      {/* Evolução mensal + ranking de convênios (grupo) */}
+      {isAdmin && (serie.length > 0 || ranking.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {serie.length > 0 && (() => {
+            const maxVop = Math.max(1, ...serie.map((s) => Number(s.vop || 0)));
+            return (
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+                <h2 className="text-sm font-semibold text-slate-900 mb-4">Evolução mensal <span className="text-xs font-normal text-slate-400">— produção × inadimplência</span></h2>
+                <div className="flex items-end gap-3 h-40">
+                  {serie.map((s) => {
+                    const vop = Number(s.vop || 0);
+                    const venc = Number(s.valor_vencido || 0);
+                    const h = Math.round((vop / maxVop) * 100);
+                    const hv = vop > 0 ? Math.round((venc / vop) * 100) : 0;
+                    return (
+                      <div key={s.competencia} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+                        <span className="text-[10px] text-slate-400 num">{vop >= 1000 ? `${Math.round(vop / 1000)}k` : brl(vop)}</span>
+                        <div className="w-full bg-slate-100 rounded-t relative flex items-end" style={{ height: `${Math.max(h, 3)}%` }}>
+                          <div className="w-full bar-brand rounded-t" style={{ height: '100%' }} />
+                          {hv > 0 && <div className="absolute bottom-0 w-full bg-red-400 rounded-t" style={{ height: `${hv}%` }} title={`Vencido: ${brl(venc)}`} />}
+                        </div>
+                        <span className="text-[10px] text-slate-500">{s.competencia?.slice(5)}/{s.competencia?.slice(2, 4)}</span>
+                        <span className="text-[10px] text-slate-400">{Number(s.contratos || 0)} ct</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-4 mt-3 text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bar-brand inline-block" /> Produção (VOP)</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-400 inline-block" /> Vencido no mês</span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {ranking.length > 0 && (() => {
+            const maxR = Math.max(1, ...ranking.map((r) => Number(r.vop || 0)));
+            const PRIO = { alta: 'text-green-700', media: 'text-amber-600', baixa: 'text-slate-400', sem_prioridade: 'text-slate-300' };
+            return (
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <h2 className="text-sm font-semibold text-slate-900 mb-4">Ranking de convênios <span className="text-xs font-normal text-slate-400">(produção)</span></h2>
+                <div className="space-y-2.5">
+                  {ranking.map((r) => (
+                    <div key={r.convenio_id}>
+                      <div className="flex items-center justify-between text-xs mb-0.5">
+                        <span className="text-slate-700 truncate pr-2">{r.cidade || r.convenio} <span className={PRIO[r.prioridade_comercial] || 'text-slate-300'}>•</span></span>
+                        <span className="text-slate-500 num shrink-0">{brl(r.vop)}</span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded overflow-hidden">
+                        <div className="h-full bar-brand rounded" style={{ width: `${(Number(r.vop) / maxR) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

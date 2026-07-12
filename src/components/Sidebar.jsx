@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
+import { dashboardApi } from '@/lib/api/dashboard';
 import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronRight, ChevronDown, Bell, TrendingUp, Plug } from 'lucide-react';
 
 // Subitens (abas) por área — abrem via ?tab= no módulo.
@@ -51,16 +52,47 @@ const AREA_SUBITEMS = {
   ],
 };
 
+function Badge({ value, tone = 'default' }) {
+  if (!value) return null;
+  const cls = tone === 'danger' ? 'bg-red-100 text-red-700' : 'bg-primary/15 text-primary';
+  return <span className={`ml-auto shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold flex items-center justify-center ${cls}`}>{value > 99 ? '99+' : value}</span>;
+}
+
 export default function Sidebar() {
   const { perfil, isAdmin, availableAreas, activeUnidade, vinculos } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [allAreas, setAllAreas] = useState([]);
   const [expanded, setExpanded] = useState({});
+  const [cont, setCont] = useState(null);
 
   useEffect(() => {
     areasApi.list().then(setAllAreas).catch(() => {});
   }, []);
+  useEffect(() => {
+    dashboardApi.contadores().then(setCont).catch(() => setCont(null));
+  }, [location.pathname]);
+
+  // Badge por subitem (chave da aba) e total por área.
+  const n = (k) => Number(cont?.[k] || 0);
+  const subBadge = (codigo, key) => {
+    if (!cont) return 0;
+    const map = {
+      'crm|propostas': n('propostas_analise'),
+      'averbacao|averbacoes': n('averbacoes_pendentes'),
+      'formalizacao|form': n('formalizacoes_pendentes'),
+      'financeiro|carteira': n('contratos_inadimplentes'),
+      'juridico|chamados': n('chamados_abertos'),
+      'juridico|lgpd': n('lgpd_pendentes'),
+    };
+    return map[`${codigo}|${key}`] || 0;
+  };
+  const areaBadge = (codigo) => {
+    const subs = AREA_SUBITEMS[codigo] || [];
+    let total = subs.reduce((s, it) => s + subBadge(codigo, it.key), 0);
+    if (codigo === 'cobranca') total += n('cobrancas_abertas');
+    return total;
+  };
 
   const toggle = (codigo) => setExpanded((e) => ({ ...e, [codigo]: !isOpen(codigo) }));
   const isOnArea = (codigo) => location.pathname === `/area/${codigo}`;
@@ -79,13 +111,14 @@ export default function Sidebar() {
         : 'text-muted-foreground hover:text-foreground hover:bg-muted'
     }`;
 
-  const navItem = (to, label, icon) => {
+  const navItem = (to, label, icon, badge = 0, tone = 'default') => {
     const active = location.pathname === to;
     const Icon = icon;
     return (
       <Link key={to} to={to} className={itemClass(active)}>
         <Icon className="w-4 h-4 shrink-0" />
-        {label}
+        <span className="flex-1">{label}</span>
+        <Badge value={badge} tone={tone} />
       </Link>
     );
   };
@@ -116,7 +149,7 @@ export default function Sidebar() {
         <div className="space-y-1">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider px-3 mb-2">Principal</p>
           {navItem('/', 'Dashboard', LayoutDashboard)}
-          {navItem('/pendencias', 'Central de Pendências', AlertCircle)}
+          {navItem('/pendencias', 'Central de Pendências', AlertCircle, n('pendencias_abertas'), n('pendencias_criticas') ? 'danger' : 'default')}
         </div>
 
         {visibleAreas.length > 0 && (
@@ -133,16 +166,19 @@ export default function Sidebar() {
                 return (
                   <Link key={area.id} to={to} className={itemClass(active)}>
                     <ChevronRight className="w-3 h-3 shrink-0" />
-                    {area.nome}
+                    <span className="flex-1">{area.nome}</span>
+                    <Badge value={areaBadge(area.codigo)} tone={area.codigo === 'cobranca' ? 'danger' : 'default'} />
                   </Link>
                 );
               }
+              const aBadge = areaBadge(area.codigo);
               return (
                 <div key={area.id}>
                   <div className={`flex items-center rounded-lg ${active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
                     <Link to={to} className="flex items-center gap-3 px-3 py-2 text-sm font-medium flex-1 min-w-0">
                       <ChevronRight className="w-3 h-3 shrink-0" />
                       <span className="truncate">{area.nome}</span>
+                      {!open && <Badge value={aBadge} />}
                     </Link>
                     <button
                       type="button"
@@ -157,15 +193,17 @@ export default function Sidebar() {
                     <div className="ml-4 mt-0.5 mb-1 pl-2 border-l border-border space-y-0.5">
                       {subitens.map((s) => {
                         const subActive = active && (currentTab || defaultTab) === s.key;
+                        const b = subBadge(area.codigo, s.key);
                         return (
                           <Link
                             key={s.key}
                             to={`${to}?tab=${s.key}`}
-                            className={`block px-3 py-1.5 rounded-md text-xs transition-colors ${
+                            className={`flex items-center px-3 py-1.5 rounded-md text-xs transition-colors ${
                               subActive ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                             }`}
                           >
-                            {s.label}
+                            <span className="flex-1">{s.label}</span>
+                            <Badge value={b} tone={s.key === 'carteira' ? 'danger' : 'default'} />
                           </Link>
                         );
                       })}
