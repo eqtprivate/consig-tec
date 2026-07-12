@@ -13,6 +13,7 @@ import Cessao from '@/pages/modules/Cessao';
 import Cobranca from '@/pages/modules/Cobranca';
 import Chamados from '@/pages/modules/Chamados';
 import Juridico from '@/pages/modules/Juridico';
+import AdminHub from '@/pages/modules/AdminHub';
 
 // Módulos indexados pelo código da área.
 const MODULES = {
@@ -26,6 +27,7 @@ const MODULES = {
   cobranca: Cobranca,
   suporte: Chamados,
   juridico: Juridico,
+  admin: AdminHub,
 };
 
 export default function AreaPage() {
