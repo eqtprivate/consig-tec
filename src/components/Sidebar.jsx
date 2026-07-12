@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
 import { dashboardApi } from '@/lib/api/dashboard';
+import { buildLabel, BUILD_TIME } from '@/lib/version';
 import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronRight, ChevronDown, Bell, TrendingUp, Plug } from 'lucide-react';
 
 // Subitens (abas) por área — abrem via ?tab= no módulo.
@@ -232,6 +233,7 @@ export default function Sidebar() {
       <div className="px-4 py-3 border-t border-border">
         <p className="text-xs text-foreground font-medium truncate">{perfil?.nome || 'Usuário'}</p>
         <p className="text-[10px] text-muted-foreground truncate">{perfil?.email}</p>
+        <p className="text-[10px] text-muted-foreground/70 mt-1" title={`Build ${BUILD_TIME}`}>CONSIGTEC {buildLabel()}</p>
       </div>
     </aside>
   );
