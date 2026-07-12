@@ -199,6 +199,12 @@ export default function Averbacoes() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
+                {form.origem === 'proposta' && form.status === 'averbada' && (
+                  <p className="text-[11px] text-green-700">A margem reservada será efetivada (ajustada ao valor averbado, se divergir).</p>
+                )}
+                {form.origem === 'proposta' && ['recusada', 'cancelada'].includes(form.status) && (
+                  <p className="text-[11px] text-amber-600">A margem reservada será liberada automaticamente.</p>
+                )}
               </div>
             </div>
             <div className="space-y-2"><Label>Data da averbação</Label><Input type="date" value={form.data_averbacao} onChange={(e) => setForm({ ...form, data_averbacao: e.target.value })} /></div>

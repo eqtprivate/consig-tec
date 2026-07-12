@@ -24,4 +24,10 @@ export const averbacoesApi = {
     if (error) throw error;
     return data;
   },
+  // Reconciliação reservado × averbado por proposta (Estágio 4).
+  async reconciliacao() {
+    const { data, error } = await supabase.rpc('reconciliacao_margem');
+    if (error) throw error;
+    return data; // [{ proposta_id, cliente, convenio, matricula, valor_reservado, status_reserva, valor_averbado, status_averbacao, divergencia }]
+  },
 };

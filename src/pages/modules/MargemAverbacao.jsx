@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import ConsultaMargem from '@/pages/modules/ConsultaMargem';
 import Averbacoes from '@/pages/modules/Averbacoes';
+import ReconciliacaoMargem from '@/pages/modules/ReconciliacaoMargem';
 
 const TABS = [
   { key: 'consulta', label: 'Consulta de Margem' },
   { key: 'averbacoes', label: 'Averbações' },
+  { key: 'reconciliacao', label: 'Reconciliação' },
 ];
 
 export default function MargemAverbacao() {
   const [tab, setTab] = useState('consulta');
+  const render = () => {
+    if (tab === 'consulta') return <ConsultaMargem />;
+    if (tab === 'averbacoes') return <Averbacoes />;
+    return <ReconciliacaoMargem />;
+  };
   return (
     <div className="space-y-5">
       <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
@@ -24,7 +31,7 @@ export default function MargemAverbacao() {
           </button>
         ))}
       </div>
-      {tab === 'consulta' ? <ConsultaMargem /> : <Averbacoes />}
+      {render()}
     </div>
   );
 }
