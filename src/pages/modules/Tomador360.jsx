@@ -4,6 +4,7 @@ import { oportunidadesApi } from '@/lib/api/crm';
 import { propostasApi } from '@/lib/api/propostas';
 import { contratosApi } from '@/lib/api/contratos';
 import { brl, dataBR } from '@/lib/format';
+import RegistroThreads from '@/components/RegistroThreads';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CreditCard, IdCard, Target, FileText, FileCheck2 } from 'lucide-react';
 
@@ -13,6 +14,7 @@ const TABS = [
   { key: 'oportunidades', label: 'Oportunidades' },
   { key: 'propostas', label: 'Propostas' },
   { key: 'contratos', label: 'Contratos' },
+  { key: 'chamados', label: 'Chamados' },
 ];
 const P_STATUS = { rascunho: 'Rascunho', em_analise: 'Em análise', aprovada: 'Aprovada', reprovada: 'Reprovada', cancelada: 'Cancelada' };
 const ETAPA = { qualificacao: 'Qualificação', simulacao: 'Simulação', proposta_enviada: 'Proposta enviada', em_formalizacao: 'Formalização', ganha: 'Ganha', perdida: 'Perdida' };
@@ -70,7 +72,13 @@ export default function Tomador360({ cliente, onClose }) {
           ))}
         </div>
 
-        {loading ? <div className="p-8 text-center text-sm text-slate-400">Carregando…</div> : (
+        {tab === 'chamados' && (
+          <div className="max-h-96 overflow-y-auto">
+            <RegistroThreads entidadeRef="clientes" registroId={cliente.id} categoriaPadrao="cadastro_tomador" titulo={cliente.nome} franquiaId={cliente.franquia_id} />
+          </div>
+        )}
+
+        {tab !== 'chamados' && (loading ? <div className="p-8 text-center text-sm text-slate-400">Carregando…</div> : (
           <div className="max-h-96 overflow-y-auto">
             {tab === 'resumo' && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -123,7 +131,7 @@ export default function Tomador360({ cliente, onClose }) {
               </div>
             )}
           </div>
-        )}
+        ))}
       </DialogContent>
     </Dialog>
   );
