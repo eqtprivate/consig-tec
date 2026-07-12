@@ -5,6 +5,8 @@ import { ccbsApi } from '@/lib/api/ccbs';
 import { propostasApi } from '@/lib/api/propostas';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
+import { toast } from 'sonner';
+import { confirmar } from '@/lib/confirm';
 import { brl, dataBR, num } from '@/lib/format';
 import Contratos from '@/pages/modules/Contratos';
 import { Button } from '@/components/ui/button';
@@ -286,15 +288,15 @@ function CcbTab() {
 
   const [gerando, setGerando] = useState(null);
   const gerarContrato = async (a) => {
-    if (!confirm(`Gerar contrato a partir da CCB ${a.numero || ''}?`)) return;
+    if (!(await confirmar({ title: 'Gerar contrato', description: `A partir da CCB ${a.numero || ''}? Serão criados contrato, cronograma e comissões.`, confirmText: 'Gerar' }))) return;
     setGerando(a.id);
     try {
       const ct = await ccbsApi.gerarContrato(a.id);
       await auditoriaApi.log('gerar_contrato_ccb', 'contratos', ct?.id || null, { ccb: a.id, numero: ct?.numero_contrato });
-      alert(`Contrato ${ct?.numero_contrato || ''} gerado com cronograma. Veja na aba Contratos.`);
+      toast.success(`Contrato ${ct?.numero_contrato || ''} gerado com cronograma.`);
       load();
     } catch (err) {
-      alert(err.message || 'Falha ao gerar contrato.');
+      toast.error(err.message || 'Falha ao gerar contrato.');
     } finally {
       setGerando(null);
     }

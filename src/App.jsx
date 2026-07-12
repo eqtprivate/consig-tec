@@ -1,4 +1,6 @@
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
+import { ConfirmHost } from '@/lib/confirm'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -76,6 +78,8 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <SonnerToaster richColors closeButton position="top-right" />
+        <ConfirmHost />
       </QueryClientProvider>
     </AuthProvider>
   )

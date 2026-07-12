@@ -5,6 +5,8 @@ import { produtosConvenioApi } from '@/lib/api/produtosConvenio';
 import { propostasApi } from '@/lib/api/propostas';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
+import { toast } from 'sonner';
+import { confirmar } from '@/lib/confirm';
 import { brl, num, dataBR } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,8 +136,8 @@ export default function ConsultaMargem() {
 
   const gerarProposta = async (valor, parcela, n) => {
     if (!cliente || !matSel || !prodSel) return;
-    if (!valor || valor <= 0) { setPropostaMsg('Simule um valor antes de gerar a proposta.'); return; }
-    if (!confirm(`Gerar proposta de ${brl(valor)} em ${n}x (${prodSel.nome || prodSel.produto})?`)) return;
+    if (!valor || valor <= 0) { toast.error('Simule um valor antes de gerar a proposta.'); return; }
+    if (!(await confirmar({ title: 'Gerar proposta', description: `${brl(valor)} em ${n}x (${prodSel.nome || prodSel.produto})?`, confirmText: 'Gerar' }))) return;
     setGerando(true); setPropostaMsg('');
     try {
       const prop = await propostasApi.create({
@@ -153,6 +155,8 @@ export default function ConsultaMargem() {
       } catch (e) {
         reservaOk = false;
       }
+      if (reservaOk) toast.success(`Proposta criada e margem de ${brl(parcela)} reservada.`);
+      else toast.warning('Proposta criada, mas a reserva de margem falhou — reserve manualmente em Propostas.');
       setPropostaMsg(reservaOk
         ? `Proposta criada e margem de ${brl(parcela)} reservada. Acompanhe em CRM → Propostas / Margem → Averbações.`
         : `Proposta criada (em análise), mas a reserva de margem falhou — reserve manualmente em Propostas.`);

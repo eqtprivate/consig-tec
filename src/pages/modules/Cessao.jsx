@@ -6,6 +6,7 @@ import {
 import { ccbsApi } from '@/lib/api/ccbs';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
+import { toast } from 'sonner';
 import { brl, dataBR, num } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,7 +61,7 @@ function TermosTab() {
       if (edit) { await termosCessaoApi.update(edit.id, payload); await auditoriaApi.log('editar_termo_cessao', 'termos_cessao', edit.id, {}); }
       else { await termosCessaoApi.create(payload); await auditoriaApi.log('criar_termo_cessao', 'termos_cessao', null, {}); }
       setOpen(false); load();
-    } catch (err) { alert(err.message || 'Falha ao salvar termo.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao salvar termo.'); }
   };
 
   const abrirItens = async (t) => {
@@ -81,7 +82,7 @@ function TermosTab() {
       });
       setItemForm({ ccb_id: '', titulo: '', emitente: '', cpf_cnpj: '', vencimento: '', valor: '', agio_desagio: '' });
       setDetItens(await termosCessaoApi.itens(detTermo.id));
-    } catch (err) { alert(err.message); }
+    } catch (err) { toast.error(err.message); }
   };
   const rmItem = async (id) => { await termosCessaoApi.removeItem(id); setDetItens(await termosCessaoApi.itens(detTermo.id)); };
 
@@ -91,10 +92,10 @@ function TermosTab() {
     try {
       const n = await termosCessaoApi.montarLastro(detTermo.id);
       await auditoriaApi.log('montar_lastro_cessao', 'termos_cessao', detTermo.id, { titulos: n });
-      alert(n > 0 ? `${n} título(s) elegível(is) adicionado(s) ao lastro.` : 'Nenhum título elegível não cedido (CCB assinada + contrato ativo).');
+      if (n > 0) toast.success(`${n} título(s) adicionado(s) ao lastro.`); else toast.info('Nenhum título elegível não cedido (CCB assinada + contrato ativo).');
       setDetItens(await termosCessaoApi.itens(detTermo.id));
       load();
-    } catch (err) { alert(err.message || 'Falha ao montar lastro.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao montar lastro.'); }
     finally { setMontando(false); }
   };
 
@@ -239,7 +240,7 @@ function MiniCadastro({ titulo, api, extra }) {
     e.preventDefault();
     if (!nome) return;
     try { await api.create({ nome, cnpj: cnpj || null, ...(extra || {}) }); setNome(''); setCnpj(''); reload(); }
-    catch (err) { alert(err.message); }
+    catch (err) { toast.error(err.message); }
   };
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4">
@@ -274,7 +275,7 @@ function FundosTab() {
     try {
       await fundosApi.create({ nome: form.nome, cnpj: form.cnpj || null, gestora_id: form.gestora_id || null, administradora_id: form.administradora_id || null, tipo: form.tipo || null });
       setForm({ nome: '', cnpj: '', gestora_id: '', administradora_id: '', tipo: 'FIDC' }); load();
-    } catch (err) { alert(err.message); }
+    } catch (err) { toast.error(err.message); }
   };
 
   return (
@@ -322,11 +323,11 @@ function PddTab() {
   useEffect(() => { load(); }, []);
   const add = async (e) => {
     e.preventDefault();
-    if (!form.competencia) return alert('Informe a competência.');
+    if (!form.competencia) return toast.error('Informe a competência.');
     try {
       await pddApi.create({ fundo_id: form.fundo_id || null, competencia: form.competencia, saldo_carteira: num(form.saldo_carteira), pdd_valor: num(form.pdd_valor), pdd_percentual: num(form.pdd_percentual) });
       setForm({ fundo_id: '', competencia: '', saldo_carteira: '', pdd_valor: '', pdd_percentual: '' }); load();
-    } catch (err) { alert(err.message); }
+    } catch (err) { toast.error(err.message); }
   };
   return (
     <div className="space-y-4">

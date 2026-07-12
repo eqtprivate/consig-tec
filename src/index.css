@@ -196,3 +196,27 @@
 .dark .bg-violet-50 { background-color: rgba(140, 193, 82, .16); }
 .dark .text-violet-700, .dark .text-violet-600 { color: #a9d97f; }
 .num, .tabular { font-variant-numeric: tabular-nums; }
+/* ============ Polish Pack: micro-interações e transições ============ */
+/* Elevação suave em cards clicáveis */
+.hover-lift { transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease; will-change: transform; }
+.hover-lift:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -14px rgba(2, 6, 23, .22); }
+.dark .hover-lift:hover { box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .55); }
+
+/* Aparição suave de conteúdo */
+@keyframes ct-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.fade-in { animation: ct-fade-in .25s ease both; }
+
+/* Transição de cores ao trocar tema (claro/escuro) */
+body, aside, header, .bg-card, .bg-white { transition: background-color .25s ease, border-color .25s ease, color .25s ease; }
+
+/* Pulse discreto para alertas críticos (SLA vencido / prioridade crítica) */
+@keyframes ct-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+.pulse-crit { animation: ct-pulse 1.6s ease-in-out infinite; }
+
+/* Cabeçalho de tabela fixo em listas longas */
+.sticky-head thead th { position: sticky; top: 0; z-index: 1; background: hsl(var(--muted, 0 0% 96%)); }
+
+/* Respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .hover-lift, .fade-in, .pulse-crit { animation: none !important; transition: none !important; }
+}

@@ -8,6 +8,7 @@ import { propostasApi } from '@/lib/api/propostas';
 import { contratosApi } from '@/lib/api/contratos';
 import { ccbsApi } from '@/lib/api/ccbs';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,13 +102,13 @@ export default function ChamadosInternos() {
       setTexto(''); setMencoes([]);
       setMsgs(await threadsApi.mensagens(sel.id));
       setTimeout(() => fimRef.current?.scrollIntoView({ behavior: 'smooth' }), 60);
-    } catch (err) { alert(err.message || 'Falha ao enviar.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao enviar.'); }
     finally { setEnviando(false); }
   };
 
   const patch = async (updates) => {
     try { await threadsApi.update(sel.id, updates); await recarregarThread(); }
-    catch (err) { alert(err.message || 'Falha ao atualizar.'); await recarregarThread(); }
+    catch (err) { toast.error(err.message || 'Falha ao atualizar.'); await recarregarThread(); }
   };
   const validar = async (aprovado) => {
     const obs = prompt(aprovado ? 'Observação da validação (opcional):' : 'Motivo da reprovação:');
@@ -128,16 +129,16 @@ export default function ChamadosInternos() {
   };
   const criar = async (e) => {
     e.preventDefault();
-    if (!form.titulo.trim()) return alert('Informe o título.');
-    if (!form.entidade_ref || !form.registro_id) return alert('Toda thread deve estar ancorada a um registro (entidade + registro).');
-    if (!form.area_id) return alert('Selecione a área.');
+    if (!form.titulo.trim()) return toast.error('Informe o título.');
+    if (!form.entidade_ref || !form.registro_id) return toast.error('Ancore a um registro (entidade + registro).');
+    if (!form.area_id) return toast.error('Selecione a área.');
     try {
       const novo = await threadsApi.abrir({
         ...form, franquia_id: activeUnidade?.id || null,
         prazo_sla: form.prazo_sla ? new Date(form.prazo_sla).toISOString() : null,
       });
       setOpen(false); setForm(emptyForm); setAncoraOpts([]); await load(); abrir(novo);
-    } catch (err) { alert(err.message || 'Falha ao abrir chamado.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao abrir chamado.'); }
   };
 
   const view = itens.filter((t) =>
@@ -173,7 +174,7 @@ export default function ChamadosInternos() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Caixa de entrada */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden lg:max-h-[72vh] lg:overflow-y-auto">
-          {loading ? <div className="p-8 text-center text-sm text-slate-400">Carregando...</div>
+          {loading ? <div className="p-3 space-y-2">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-14 rounded-lg bg-slate-100 animate-pulse" />)}</div>
           : view.length === 0 ? <div className="p-8 text-center text-sm text-slate-400">Nenhum item.</div>
           : view.map((t) => (
             <button key={t.id} onClick={() => abrir(t)} className={`w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 ${sel?.id === t.id ? 'bg-primary/5' : ''}`}>
@@ -184,7 +185,7 @@ export default function ChamadosInternos() {
               <p className="text-xs text-slate-400 mt-0.5">
                 <span className={PR_COR[t.prioridade]}>● {PRIOR[t.prioridade]}</span>
                 {' · '}{TIPO[t.tipo]}{t.categoria ? ` · ${CATEGORIA[t.categoria]}` : ''}
-                {atrasada(t) && <span className="text-red-600 font-medium"> · SLA vencido</span>}
+                {atrasada(t) && <span className="text-red-600 font-medium pulse-crit"> · SLA vencido</span>}
               </p>
               <p className="text-[10px] text-slate-400 mt-0.5">
                 🔗 {ANCORAS[t.entidade_ref]?.label || t.entidade_ref} · {t.responsavel?.nome || 'não atribuído'} · {hora(t.updated_at)}

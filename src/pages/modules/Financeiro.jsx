@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTabParam } from '@/lib/useTabParam';
+import { toast } from 'sonner';
 import { contratosApi } from '@/lib/api/contratos';
 import { parcelasApi, carteiraApi } from '@/lib/api/parcelas';
 import { repassesApi } from '@/lib/api/repasses';
@@ -51,15 +52,15 @@ function RecebiveisTab() {
   };
 
   const gerar = async () => {
-    if (!sel?.prazo) return alert('Contrato sem prazo definido.');
+    if (!sel?.prazo) return toast.error('Contrato sem prazo definido.');
     setGerando(true);
     try {
       const n = await parcelasApi.gerarCronograma(sel.id); // motor PMT no banco
       await auditoriaApi.log('gerar_cronograma_pmt', 'contratos', sel.id, { parcelas: n });
-      if (n === 0) alert('Este contrato já possui cronograma.');
+      if (n === 0) toast.info('Este contrato já possui cronograma.'); else toast.success(`${n} parcelas geradas.`);
       recarregar();
     } catch (err) {
-      alert(err.message || 'Falha ao gerar cronograma.');
+      toast.error(err.message || 'Falha ao gerar cronograma.');
     } finally { setGerando(false); }
   };
 
@@ -181,7 +182,7 @@ function ConciliacaoTab() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.competencia) return alert('Informe a competência (AAAA-MM).');
+    if (!form.competencia) return toast.error('Informe a competência (AAAA-MM).');
     const receb = num(form.valor_recebido);
     const prev = num(form.valor_previsto);
     const status = statusAuto(prev, form.valor_recebido);
@@ -200,7 +201,7 @@ function ConciliacaoTab() {
         await auditoriaApi.log('criar_repasse', 'repasses_folha', null, { competencia: form.competencia });
       }
       setOpen(false); load();
-    } catch (err) { alert(err.message || 'Falha ao salvar repasse.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao salvar repasse.'); }
   };
 
   const diff = (r) => (r.valor_recebido != null && r.valor_previsto != null) ? Number(r.valor_recebido) - Number(r.valor_previsto) : null;
@@ -297,9 +298,9 @@ function CarteiraTab() {
     try {
       const r = await carteiraApi.atualizar();
       await auditoriaApi.log('atualizar_carteira', 'contratos', null, r || {});
-      alert(`Carteira atualizada: ${r?.parcelas_atrasadas || 0} parcela(s) em atraso, ${r?.contratos_inadimplentes || 0} contrato(s) inadimplente(s), ${r?.contratos_quitados || 0} quitado(s), ${r?.cobrancas_geradas || 0} cobrança(s) gerada(s).`);
+      toast.success(`Carteira: ${r?.parcelas_atrasadas || 0} em atraso · ${r?.contratos_inadimplentes || 0} inadimplente(s) · ${r?.contratos_quitados || 0} quitado(s) · ${r?.cobrancas_geradas || 0} cobrança(s).`);
       load();
-    } catch (err) { alert(err.message || 'Falha ao atualizar carteira.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao atualizar carteira.'); }
     finally { setAtualizando(false); }
   };
 

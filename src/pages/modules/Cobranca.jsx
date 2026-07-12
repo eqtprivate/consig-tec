@@ -3,6 +3,7 @@ import { cobrancasApi } from '@/lib/api/operacional';
 import { contratosApi } from '@/lib/api/contratos';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
+import { toast } from 'sonner';
 import { brl, dataBR, num } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,9 +41,9 @@ export default function Cobranca() {
     try {
       const n = await cobrancasApi.gerarInadimplencia();
       await auditoriaApi.log('gerar_cobrancas_inadimplencia', 'cobrancas', null, { geradas: n });
-      alert(n > 0 ? `${n} cobrança(s) de inadimplência gerada(s).` : 'Nenhuma parcela atrasada sem cobrança — nada a gerar. (Rode "Atualizar carteira" no Financeiro para marcar atrasos.)');
+      if (n > 0) toast.success(`${n} cobrança(s) de inadimplência gerada(s).`); else toast.info('Nenhuma parcela atrasada sem cobrança — rode "Atualizar carteira" no Financeiro.');
       load();
-    } catch (err) { alert(err.message || 'Falha ao gerar cobranças.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao gerar cobranças.'); }
     finally { setGerando(false); }
   };
 
@@ -59,7 +60,7 @@ export default function Cobranca() {
       if (edit) { await cobrancasApi.update(edit.id, payload); await auditoriaApi.log('editar_cobranca', 'cobrancas', edit.id, { status: form.status }); }
       else { await cobrancasApi.create({ ...payload, franquia_id: activeUnidade?.id || null }); await auditoriaApi.log('criar_cobranca', 'cobrancas', null, {}); }
       setOpen(false); load();
-    } catch (err) { alert(err.message || 'Falha ao salvar.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao salvar.'); }
   };
 
   return (

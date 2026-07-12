@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import TrocarSenha from '@/pages/TrocarSenha';
@@ -25,6 +26,7 @@ function ContaInativa({ onLogout }) {
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { perfil, logout } = useAuth();
+  const location = useLocation();
 
   // Gates de acesso
   if (perfil && perfil.ativo === false) return <ContaInativa onLogout={logout} />;
@@ -48,7 +50,17 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

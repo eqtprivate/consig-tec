@@ -417,7 +417,7 @@ export default function Dashboard() {
               <Link
                 key={area.id}
                 to={`/area/${area.codigo}`}
-                className="group bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 hover:shadow-sm transition-all"
+                className="group bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 hover-lift"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">

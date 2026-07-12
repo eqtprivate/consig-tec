@@ -14,6 +14,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2, Upload, Package, Wallet } from 'lucide-react';
+import { toast } from 'sonner';
+import { confirmar } from '@/lib/confirm';
+import Tip from '@/components/Tip';
 
 const TIPOS = { publico: 'Público', privado: 'Privado', inss: 'INSS', militar: 'Militar' };
 const MARGENS = { apartada: 'Apartada', principal: 'Principal', cartao: 'Cartão' };
@@ -121,7 +124,7 @@ export default function Convenios() {
   };
 
   const handleDelete = async (c) => {
-    if (!confirm(`Remover o convênio "${c.nome}"?`)) return;
+    if (!(await confirmar({ title: 'Remover convênio', description: `Remover "${c.nome}"?`, destructive: true, confirmText: 'Remover' }))) return;
     await conveniosApi.remove(c.id);
     await auditoriaApi.log('remover_convenio', 'convenios', c.id, { nome: c.nome });
     load();
@@ -201,11 +204,11 @@ export default function Convenios() {
       setProdFormOpen(false);
       reloadProdutos();
     } catch (err) {
-      alert(err.message || 'Falha ao salvar produto (verifique se já existe esse produto no convênio).');
+      toast.error(err.message || 'Falha ao salvar produto (verifique se já existe esse produto no convênio).');
     }
   };
   const removeProd = async (p) => {
-    if (!confirm(`Remover o produto "${p.nome || PRODUTOS[p.produto]}"?`)) return;
+    if (!(await confirmar({ title: 'Remover produto', description: `Remover "${p.nome || PRODUTOS[p.produto]}"?`, destructive: true, confirmText: 'Remover' }))) return;
     await produtosConvenioApi.remove(p.id);
     await auditoriaApi.log('remover_produto_convenio', 'produtos_convenio', p.id, { produto: p.produto });
     reloadProdutos();
@@ -261,9 +264,9 @@ export default function Convenios() {
                   <td className="px-4 py-3"><span className={`text-xs ${c.ativo ? 'text-green-700' : 'text-slate-400'}`}>{c.ativo ? 'Ativo' : 'Inativo'}</span></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => openProdutos(c)} title="Produtos do convênio" className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded"><Package className="w-4 h-4" /></button>
-                      <button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(c)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                      <Tip label="Produtos do convênio"><button onClick={() => openProdutos(c)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded"><Package className="w-4 h-4" /></button></Tip>
+                      <Tip label="Editar"><button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></Tip>
+                      <Tip label="Remover"><button onClick={() => handleDelete(c)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button></Tip>
                     </div>
                   </td>
                 </tr>
