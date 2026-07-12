@@ -23,6 +23,13 @@ export const propostasApi = {
     const { error } = await supabase.rpc('liberar_margem_proposta', { p_proposta: propostaId });
     if (error) throw error;
   },
+  // Prontidão da esteira (formalização + antifraude + averbação) — Estágio 5.
+  async prontaParaContrato(propostaId) {
+    const { data, error } = await supabase.rpc('proposta_pronta_para_contrato', { p_proposta: propostaId });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    return { pronta: !!row?.pronta, motivos: row?.motivos || [] };
+  },
   async create(proposta) {
     const { data, error } = await supabase.from('propostas').insert(proposta).select().single();
     if (error) throw error;

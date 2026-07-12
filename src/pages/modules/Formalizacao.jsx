@@ -217,6 +217,7 @@ function CcbTab() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState(emptyC);
+  const [prontidao, setProntidao] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -229,7 +230,12 @@ function CcbTab() {
   };
   useEffect(() => { load(); }, [activeUnidade]);
 
-  const openCreate = () => { setEdit(null); setForm(emptyC); setOpen(true); };
+  const checarProntidao = async (propostaId) => {
+    if (!propostaId) { setProntidao(null); return; }
+    setProntidao(await propostasApi.prontaParaContrato(propostaId).catch(() => null));
+  };
+
+  const openCreate = () => { setEdit(null); setForm(emptyC); setProntidao(null); setOpen(true); };
   const openEdit = (a) => {
     setEdit(a);
     setForm({
@@ -238,6 +244,8 @@ function CcbTab() {
       status: a.status, link_assinatura: a.link_assinatura || '', documento_hash: a.documento_hash || '',
       emitida_em: a.emitida_em ? a.emitida_em.slice(0, 10) : '', assinada_em: a.assinada_em ? a.assinada_em.slice(0, 10) : '',
     });
+    setProntidao(null);
+    if (a.proposta_id && !a.contrato_id) checarProntidao(a.proposta_id);
     setOpen(true);
   };
 
@@ -249,11 +257,15 @@ function CcbTab() {
       taxa_mensal: f.taxa_mensal || (p?.taxa_mensal ?? ''),
       prazo: f.prazo || (p?.prazo ?? ''),
     }));
+    checarProntidao(v);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.proposta_id) return alert('Selecione a proposta.');
+    if (form.status === 'assinada' && prontidao && !prontidao.pronta) {
+      return alert('Esteira incompleta — não é possível assinar/gerar contrato:\n\n• ' + prontidao.motivos.join('\n• '));
+    }
     const payload = {
       proposta_id: form.proposta_id, numero: form.numero || null,
       valor_principal: num(form.valor_principal), valor_total: num(form.valor_total),
@@ -346,6 +358,18 @@ function CcbTab() {
               </div>
               <div className="space-y-2"><Label>Número da CCB</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} /></div>
             </div>
+            {form.proposta_id && prontidao && (
+              prontidao.pronta ? (
+                <div className="rounded-lg bg-green-50 border border-green-200 p-2.5 text-xs text-green-800 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Esteira completa — pronta para assinar e gerar contrato.
+                </div>
+              ) : (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
+                  <p className="font-medium mb-1 flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5" /> Pendências antes de assinar:</p>
+                  <ul className="list-disc list-inside">{prontidao.motivos.map((m, i) => <li key={i}>{m}</li>)}</ul>
+                </div>
+              )
+            )}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2"><Label>Principal</Label><Input type="number" step="0.01" value={form.valor_principal} onChange={(e) => setForm({ ...form, valor_principal: e.target.value })} /></div>
               <div className="space-y-2"><Label>Total</Label><Input type="number" step="0.01" value={form.valor_total} onChange={(e) => setForm({ ...form, valor_total: e.target.value })} /></div>
