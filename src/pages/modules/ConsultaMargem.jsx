@@ -145,7 +145,25 @@ export default function ConsultaMargem() {
         franquia_id: activeUnidade?.id || cliente.franquia_id || null,
       });
       await auditoriaApi.log('gerar_proposta_consulta_margem', 'propostas', prop.id, { cliente: cliente.nome, produto: prodSel.produto, valor });
-      setPropostaMsg(`Proposta criada (em análise). Acompanhe em CRM → Propostas / Margem → Averbações.`);
+      // Reserva automática da margem apartada (desconta do vínculo).
+      let reservaOk = true;
+      try {
+        await propostasApi.reservarMargem(prop.id);
+        await auditoriaApi.log('reservar_margem_proposta', 'propostas', prop.id, { valor_parcela: parcela });
+      } catch (e) {
+        reservaOk = false;
+      }
+      setPropostaMsg(reservaOk
+        ? `Proposta criada e margem de ${brl(parcela)} reservada. Acompanhe em CRM → Propostas / Margem → Averbações.`
+        : `Proposta criada (em análise), mas a reserva de margem falhou — reserve manualmente em Propostas.`);
+      // Atualiza a margem exibida do vínculo selecionado.
+      if (reservaOk) {
+        const atualizadas = await matriculasApi.list({ cliente_id: cliente.id }).catch(() => matriculas);
+        setMatriculas(atualizadas);
+        const nova = atualizadas.find((x) => x.id === matSel.id);
+        if (nova) setMatSel(nova);
+        setSim(null); setCalc(null);
+      }
     } catch (err) {
       setPropostaMsg(err.message || 'Falha ao gerar proposta.');
     } finally {
