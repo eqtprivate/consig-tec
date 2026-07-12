@@ -22,6 +22,12 @@ export const notificacoesApi = {
     if (!res.ok) throw new Error(data.error || 'Falha ao processar fila');
     return data;
   },
+  // Envio DB-nativo (Resend via pg_net) — mesmo caminho do cron.
+  async dispatchDb() {
+    const { data, error } = await supabase.rpc('dispatch_notificacoes_admin');
+    if (error) throw error;
+    return data; // nº de notificações enviadas
+  },
 };
 
 export const regrasNotificacaoApi = {

@@ -25,11 +25,9 @@ export default function Notificacoes() {
   const processar = async () => {
     setProcessando(true); setInfo(null);
     try {
-      const r = await notificacoesApi.dispatch({ limit: 50 });
-      await auditoriaApi.log('processar_notificacoes', 'notificacoes', null, r);
-      setInfo(r.configurado === false
-        ? `Resend não configurado — ${r.pendentes} pendente(s) na fila. Defina RESEND_API_KEY nos secrets.`
-        : `Processadas ${r.processados} · enviadas ${r.enviados} · falhas ${r.falhas}.`);
+      const n = await notificacoesApi.dispatchDb();
+      await auditoriaApi.log('processar_notificacoes', 'notificacoes', null, { enviados: n });
+      setInfo(n > 0 ? `${n} notificação(ões) enviada(s) via Resend.` : 'Nenhuma pendente (ou Vault sem resend_api_key).');
       load();
     } catch (err) { setInfo(err.message); }
     finally { setProcessando(false); }
