@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import { contratosApi } from '@/lib/api/contratos';
 import { parcelasApi, carteiraApi } from '@/lib/api/parcelas';
 import { repassesApi } from '@/lib/api/repasses';
@@ -383,7 +384,7 @@ function Kpi({ label, value, tone }) {
 }
 
 export default function Financeiro() {
-  const [tab, setTab] = useState('receb');
+  const [tab, setTab] = useTabParam('receb');
   return (
     <div className="space-y-5">
       <div className="flex gap-1 border-b border-slate-200">

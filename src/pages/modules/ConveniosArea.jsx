@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import Convenios from '@/pages/modules/Convenios';
 import CapacidadeMunicipios from '@/pages/modules/CapacidadeMunicipios';
 
@@ -8,7 +9,7 @@ const TABS = [
 ];
 
 export default function ConveniosArea() {
-  const [tab, setTab] = useState('convenios');
+  const [tab, setTab] = useTabParam('convenios');
   return (
     <div className="space-y-5">
       <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">

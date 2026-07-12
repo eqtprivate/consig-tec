@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import ConsultaMargem from '@/pages/modules/ConsultaMargem';
 import Averbacoes from '@/pages/modules/Averbacoes';
 import ReconciliacaoMargem from '@/pages/modules/ReconciliacaoMargem';
@@ -10,7 +11,7 @@ const TABS = [
 ];
 
 export default function MargemAverbacao() {
-  const [tab, setTab] = useState('consulta');
+  const [tab, setTab] = useTabParam('consulta');
   const render = () => {
     if (tab === 'consulta') return <ConsultaMargem />;
     if (tab === 'averbacoes') return <Averbacoes />;

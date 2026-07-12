@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import { comissoesApi, regrasComissaoApi } from '@/lib/api/comissoes';
 import { contratosApi } from '@/lib/api/contratos';
 import { conveniosApi } from '@/lib/api/convenios';
@@ -299,7 +300,7 @@ function RegrasTab() {
 /* ------------------------------ Wrapper ------------------------------ */
 const TABS = [{ key: 'comissoes', label: 'Comissões' }, { key: 'regras', label: 'Regras de rateio' }];
 export default function Comissoes() {
-  const [tab, setTab] = useState('comissoes');
+  const [tab, setTab] = useTabParam('comissoes');
   return (
     <div className="space-y-5">
       <div className="flex gap-1 border-b border-slate-200">

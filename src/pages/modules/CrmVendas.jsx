@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import Leads from '@/pages/modules/Leads';
 import Oportunidades from '@/pages/modules/Oportunidades';
 import Clientes from '@/pages/modules/Clientes';
@@ -22,7 +23,7 @@ const TABS = [
 ];
 
 export default function CrmVendas() {
-  const [tab, setTab] = useState('leads');
+  const [tab, setTab] = useTabParam('leads');
   const render = () => {
     switch (tab) {
       case 'leads': return <Leads />;

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import {
   gestorasApi, administradorasApi, cedentesApi, fundosApi, pddApi, termosCessaoApi,
 } from '@/lib/api/cessao';
@@ -373,7 +374,7 @@ function PddTab() {
 const TABS = [{ key: 'termos', label: 'Termos de cessão' }, { key: 'fundos', label: 'Fundos & Partes' }, { key: 'pdd', label: 'PDD' }];
 export default function Cessao() {
   const { isAdmin } = useAuth();
-  const [tab, setTab] = useState('termos');
+  const [tab, setTab] = useTabParam('termos');
   if (!isAdmin) return <p className="text-sm text-slate-500">A camada de cessão/FIDC é restrita a administradores do grupo.</p>;
   return (
     <div className="space-y-5">

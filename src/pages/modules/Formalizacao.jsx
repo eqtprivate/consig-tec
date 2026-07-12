@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import { formalizacoesApi } from '@/lib/api/formalizacoes';
 import { ccbsApi } from '@/lib/api/ccbs';
 import { propostasApi } from '@/lib/api/propostas';
@@ -406,7 +407,7 @@ function CcbTab() {
 
 /* ------------------------------ Wrapper ------------------------------ */
 export default function Formalizacao() {
-  const [tab, setTab] = useState('form');
+  const [tab, setTab] = useTabParam('form');
   return (
     <div className="space-y-5">
       <div className="flex gap-1 border-b border-slate-200">

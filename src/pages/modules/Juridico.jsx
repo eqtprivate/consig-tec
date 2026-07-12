@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTabParam } from '@/lib/useTabParam';
 import { lgpdApi } from '@/lib/api/operacional';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
@@ -121,7 +122,7 @@ function LgpdTab() {
 
 const TABS = [{ key: 'lgpd', label: 'LGPD — Titular' }, { key: 'chamados', label: 'Chamados jurídicos' }];
 export default function Juridico() {
-  const [tab, setTab] = useState('lgpd');
+  const [tab, setTab] = useTabParam('lgpd');
   return (
     <div className="space-y-5">
       <div className="flex gap-1 border-b border-slate-200">
