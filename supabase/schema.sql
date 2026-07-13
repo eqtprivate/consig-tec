@@ -1,6 +1,6 @@
 -- ============================================================
 -- CONSIGTEC — Schema de Banco de Dados
--- Grupo Raman — Plataforma de Crédito Consignado
+-- CONSIGTEC — Plataforma de Crédito Consignado
 --
 -- Este arquivo é a FONTE DA VERDADE do schema e foi reconciliado
 -- a partir do banco Supabase ao vivo (projeto blnslbrflspiflrwsuzh,

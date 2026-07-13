@@ -1,0 +1,170 @@
+{
+  "_comentario": "JSON de REFERÊNCIA (CONSIGTEC) do payload esperado da API PixConsig v1. Serve para (a) alinhar o formato com a PixConsig e (b) testar o importador do CONSIGTEC colando em Convênios → Importar → JSON. Cobre casos de borda: cnpj null, codigo_ibge null, capag null, AGUARDANDO_DECRETO, INATIVA e REPROVADA (esta deve ser ignorada).",
+  "data": [
+    {
+      "id": "pix-conv-0001",
+      "entidade": {
+        "cnpj": "46831196000110",
+        "nome_oficial": "Prefeitura Municipal de Sumaré/SP",
+        "tipo": "prefeitura",
+        "cidade": "Sumaré",
+        "uf": "SP",
+        "endereco": "Av. Brasil, 1000 - Centro - 13170-000",
+        "codigo_ibge": "3552403",
+        "populacao": 286211,
+        "servidores": 9800
+      },
+      "credenciamento": {
+        "status": "ativo",
+        "status_detalhado": "ATIVA",
+        "decreto_enviado": true,
+        "data_credenciamento": "2022-06-01T12:00:00Z",
+        "data_atribuicao": "2022-05-10T03:00:00Z",
+        "vigencia_inicio": "2022-06-01T12:00:00Z",
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": "publicado",
+        "arquivo_decreto_url": "https://app.pixconsig.com.br/uploads/decreto-sumare.pdf"
+      },
+      "capag": { "classificacao": "B", "data_consulta": null, "fonte": null },
+      "averbacao": {
+        "sistema": "Consignet",
+        "data_corte": null,
+        "contatos_operacionais": [
+          { "nome": "RH Sumaré", "email": "rh@sumare.sp.gov.br", "telefone": "+551900000000", "papel": "credenciamento" }
+        ]
+      },
+      "produtos": [
+        {
+          "produto_id": "cartao-beneficio",
+          "nome": "Cartão Benefício Consignado",
+          "tipo_margem": "cartao",
+          "percentual_margem_apartada": 10.0,
+          "margem_disponivel": 7.5,
+          "prazo_min": null, "prazo_max": null, "valor_max": null,
+          "taxa": null, "spread": null, "comissao_prefeitura": null
+        }
+      ],
+      "updated_at": "2026-07-09T18:22:41Z"
+    },
+    {
+      "id": "pix-conv-0002",
+      "entidade": {
+        "cnpj": null,
+        "nome_oficial": "Prefeitura Municipal de Alenquer/PA",
+        "tipo": "prefeitura",
+        "cidade": "Alenquer",
+        "uf": "PA",
+        "endereco": null,
+        "codigo_ibge": "1500701",
+        "populacao": 55000,
+        "servidores": 2100
+      },
+      "credenciamento": {
+        "status": "em_credenciamento",
+        "status_detalhado": "AGUARDANDO_DECRETO",
+        "decreto_enviado": false,
+        "data_credenciamento": null,
+        "data_atribuicao": "2026-06-20T03:00:00Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto", "numero": null, "data": null,
+        "status_decreto": "em_analise", "arquivo_decreto_url": null
+      },
+      "capag": { "classificacao": "C", "data_consulta": null, "fonte": null },
+      "averbacao": { "sistema": "Zetra", "data_corte": null, "contatos_operacionais": [] },
+      "produtos": [
+        {
+          "produto_id": "cartao-beneficio", "nome": "Cartão Benefício Consignado",
+          "tipo_margem": "cartao", "percentual_margem_apartada": 5.0, "margem_disponivel": null,
+          "prazo_min": null, "prazo_max": null, "valor_max": null,
+          "taxa": null, "spread": null, "comissao_prefeitura": null
+        }
+      ],
+      "updated_at": "2026-07-10T09:00:00Z"
+    },
+    {
+      "id": "pix-conv-0003",
+      "entidade": {
+        "cnpj": "04789412000138",
+        "nome_oficial": "Prefeitura Municipal de Parauapebas/PA",
+        "tipo": "prefeitura",
+        "cidade": "Parauapebas",
+        "uf": "PA",
+        "endereco": null,
+        "codigo_ibge": null,
+        "populacao": 266000,
+        "servidores": 7400
+      },
+      "credenciamento": {
+        "status": "ativo", "status_detalhado": "ATIVA", "decreto_enviado": true,
+        "data_credenciamento": "2022-11-01T12:00:00Z", "data_atribuicao": "2022-10-01T03:00:00Z",
+        "vigencia_inicio": "2022-11-01T12:00:00Z", "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "lei", "numero": null, "data": null,
+        "status_decreto": "publicado", "arquivo_decreto_url": "https://app.pixconsig.com.br/uploads/lei-parauapebas.pdf"
+      },
+      "capag": { "classificacao": null, "data_consulta": null, "fonte": null },
+      "averbacao": { "sistema": "Consignet", "data_corte": null, "contatos_operacionais": [] },
+      "produtos": [
+        {
+          "produto_id": "cartao-beneficio", "nome": "Cartão Benefício Consignado",
+          "tipo_margem": "cartao", "percentual_margem_apartada": 15.0, "margem_disponivel": 12.0,
+          "prazo_min": null, "prazo_max": null, "valor_max": null,
+          "taxa": null, "spread": null, "comissao_prefeitura": null
+        }
+      ],
+      "updated_at": "2026-07-08T14:00:00Z"
+    },
+    {
+      "id": "pix-conv-0004",
+      "entidade": {
+        "cnpj": "01612443000190",
+        "nome_oficial": "Prefeitura Municipal de Marituba/PA",
+        "tipo": "prefeitura", "cidade": "Marituba", "uf": "PA", "endereco": null,
+        "codigo_ibge": "1504422", "populacao": 133000, "servidores": 3200
+      },
+      "credenciamento": {
+        "status": "suspenso", "status_detalhado": "INATIVA", "decreto_enviado": true,
+        "data_credenciamento": "2023-04-10T12:00:00Z", "data_atribuicao": "2023-03-01T03:00:00Z",
+        "vigencia_inicio": "2023-04-10T12:00:00Z", "vigencia_fim": null
+      },
+      "norma_autorizadora": { "tipo": "decreto", "numero": null, "data": null, "status_decreto": "publicado", "arquivo_decreto_url": null },
+      "capag": { "classificacao": "C", "data_consulta": null, "fonte": null },
+      "averbacao": { "sistema": "RCC", "data_corte": null, "contatos_operacionais": [] },
+      "produtos": [
+        { "produto_id": "cartao-beneficio", "nome": "Cartão Benefício Consignado", "tipo_margem": "cartao",
+          "percentual_margem_apartada": 7.0, "margem_disponivel": 0.0,
+          "prazo_min": null, "prazo_max": null, "valor_max": null, "taxa": null, "spread": null, "comissao_prefeitura": null }
+      ],
+      "updated_at": "2026-07-07T10:00:00Z"
+    },
+    {
+      "id": "pix-conv-0005",
+      "entidade": {
+        "cnpj": "06003636000152",
+        "nome_oficial": "Prefeitura Municipal de Paço do Lumiar/MA",
+        "tipo": "prefeitura", "cidade": "Paço do Lumiar", "uf": "MA", "endereco": null,
+        "codigo_ibge": "2107506", "populacao": 122000, "servidores": 2800
+      },
+      "credenciamento": {
+        "status": "encerrado", "status_detalhado": "REPROVADA", "decreto_enviado": false,
+        "data_credenciamento": null, "data_atribuicao": "2026-05-01T03:00:00Z",
+        "vigencia_inicio": null, "vigencia_fim": null
+      },
+      "norma_autorizadora": { "tipo": null, "numero": null, "data": null, "status_decreto": null, "arquivo_decreto_url": null },
+      "capag": { "classificacao": "D", "data_consulta": null, "fonte": null },
+      "averbacao": { "sistema": null, "data_corte": null, "contatos_operacionais": [] },
+      "produtos": [],
+      "updated_at": "2026-07-06T08:00:00Z"
+    }
+  ],
+  "pagination": { "page": 1, "page_size": 100, "total": 5, "has_next": false }
+}

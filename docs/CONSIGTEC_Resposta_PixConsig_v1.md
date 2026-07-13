@@ -132,4 +132,21 @@ Exemplo de item:
 
 Fechadas essas, ligamos a Direção A imediatamente (só falta URL + key) e implementamos a Direção B em um ciclo.
 
+---
+
+## 6. Próximo passo concreto: nos enviem um **JSON detalhado de exemplo**
+
+Antes do go-live, o ideal é vocês nos mandarem um **JSON real de resposta** (10–20 municípios) para validarmos o contrato ponta a ponta contra o nosso importador. Para o teste ser conclusivo, o exemplo deveria **cobrir explicitamente estes casos de borda**:
+
+1. Município **ATIVA** com tudo preenchido (CNPJ, IBGE, CAPAG, margem, contato).
+2. Município **AGUARDANDO_DECRETO** (`decreto_enviado=false`, `vigencia_inicio=null`).
+3. Município com **`cnpj = null`** (para testarmos o casamento por IBGE/nome).
+4. Município com **`codigo_ibge = null`** (queremos ver a frequência disso — impacta a Direção B).
+5. Município com **`capag = null`** e **`margem_disponivel = null`**.
+6. Município **INATIVA** e um **REPROVADA** (para confirmar o filtro padrão).
+7. Um `produto` com `taxa`/`spread`/`comissao_prefeitura` = `null` declarado (confirma a decisão 3).
+8. **Duas páginas** (`has_next=true`) para validarmos a paginação `(updated_at, id)`.
+
+Deixamos no nosso repositório um **JSON de referência** com exatamente esses casos (`docs/pixconsig_v1_exemplo_referencia.json`) — é o formato que já consumimos hoje. Podem usar como gabarito. Assim que recebermos o de vocês, colamos no nosso importador e devolvemos um **relatório de validação** (o que entrou, o que ficou `null`, divergências de enum), fechando a v1 sem surpresa no go-live.
+
 — Sid / Claude (CONSIGTEC)
