@@ -113,9 +113,9 @@ Exemplo de item:
 - [x] Consumidor do payload v1 (upsert idempotente por `pixconsig_convenio_id`)
 - [x] Full sync diário agendado (pg_cron) + gatilho manual + importação de JSON para teste
 
-**CONSIGTEC (Direção B — a implementar quando batermos o martelo):**
-- [ ] `GET /api/integration/v1/municipios` (somente leitura, `x-api-key`, filtros `updated_since`/`origem`/`uf`)
-- [ ] Gravar `pixconsig_*_id` e promover `origem_dado` na reconciliação por `codigo_ibge`
+**CONSIGTEC (Direção B):**
+- [x] `GET /api/functions/municipios` **pré-montado** (somente leitura, `x-api-key` própria via `MUNICIPIOS_API_KEY`, filtros `origem`/`updated_since`/`uf`/`page`/`page_size`, resposta `{ data, pagination }`). Basta habilitar o secret quando alinharmos.
+- [ ] Gravar `pixconsig_*_id` e promover `origem_dado` na reconciliação por `codigo_ibge` (liga junto no full sync — Direção A)
 
 **PixConsig (Direção B):**
 - [ ] Consumir o feed de municípios do CONSIGTEC e ingerir/credenciar por `codigo_ibge`
