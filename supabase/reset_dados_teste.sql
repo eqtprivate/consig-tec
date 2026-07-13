@@ -15,6 +15,9 @@
 -- metas_comerciais têm convenio_id ON DELETE CASCADE — que NÃO queremos
 -- disparar). Apagamos exatamente a lista abaixo, nada além dela.
 --
+-- Cada tabela é apagada só SE existir (to_regclass), então o script é
+-- tolerante a migrações que não tenham sido aplicadas neste banco.
+--
 -- ------------------------------------------------------------
 -- PRESERVADO (não é tocado por este script):
 --   Acesso ......... empresas, franquias, areas, papeis, usuarios, vinculos
@@ -24,70 +27,53 @@
 --   Cessão (master). administradoras, cedentes, fundos, gestoras
 -- APAGADO: tudo o mais (espelho de convênios + toda a esteira + CRM +
 --   cessão operacional + colaboração/chamados + fila de notificações).
+--
+-- Auditoria/logs: apagados por padrão (bloco final da lista). Para PRESERVAR
+--   o histórico, remova 'logs_acesso' e 'auditoria' do array abaixo.
 -- ============================================================
 
 BEGIN;
 
 SET session_replication_role = 'replica';  -- desliga triggers e checagem de FK
 
--- 1) Espelho de convênios (será repovoado pelo full sync da PixConsig)
-DELETE FROM sincronizacoes_convenio;
-DELETE FROM produtos_convenio;
-DELETE FROM overlay_comercial_convenio;
-DELETE FROM convenios;
-DELETE FROM entidades_cadastro;
-
--- 2) Esteira de crédito (proposta → averbação → CCB → contrato → carteira)
-DELETE FROM repasses_folha;
-DELETE FROM parcelas;
-DELETE FROM comissoes;
-DELETE FROM cobrancas;
-DELETE FROM refinanciamentos;
-DELETE FROM contratos;
-DELETE FROM ccbs;
-DELETE FROM analises_antifraude;
-DELETE FROM formalizacoes;
-DELETE FROM averbacoes;
-DELETE FROM propostas;
-DELETE FROM reservas_margem;
-DELETE FROM matriculas;
-
--- 3) Cessão (operacional — mantém as contrapartes master: fundos/gestoras/etc.)
-DELETE FROM dados_deposito_cessao;
-DELETE FROM assinaturas_cessao;
-DELETE FROM itens_cessao;
-DELETE FROM pdd_carteira;
-DELETE FROM carteiras_adquiridas;
-DELETE FROM termos_cessao;
-
--- 4) CRM / comercial
-DELETE FROM interacoes;
-DELETE FROM oportunidades;
-DELETE FROM leads;
-DELETE FROM campanhas;
-
--- 5) Clientes e consentimentos (LGPD ligado ao cliente)
-DELETE FROM consentimentos;
-DELETE FROM clientes;
-
--- 6) Colaboração auditável / chamados / mensageria
-DELETE FROM validacoes_thread;
-DELETE FROM thread_participantes;
-DELETE FROM mensagens;
-DELETE FROM threads;
-DELETE FROM chamados_internos_mensagens;
-DELETE FROM chamados_internos;
-DELETE FROM chamados;
-
--- 7) Operacional
-DELETE FROM pendencias;
-DELETE FROM lgpd_solicitacoes;
-DELETE FROM notificacoes;
-
--- 8) Trilha de auditoria / logs (histórico da fase de testes).
---    Comente as duas linhas abaixo se quiser PRESERVAR o histórico.
-DELETE FROM logs_acesso;
-DELETE FROM auditoria;
+DO $$
+DECLARE
+  alvo text;
+  apagadas text[] := ARRAY[
+    -- 1) Espelho de convênios (repovoado pelo full sync da PixConsig)
+    'sincronizacoes_convenio','produtos_convenio','overlay_comercial_convenio',
+    'convenios','entidades_cadastro',
+    -- 2) Esteira de crédito
+    'repasses_folha','parcelas','comissoes','cobrancas','refinanciamentos',
+    'contratos','ccbs','analises_antifraude','formalizacoes','averbacoes',
+    'propostas','reservas_margem','matriculas',
+    -- 3) Cessão operacional (mantém contrapartes master)
+    'dados_deposito_cessao','assinaturas_cessao','itens_cessao','pdd_carteira',
+    'carteiras_adquiridas','termos_cessao',
+    -- 4) CRM / comercial
+    'interacoes','oportunidades','leads','campanhas',
+    -- 5) Clientes e consentimentos
+    'consentimentos','clientes',
+    -- 6) Colaboração auditável / chamados / mensageria
+    'validacoes_thread','thread_participantes','mensagens','threads',
+    'chamados_internos_mensagens','chamados_internos','chamados',
+    -- 7) Operacional
+    'pendencias','lgpd_solicitacoes','notificacoes',
+    -- 8) Auditoria / logs (remova estas duas p/ preservar o histórico)
+    'logs_acesso','auditoria'
+  ];
+  n bigint;
+BEGIN
+  FOREACH alvo IN ARRAY apagadas LOOP
+    IF to_regclass('public.' || alvo) IS NOT NULL THEN
+      EXECUTE format('DELETE FROM public.%I', alvo);
+      GET DIAGNOSTICS n = ROW_COUNT;
+      RAISE NOTICE 'apagada %: % linhas', alvo, n;
+    ELSE
+      RAISE NOTICE 'ignorada % (não existe)', alvo;
+    END IF;
+  END LOOP;
+END $$;
 
 SET session_replication_role = 'origin';  -- religa triggers e FKs
 
