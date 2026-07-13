@@ -35,8 +35,7 @@ export default function Login() {
          style={{ background: 'linear-gradient(150deg, #1a2733 0%, #2E4053 60%, #37506a 100%)' }}>
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-16 w-auto mb-3" />
-          <p className="text-sm text-slate-300">Crédito Consignado</p>
+          <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-24 w-auto" />
         </div>
 
         <div className="bg-white rounded-xl shadow-2xl p-8">
