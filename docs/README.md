@@ -12,7 +12,7 @@ arquitetura → roadmap v2 (mestre) → pacote do estágio atual → contrato/sp
 | `CONSIGTEC_Arquitetura_Tecnica.md` | Stack e camadas: Supabase (SoR, RLS, Storage, Vault, Edge Functions), Base44 (UX), Claude Code, Resend/WhatsApp; modelo de identidade e recursos adicionais | Todos |
 | `CONSIGTEC_Roadmap_v2_Enriquecido.md` | **Mestre.** 16 estágios, operação real do Grupo Raman, fluxo operacional→módulos, produto (cartão benefício/margem apartada), cessão/FIDC, modelo de dados, decisões | Todos |
 | `CONSIGTEC_Estagio0_ClaudeCode.md` | Fundação: migration (schema + RLS `auth_can_access`), Edge Function do Resend, runbook, prompt | 0 |
-| `CONSIGTEC_API_PixConsig_Contrato.md` | Contrato da API de convênios (co-desenvolvida): endpoints, schema, webhooks, fallback CSV, fronteira de propriedade | 1 |
+| **Integração PixConsig** | Documentação da API movida para a pasta **`/API`** (proposta recebida, resposta oficial, JSON de referência) | 1 |
 | `CONSIGTEC_Roadmap_Implementacao.md` (v1) | Base histórica: convenções, modelo de dados inicial, prompts | Referência |
 
 ## 2. Fontes originais do cliente (versionar em `docs/fontes/`)
