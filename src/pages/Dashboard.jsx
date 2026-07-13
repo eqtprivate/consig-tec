@@ -7,6 +7,7 @@ import { propostasApi } from '@/lib/api/propostas';
 import { contratosApi } from '@/lib/api/contratos';
 import { comissoesApi } from '@/lib/api/comissoes';
 import { dashboardApi } from '@/lib/api/dashboard';
+import CountUp from '@/components/CountUp';
 import { brl, dataBR } from '@/lib/format';
 import {
   AlertCircle, ArrowRight, Building2, FileText, FileCheck2,
@@ -189,7 +190,7 @@ export default function Dashboard() {
             {ESTEIRA.map((e, i) => (
               <div key={e.key} className="relative">
                 <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">{e.label}</p>
-                <p className={`text-lg font-bold num mt-0.5 ${e.tone}`}>{brl(Number(exec[e.key] || 0))}</p>
+                <p className={`text-lg font-bold num mt-0.5 ${e.tone}`}><CountUp value={Number(exec[e.key] || 0)} format={brl} /></p>
                 {i < ESTEIRA.length - 1 && <ArrowRight className="hidden lg:block w-3.5 h-3.5 text-slate-300 absolute -right-2.5 top-6" />}
               </div>
             ))}
@@ -268,22 +269,22 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile
           label="Propostas em análise" tone="amber" icon={FileText}
-          value={dash ?? propostasEmAnalise.length}
+          value={loading ? '—' : <CountUp value={propostasEmAnalise.length} />}
           hint={loading ? '' : `${propostas.length} propostas no total`}
         />
         <StatTile
           label="Contratos ativos" tone="green" icon={FileCheck2}
-          value={dash ?? contratosAtivos.length}
+          value={loading ? '—' : <CountUp value={contratosAtivos.length} />}
           hint={loading ? '' : `${contratos.length} contratos registrados`}
         />
         <StatTile
           label="Volume financiado" tone="primary" icon={DollarSign}
-          value={loading ? '—' : brl(volumeFinanciado)}
+          value={loading ? '—' : <CountUp value={volumeFinanciado} format={brl} />}
           hint="Principal dos contratos ativos"
         />
         <StatTile
           label="Comissões previstas" tone="blue" icon={Wallet}
-          value={loading ? '—' : brl(totalComissaoPrevista)}
+          value={loading ? '—' : <CountUp value={totalComissaoPrevista} format={brl} />}
           hint={loading ? '' : `${brl(totalComissaoPaga)} já pagas`}
         />
       </div>
