@@ -1,15 +1,17 @@
 import React from 'react';
 import { useTabParam } from '@/lib/useTabParam';
+import ConveniosDashboard from '@/pages/modules/ConveniosDashboard';
 import Convenios from '@/pages/modules/Convenios';
 import CapacidadeMunicipios from '@/pages/modules/CapacidadeMunicipios';
 
 const TABS = [
+  { key: 'visao', label: 'Visão Geral' },
   { key: 'convenios', label: 'Convênios & Produtos' },
   { key: 'capacidade', label: 'Capacidade por Município' },
 ];
 
 export default function ConveniosArea() {
-  const [tab, setTab] = useTabParam('convenios');
+  const [tab, setTab] = useTabParam('visao');
   return (
     <div className="space-y-5">
       <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
@@ -25,7 +27,7 @@ export default function ConveniosArea() {
           </button>
         ))}
       </div>
-      {tab === 'convenios' ? <Convenios /> : <CapacidadeMunicipios />}
+      {tab === 'visao' ? <ConveniosDashboard /> : tab === 'convenios' ? <Convenios /> : <CapacidadeMunicipios />}
     </div>
   );
 }
