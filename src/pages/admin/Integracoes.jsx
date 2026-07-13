@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { integracoesApi } from '@/lib/api/expansao';
 import { pixconsigApi } from '@/lib/api/pixconsig';
 import { auditoriaApi } from '@/lib/api/auditoria';
@@ -33,6 +33,22 @@ function SyncPixconsig() {
   // rascunho do editor de janela
   const [cfg, setCfg] = useState({ intervalo_horas: 4, hora_inicio: 9, hora_fim: 17, ativo: true });
   const [savingCfg, setSavingCfg] = useState(false);
+  // progresso ao vivo (polling enquanto rodando)
+  const [prog, setProg] = useState(null);
+  const pollRef = useRef(null);
+
+  const pararPoll = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  const iniciarPoll = () => {
+    if (pollRef.current) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const p = await pixconsigApi.progresso();
+        setProg(p);
+        if (!p?.rodando) { pararPoll(); carregarStatus(); }
+      } catch { /* ignora blip */ }
+    }, 1500);
+  };
+  useEffect(() => () => pararPoll(), []);
 
   const carregarStatus = async () => {
     setLoadingStatus(true);
@@ -48,10 +64,17 @@ function SyncPixconsig() {
     } catch (err) { /* silencioso: painel apenas informativo */ }
     finally { setLoadingStatus(false); }
   };
-  useEffect(() => { carregarStatus(); }, []);
+  useEffect(() => {
+    carregarStatus();
+    // se um sync (ex.: cron) já estiver rodando, engata a barra ao vivo
+    (async () => {
+      try { const p = await pixconsigApi.progresso(); setProg(p); if (p?.rodando) iniciarPoll(); } catch { /* ignora */ }
+    })();
+  }, []);
 
   const sincronizar = async () => {
-    setBusy(true); setRes(null);
+    setBusy(true); setRes(null); setProg(null);
+    iniciarPoll();
     try {
       const r = await pixconsigApi.sync();
       await auditoriaApi.log('sync_pixconsig_manual', 'convenios', null, { ok: r.ok, total: r.total, ignorados: r.ignorados, erros: r.erros?.length || 0 });
@@ -60,7 +83,7 @@ function SyncPixconsig() {
       else toast.success(`Sync concluído: ${r.ok}/${r.total} convênios (${r.paginas} página(s)).`);
       carregarStatus();
     } catch (err) { toast.error(err.message || 'Falha na sincronização.'); setRes({ erro: err.message }); }
-    finally { setBusy(false); }
+    finally { setBusy(false); pararPoll(); try { setProg(await pixconsigApi.progresso()); } catch { /* ignora */ } }
   };
 
   const salvarConfig = async () => {
@@ -84,6 +107,11 @@ function SyncPixconsig() {
   const execValida = (status?.execucoes || []).find((e) => Number(e.total) > 0);
   const ult = resValido ? { ok: Number(res.ok), total: Number(res.total) } : execValida || null;
   const pct = ult && ult.total > 0 ? Math.round((ult.ok / ult.total) * 100) : null;
+  // Progresso ao vivo: quando há um sync rodando (manual ou cron) com total conhecido.
+  const rodando = busy || prog?.rodando;
+  const liveTotal = Number(prog?.total || 0);
+  const liveProc = Number(prog?.processados || 0);
+  const livePct = rodando && liveTotal > 0 ? Math.min(100, Math.round((liveProc / liveTotal) * 100)) : null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
@@ -108,16 +136,22 @@ function SyncPixconsig() {
       <div>
         <div className="flex items-center justify-between text-[11px] mb-1">
           <span className="text-slate-500">
-            {busy ? 'Sincronizando com a PixConsig…'
+            {rodando && livePct != null ? 'Sincronizando com a PixConsig…'
+              : rodando ? 'Sincronizando com a PixConsig…'
               : pct != null ? 'Taxa de sucesso da última sincronização'
               : 'Aguardando primeira sincronização com dados'}
           </span>
-          {pct != null && !busy && (
+          {rodando && livePct != null ? (
+            <span className="font-semibold text-slate-700">{liveProc.toLocaleString('pt-BR')}/{liveTotal.toLocaleString('pt-BR')}{prog?.pagina ? ` · pág. ${prog.pagina}` : ''} · <span className="text-primary">{livePct}%</span></span>
+          ) : pct != null && !rodando && (
             <span className="font-semibold text-slate-700">{ult.ok}/{ult.total} convênios · <span className="text-primary">{pct}%</span></span>
           )}
         </div>
-        <Progress value={busy ? 100 : (pct ?? 0)} className={busy ? 'animate-pulse' : ''} />
-        {!busy && pct == null && (
+        <Progress
+          value={rodando ? (livePct != null ? livePct : 100) : (pct ?? 0)}
+          className={rodando && livePct == null ? 'animate-pulse' : ''}
+        />
+        {!rodando && pct == null && (
           <p className="text-[11px] text-slate-400 mt-1">
             Nenhuma sincronização retornou dados ainda — configure os secrets do backend e clique em “Sincronizar agora”.
           </p>

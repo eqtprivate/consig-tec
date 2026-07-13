@@ -18,7 +18,14 @@ export const pixconsigApi = {
   async status() {
     const { data, error } = await supabase.rpc('status_sync_pixconsig');
     if (error) throw error;
-    return data; // { config, cron, espelho, execucoes }
+    return data; // { config, cron, espelho, execucoes, reconciliacao }
+  },
+
+  // Progresso ao vivo do sync em andamento (para a barra do painel).
+  async progresso() {
+    const { data, error } = await supabase.rpc('progresso_sync_pixconsig');
+    if (error) throw error;
+    return data; // { total, processados, pagina, rodando, mensagem, ... } | null
   },
 
   // Regrava a janela/intervalo do cron (horas em BRT) e persiste a preferência.

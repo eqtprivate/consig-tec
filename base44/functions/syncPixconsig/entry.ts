@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
     const pageSize = 200;
     let cursor: string | null = null;
     let page = 1;                 // usado só no fallback offset
+    let forcarOffset = false;     // liga se o keyset vier vazio
     let totalApi: number | null = null;
     let guard = 0;
 
@@ -75,12 +76,23 @@ Deno.serve(async (req) => {
       if (pr.ok) { const pj = await pr.json(); totalApi = numOrNull(pj?.pagination?.total ?? pj?.total); }
     } catch { /* opcional — não bloqueia o sync */ }
 
+    // Progresso ao vivo (barra do painel). Escrita best-effort: nunca quebra o sync.
+    const prog = async (patch: Record<string, unknown>) => {
+      try {
+        await admin.from('sync_progresso').upsert(
+          { chave: 'pixconsig', ...patch, atualizado_em: new Date().toISOString() },
+          { onConflict: 'chave' },
+        );
+      } catch { /* tabela pode não existir ainda (migração 0050) */ }
+    };
+    await prog({ total: totalApi, processados: 0, pagina: 0, rodando: true, mensagem: 'iniciando', iniciado_em: now });
+
     for (;;) {
       guard++;
       if (guard > 1000) { res.erros.push('Limite de páginas atingido (1000).'); break; }
       const qs = new URLSearchParams({ page_size: String(pageSize) });
       if (cursor) qs.set('cursor', cursor);
-      else if (page > 1) qs.set('page', String(page));
+      else if (forcarOffset || page > 1) qs.set('page', String(page));
       const endpoint = `${baseConv}?${qs.toString()}`;
       // busca a página com até 2 retentativas (um blip HTTP não corta a paginação)
       let r: Response | null = null;
@@ -89,7 +101,13 @@ Deno.serve(async (req) => {
         if (r.ok) break;
         if (tent < 2) await new Promise((s) => setTimeout(s, 500 * (tent + 1)));
       }
-      if (!r || !r.ok) { res.erros.push(`HTTP ${r?.status ?? '?'} (página ${guard}, após retentativas)`); break; }
+      if (!r || !r.ok) {
+        let corpo = '';
+        try { corpo = (await r?.text() || '').slice(0, 300); } catch { /* ignora */ }
+        res.erros.push(`HTTP ${r?.status ?? '?'} (página ${guard}): ${corpo}`);
+        if (guard === 1) res.diag = { erro_http: r?.status ?? null, corpo, endpoint };
+        break;
+      }
       const json = await r.json();
       const lista = Array.isArray(json) ? json : (json?.data || json?.items || json?.results || json?.convenios || []);
       const pg = ((!Array.isArray(json) && (json.pagination || json.meta || json)) || {}) as Record<string, unknown>;
@@ -190,8 +208,19 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Progresso ao vivo após cada página.
+      await prog({ total: totalApi, processados: res.total, pagina: res.paginas, rodando: true, mensagem: 'sincronizando' });
+
       // Próxima página: keyset (cursor) primeiro; senão fallback offset.
-      if (lista.length === 0) break;
+      if (lista.length === 0) {
+        // Keyset veio vazio na 1ª página mas há dados → tenta modo offset do zero.
+        if (!forcarOffset && !cursor && (totalApi ?? 0) > 0) {
+          forcarOffset = true; page = 1;
+          res.erros.push('1ª página keyset vazia — fallback para offset');
+          continue;
+        }
+        break;
+      }
       const nextCursor = (typeof pg.next_cursor === 'string' && pg.next_cursor) ? pg.next_cursor : null;
       if (nextCursor) {
         if (pg.has_next === false) break;   // última página do keyset
@@ -206,6 +235,8 @@ Deno.serve(async (req) => {
       }
     }
     res.total_api = totalApi;
+    await prog({ total: totalApi, processados: res.total, pagina: res.paginas, rodando: false,
+                 mensagem: res.erros.length ? `concluído com ${res.erros.length} erro(s)` : 'concluído' });
 
     // Auditoria da sincronização
     await admin.from('auditoria').insert({
@@ -218,6 +249,12 @@ Deno.serve(async (req) => {
 
     return Response.json({ configurado: true, ...res });
   } catch (e) {
+    try {
+      await admin.from('sync_progresso').upsert(
+        { chave: 'pixconsig', rodando: false, mensagem: `erro: ${(e as Error).message}`, atualizado_em: new Date().toISOString() },
+        { onConflict: 'chave' },
+      );
+    } catch { /* best-effort */ }
     return Response.json({ error: (e as Error).message, ...res }, { status: 500 });
   }
 });
