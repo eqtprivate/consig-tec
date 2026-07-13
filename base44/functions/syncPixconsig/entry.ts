@@ -53,21 +53,32 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const incluirReprovadas = !!body.incluirReprovadas;
   const now = new Date().toISOString();
-  const res = { total: 0, ok: 0, ignorados: 0, paginas: 0, erros: [] as string[] };
+  const res = { total: 0, ok: 0, ignorados: 0, paginas: 0, erros: [] as string[], total_api: null as number | null, diag: null as unknown };
 
   try {
     let page = 1;
     const pageSize = 200;
+    let totalApi: number | null = null;
     for (;;) {
       // baseUrl já inclui .../v1 (ex.: https://app.pixconsig.com.br/api/integration/v1)
       const endpoint = `${baseUrl.replace(/\/$/, '')}/convenios?page=${page}&page_size=${pageSize}`;
-      const r = await fetch(endpoint, { headers: { 'x-api-key': apiKey, Accept: 'application/json' } });
-      if (!r.ok) {
-        res.erros.push(`HTTP ${r.status} na página ${page}`);
-        break;
+      // busca a página com até 2 retentativas (evita que um blip HTTP corte a paginação no meio)
+      let r: Response | null = null;
+      for (let tent = 0; tent < 3; tent++) {
+        r = await fetch(endpoint, { headers: { 'x-api-key': apiKey, Accept: 'application/json' } });
+        if (r.ok) break;
+        if (tent < 2) await new Promise((s) => setTimeout(s, 500 * (tent + 1)));
       }
+      if (!r || !r.ok) { res.erros.push(`HTTP ${r?.status ?? '?'} na página ${page} (após retentativas)`); break; }
       const json = await r.json();
-      const lista = Array.isArray(json) ? json : (json?.data || []);
+      const lista = Array.isArray(json) ? json : (json?.data || json?.items || json?.results || json?.convenios || []);
+      const pg = ((!Array.isArray(json) && (json.pagination || json.meta || json)) || {}) as Record<string, unknown>;
+      // Diagnóstico da 1ª página: registra o formato real da resposta (para ajustar paginação).
+      if (page === 1) {
+        res.diag = Array.isArray(json)
+          ? { formato: 'array', itens_pagina: lista.length }
+          : { chaves: Object.keys(json), pagination: json.pagination ?? json.meta ?? null, itens_pagina: lista.length };
+      }
       res.paginas++;
 
       for (const item of lista) {
@@ -158,18 +169,34 @@ Deno.serve(async (req) => {
         }
       }
 
-      const hasNext = !Array.isArray(json) && json?.pagination?.has_next;
-      if (!hasNext || lista.length === 0) break;
+      // Decidir próxima página tolerando várias convenções de paginação.
+      if (lista.length === 0) break;
+      const totPag = numOrNull(pg.total_pages ?? pg.last_page ?? pg.pages ?? pg.num_pages);
+      const totItens = numOrNull(pg.total ?? pg.total_count ?? pg.count ?? (Array.isArray(json) ? null : json.total));
+      if (totItens != null) totalApi = totItens;
+      let flag: boolean | undefined;
+      for (const k of ['has_next', 'has_more', 'hasNext', 'hasMore']) {
+        if (typeof pg[k] === 'boolean') { flag = pg[k] as boolean; break; }
+      }
+      if (flag === undefined && (pg.next || pg.next_page || pg.next_url)) flag = true;
+
+      let continuar: boolean;
+      if (totPag != null) continuar = page < totPag;
+      else if (totItens != null) continuar = res.total < totItens;
+      else if (flag !== undefined) continuar = flag;
+      else continuar = lista.length >= pageSize; // heurística: página cheia ⇒ provavelmente há mais
+      if (!continuar) break;
       page++;
-      if (page > 200) { res.erros.push('Limite de páginas atingido (200).'); break; }
+      if (page > 1000) { res.erros.push('Limite de páginas atingido (1000).'); break; }
     }
+    res.total_api = totalApi;
 
     // Auditoria da sincronização
     await admin.from('auditoria').insert({
       entidade: 'convenios', registro_id: null, acao: 'sync_pixconsig',
       valor_novo: {
         total: res.total, ok: res.ok, ignorados: res.ignorados, paginas: res.paginas,
-        erros: res.erros.length, erros_amostra: res.erros.slice(0, 5),
+        total_api: res.total_api, erros: res.erros.length, erros_amostra: res.erros.slice(0, 5),
       },
     });
 

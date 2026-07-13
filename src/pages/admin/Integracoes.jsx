@@ -142,7 +142,13 @@ function SyncPixconsig() {
 
       {res && !res.erro && res.configurado !== false && (
         <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
-          <b>{res.ok}</b> de <b>{res.total}</b> sincronizados · {res.ignorados} ignorado(s) · {res.paginas} página(s){res.erros?.length ? ` · ${res.erros.length} erro(s)` : ''}
+          <b>{res.ok}</b> de <b>{res.total}</b> sincronizados{res.total_api != null ? ` (API informa ${res.total_api} no total)` : ''} · {res.ignorados} ignorado(s) · {res.paginas} página(s){res.erros?.length ? ` · ${res.erros.length} erro(s)` : ''}
+          {res.diag && (
+            <details className="mt-2 text-[11px] text-slate-500">
+              <summary className="cursor-pointer">Diagnóstico de paginação (1ª página)</summary>
+              <pre className="mt-1 bg-slate-100 rounded p-2 overflow-x-auto">{JSON.stringify(res.diag, null, 2)}</pre>
+            </details>
+          )}
           {res.erros?.length > 0 && (
             <ul className="mt-2 text-xs text-red-600 list-disc list-inside max-h-40 overflow-y-auto space-y-0.5">
               {res.erros.map((e, i) => <li key={i} className="break-words">{e}</li>)}
