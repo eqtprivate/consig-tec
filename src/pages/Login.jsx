@@ -36,7 +36,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-16 w-auto mb-3" />
-          <p className="text-sm text-slate-300">Grupo Raman — Crédito Consignado</p>
+          <p className="text-sm text-slate-300">Crédito Consignado</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-2xl p-8">
@@ -111,7 +111,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-slate-500 mt-6">
-          CONSIGTEC © {new Date().getFullYear()} Grupo Raman
+          CONSIGTEC © {new Date().getFullYear()}
         </p>
       </div>
     </div>

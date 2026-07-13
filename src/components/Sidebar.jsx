@@ -137,7 +137,6 @@ export default function Sidebar() {
       <div className="px-5 py-5 border-b border-border">
         <img src="/brand/consigtec_logo_white.png" alt="CONSIGTEC" className="h-10 w-auto block dark:hidden" />
         <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-10 w-auto hidden dark:block" />
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-2">Grupo Raman</p>
       </div>
 
       {activeUnidade && (
