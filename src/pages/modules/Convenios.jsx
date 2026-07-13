@@ -14,10 +14,11 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Upload, Package, Wallet } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Package, Wallet, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirmar } from '@/lib/confirm';
 import Tip from '@/components/Tip';
+import { useSortable, sortRows, SortTh, norm } from '@/lib/table';
 
 const TIPOS = { publico: 'Público', privado: 'Privado', inss: 'INSS', militar: 'Militar' };
 const MARGENS = { apartada: 'Apartada', principal: 'Principal', cartao: 'Cartão' };
@@ -45,6 +46,13 @@ const ov1 = (c) => (Array.isArray(c.overlay) ? c.overlay[0] : c.overlay) || null
 export default function Convenios() {
   const [convenios, setConvenios] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Busca + filtros + ordenação
+  const [busca, setBusca] = useState('');
+  const [fTipo, setFTipo] = useState('todos');
+  const [fOrigem, setFOrigem] = useState('todos');
+  const [fStatus, setFStatus] = useState('todos');
+  const { sort, toggle } = useSortable('nome', 'asc');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -76,6 +84,33 @@ export default function Convenios() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  const cidadeDe = (c) => c.entidade?.cidade || c.orgao || '';
+  const ufDe = (c) => c.entidade?.uf || '';
+  const view = React.useMemo(() => {
+    const q = norm(busca.trim());
+    let v = convenios.filter((c) => {
+      if (fTipo !== 'todos' && c.tipo !== fTipo) return false;
+      if (fOrigem !== 'todos' && (c.origem_dado || 'manual') !== fOrigem) return false;
+      if (fStatus === 'ativo' && !c.ativo) return false;
+      if (fStatus === 'inativo' && c.ativo) return false;
+      if (q) {
+        const alvo = norm([c.nome, cidadeDe(c), ufDe(c), c.entidade?.cnpj].filter(Boolean).join(' '));
+        if (!alvo.includes(q)) return false;
+      }
+      return true;
+    });
+    return sortRows(v, sort, {
+      nome: (c) => c.nome,
+      cidade: (c) => `${cidadeDe(c)}/${ufDe(c)}`,
+      margem: (c) => MARGENS[c.tipo_margem] || '',
+      apartada: (c) => (c.percentual_margem_apartada != null ? Number(c.percentual_margem_apartada) : null),
+      origem: (c) => ORIGENS[c.origem_dado] || 'Manual',
+      status: (c) => !!c.ativo,
+    });
+  }, [convenios, busca, fTipo, fOrigem, fStatus, sort]);
+  const temFiltro = busca || fTipo !== 'todos' || fOrigem !== 'todos' || fStatus !== 'todos';
+  const limparFiltros = () => { setBusca(''); setFTipo('todos'); setFOrigem('todos'); setFStatus('todos'); };
 
   const openCreate = () => { setEditItem(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (c) => {
@@ -238,26 +273,69 @@ export default function Convenios() {
         </div>
       </div>
 
+      {/* Busca + filtros */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, cidade, UF ou CNPJ…" className="pl-9" />
+        </div>
+        <div className="w-40">
+          <Select value={fTipo} onValueChange={setFTipo}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os tipos</SelectItem>
+              {Object.entries(TIPOS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-40">
+          <Select value={fOrigem} onValueChange={setFOrigem}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as origens</SelectItem>
+              {Object.entries(ORIGENS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-36">
+          <Select value={fStatus} onValueChange={setFStatus}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem>
+              <SelectItem value="ativo">Ativos</SelectItem>
+              <SelectItem value="inativo">Inativos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {temFiltro && (
+          <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1 text-slate-500"><X className="w-3.5 h-3.5" /> Limpar</Button>
+        )}
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
         ) : convenios.length === 0 ? (
           <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio cadastrado.</div>
+        ) : view.length === 0 ? (
+          <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio corresponde aos filtros.</div>
         ) : (
+          <>
+          <div className="px-4 py-2 text-[11px] text-slate-400 border-b border-slate-100">{view.length} de {convenios.length} convênio(s)</div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nome</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Cidade/UF</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Margem</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Apartada</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Origem</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
+                <SortTh label="Nome" sortKey="nome" sort={sort} onSort={toggle} />
+                <SortTh label="Cidade/UF" sortKey="cidade" sort={sort} onSort={toggle} className="hidden md:table-cell" />
+                <SortTh label="Margem" sortKey="margem" sort={sort} onSort={toggle} />
+                <SortTh label="Apartada" sortKey="apartada" sort={sort} onSort={toggle} align="right" className="hidden lg:table-cell" />
+                <SortTh label="Origem" sortKey="origem" sort={sort} onSort={toggle} className="hidden sm:table-cell" />
+                <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
                 <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {convenios.map((c) => (
+              {view.map((c) => (
                 <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{c.nome}</td>
                   <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{[c.entidade?.cidade || c.orgao, c.entidade?.uf].filter(Boolean).join('/') || '—'}</td>
@@ -278,6 +356,7 @@ export default function Convenios() {
               ))}
             </tbody>
           </table>
+          </>
         )}
       </div>
 

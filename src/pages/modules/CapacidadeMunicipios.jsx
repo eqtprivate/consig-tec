@@ -3,7 +3,10 @@ import { capacidadeApi } from '@/lib/api/capacidade';
 import { metasComerciaisApi } from '@/lib/api/crm';
 import { brl, dataBR } from '@/lib/format';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, Users, Wallet, Star } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, Users, Wallet, Star, Search, X } from 'lucide-react';
+import { useSortable, sortRows, SortTh, norm } from '@/lib/table';
 
 const PRIO = {
   alta: { label: 'Alta', cls: 'bg-green-100 text-green-800', ord: 0 },
@@ -18,8 +21,9 @@ export default function CapacidadeMunicipios() {
   const [metas, setMetas] = useState([]);
   const [realizado, setRealizado] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [ordenar, setOrdenar] = useState('margem');
+  const [busca, setBusca] = useState('');
   const [filtroPrio, setFiltroPrio] = useState('todas');
+  const { sort, toggle } = useSortable('margem', 'desc');
   const comp = compAtual();
 
   useEffect(() => {
@@ -38,18 +42,25 @@ export default function CapacidadeMunicipios() {
   const realDe = (id) => realizado.find((x) => x.convenio_id === id) || null;
 
   const view = useMemo(() => {
-    let v = rows.filter((r) => (filtroPrio === 'todas' ? true : r.prioridade_comercial === filtroPrio));
-    v = [...v].sort((a, b) => {
-      if (ordenar === 'prioridade') {
-        const pa = PRIO[a.prioridade_comercial]?.ord ?? 9, pb = PRIO[b.prioridade_comercial]?.ord ?? 9;
-        if (pa !== pb) return pa - pb;
-        return Number(b.margem_disponivel) - Number(a.margem_disponivel);
+    const q = norm(busca.trim());
+    let v = rows.filter((r) => {
+      if (filtroPrio !== 'todas' && r.prioridade_comercial !== filtroPrio) return false;
+      if (q) {
+        const alvo = norm([r.cidade, r.nome, r.uf].filter(Boolean).join(' '));
+        if (!alvo.includes(q)) return false;
       }
-      if (ordenar === 'tomadores') return Number(b.tomadores) - Number(a.tomadores);
-      return Number(b.margem_disponivel) - Number(a.margem_disponivel);
+      return true;
     });
-    return v;
-  }, [rows, filtroPrio, ordenar]);
+    return sortRows(v, sort, {
+      municipio: (r) => r.cidade || r.nome,
+      prioridade: (r) => PRIO[r.prioridade_comercial]?.ord ?? 9,
+      tomadores: (r) => Number(r.tomadores || 0),
+      vinculos: (r) => Number(r.vinculos_elegiveis || 0),
+      margem: (r) => Number(r.margem_disponivel || 0),
+      ticket: (r) => Number(r.ticket_medio_margem || 0),
+    });
+  }, [rows, filtroPrio, busca, sort]);
+  const temFiltro = busca || filtroPrio !== 'todas';
 
   const totalMargem = rows.reduce((s, r) => s + Number(r.margem_disponivel || 0), 0);
   const totalTomadores = rows.reduce((s, r) => s + Number(r.tomadores || 0), 0);
@@ -69,17 +80,11 @@ export default function CapacidadeMunicipios() {
         <Kpi icon={TrendingUp} label="Municípios com convênio" value={String(rows.length)} />
       </div>
 
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-3">
-        <div className="w-44">
-          <Select value={ordenar} onValueChange={setOrdenar}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="margem">Ordenar: margem disponível</SelectItem>
-              <SelectItem value="prioridade">Ordenar: prioridade</SelectItem>
-              <SelectItem value="tomadores">Ordenar: tomadores</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Busca + filtros (a ordenação é pelos cabeçalhos) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar município, convênio ou UF…" className="pl-9" />
         </div>
         <div className="w-44">
           <Select value={filtroPrio} onValueChange={setFiltroPrio}>
@@ -90,23 +95,26 @@ export default function CapacidadeMunicipios() {
             </SelectContent>
           </Select>
         </div>
+        {temFiltro && (
+          <Button variant="ghost" size="sm" onClick={() => { setBusca(''); setFiltroPrio('todas'); }} className="gap-1 text-slate-500"><X className="w-3.5 h-3.5" /> Limpar</Button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
         {loading ? (
           <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
         ) : view.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio para exibir.</div>
+          <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio corresponde aos filtros.</div>
         ) : (
           <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Município / Convênio</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Prioridade</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Tomadores</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Vínculos</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Margem disponível</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Ticket médio</th>
+                <SortTh label="Município / Convênio" sortKey="municipio" sort={sort} onSort={toggle} />
+                <SortTh label="Prioridade" sortKey="prioridade" sort={sort} onSort={toggle} />
+                <SortTh label="Tomadores" sortKey="tomadores" sort={sort} onSort={toggle} align="right" />
+                <SortTh label="Vínculos" sortKey="vinculos" sort={sort} onSort={toggle} align="right" />
+                <SortTh label="Margem disponível" sortKey="margem" sort={sort} onSort={toggle} />
+                <SortTh label="Ticket médio" sortKey="ticket" sort={sort} onSort={toggle} align="right" className="hidden lg:table-cell" />
                 <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Meta × Realizado</th>
               </tr>
             </thead>
