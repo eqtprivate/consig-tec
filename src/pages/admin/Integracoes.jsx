@@ -77,9 +77,13 @@ function SyncPixconsig() {
 
   const previewBRT = horariosBRT(cfg.hora_inicio, cfg.hora_fim, cfg.intervalo_horas);
   const cronAtivo = status?.cron?.active;
-  // percentual da última execução (ou da rodada manual recém-terminada)
-  const ult = res && !res.erro ? { ok: res.ok, total: res.total } : status?.execucoes?.[0];
-  const pct = ult && ult.total > 0 ? Math.round((ult.ok / ult.total) * 100) : (ult && ult.total === 0 ? 100 : null);
+  // Percentual = taxa de sucesso (ok/total) da última execução COM dados.
+  // Preferimos a rodada manual recém-terminada; senão a última execução válida
+  // no histórico. Rodadas com configurado:false / total nulo não contam.
+  const resValido = res && !res.erro && res.configurado !== false && Number(res.total) > 0;
+  const execValida = (status?.execucoes || []).find((e) => Number(e.total) > 0);
+  const ult = resValido ? { ok: Number(res.ok), total: Number(res.total) } : execValida || null;
+  const pct = ult && ult.total > 0 ? Math.round((ult.ok / ult.total) * 100) : null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
@@ -102,11 +106,22 @@ function SyncPixconsig() {
 
       {/* Barra de status / percentual */}
       <div>
-        <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
-          <span>{busy ? 'Sincronizando com a PixConsig…' : pct != null ? 'Última sincronização' : 'Aguardando primeira sincronização'}</span>
-          {pct != null && !busy && <span className="font-semibold text-slate-700">{ult.ok}/{ult.total} · {pct}%</span>}
+        <div className="flex items-center justify-between text-[11px] mb-1">
+          <span className="text-slate-500">
+            {busy ? 'Sincronizando com a PixConsig…'
+              : pct != null ? 'Taxa de sucesso da última sincronização'
+              : 'Aguardando primeira sincronização com dados'}
+          </span>
+          {pct != null && !busy && (
+            <span className="font-semibold text-slate-700">{ult.ok}/{ult.total} convênios · <span className="text-primary">{pct}%</span></span>
+          )}
         </div>
         <Progress value={busy ? 100 : (pct ?? 0)} className={busy ? 'animate-pulse' : ''} />
+        {!busy && pct == null && (
+          <p className="text-[11px] text-slate-400 mt-1">
+            Nenhuma sincronização retornou dados ainda — configure os secrets do backend e clique em “Sincronizar agora”.
+          </p>
+        )}
       </div>
 
       {/* Cartões de resumo do espelho */}
@@ -212,9 +227,13 @@ export default function Integracoes() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ nome: '', tipo: '', status: 'inativo', observacao: '' });
+  const [syncOpen, setSyncOpen] = useState(false);
 
   const load = async () => { setLoading(true); setItens(await integracoesApi.list().catch(() => [])); setLoading(false); };
   useEffect(() => { load(); }, []);
+
+  const isPix = (i) => `${i.nome || ''} ${i.tipo || ''}`.toLowerCase().includes('pixconsig');
+  const pixExiste = itens.some(isPix);
 
   const openCreate = () => { setEdit(null); setForm({ nome: '', tipo: '', status: 'inativo', observacao: '' }); setOpen(true); };
   const openEdit = (i) => { setEdit(i); setForm({ nome: i.nome, tipo: i.tipo || '', status: i.status, observacao: i.observacao || '' }); setOpen(true); };
@@ -238,28 +257,61 @@ export default function Integracoes() {
         {isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova</Button>}
       </div>
 
-      {isAdmin && <SyncPixconsig />}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? <p className="text-sm text-slate-400">Carregando...</p>
-        : itens.map((i) => (
-          <div key={i.id} className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><Plug className="w-4 h-4" /></span>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{i.nome}</p>
-                  <p className="text-[11px] text-slate-400">{i.tipo || '—'}</p>
+        : (<>
+          {/* Card PixConsig sintético, caso ainda não exista um cadastrado */}
+          {isAdmin && !pixExiste && (
+            <button onClick={() => setSyncOpen(true)} className="text-left bg-white rounded-xl border border-slate-200 p-4 hover:border-primary/40 hover:shadow-sm transition">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><RefreshCw className="w-4 h-4" /></span>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">PixConsig</p>
+                    <p className="text-[11px] text-slate-400">espelho de convênios</p>
+                  </div>
                 </div>
+                <span className="text-[11px] text-primary font-medium">Configurar →</span>
               </div>
-              {isAdmin && <button onClick={() => openEdit(i)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>}
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[i.status] || CORES.inativo}`}>{i.status}</span>
-              <span className="text-[11px] text-slate-400">{i.ultima_sincronizacao ? `sync ${dataBR(i.ultima_sincronizacao)}` : 'sem sync'}</span>
-            </div>
-          </div>
-        ))}
+              <div className="mt-3 text-[11px] text-slate-400">Sincronização de cadastro e margem dos convênios.</div>
+            </button>
+          )}
+          {itens.map((i) => {
+            const pix = isPix(i);
+            return (
+              <div key={i.id} className={`bg-white rounded-xl border p-4 ${pix ? 'border-blue-200' : 'border-slate-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${pix ? 'bg-blue-50 text-blue-600' : 'bg-primary/10 text-primary'}`}>{pix ? <RefreshCw className="w-4 h-4" /> : <Plug className="w-4 h-4" />}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{i.nome}</p>
+                      <p className="text-[11px] text-slate-400">{i.tipo || '—'}</p>
+                    </div>
+                  </div>
+                  {isAdmin && <button onClick={() => openEdit(i)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>}
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[i.status] || CORES.inativo}`}>{i.status}</span>
+                  <span className="text-[11px] text-slate-400">{i.ultima_sincronizacao ? `sync ${dataBR(i.ultima_sincronizacao)}` : 'sem sync'}</span>
+                </div>
+                {isAdmin && pix && (
+                  <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)} className="mt-3 w-full gap-2">
+                    <RefreshCw className="w-3.5 h-3.5" /> Sincronização & janela
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </>)}
       </div>
+
+      {/* Subjanela de sincronização PixConsig */}
+      <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="w-4 h-4 text-blue-600" /> Integração PixConsig — sincronização</DialogTitle></DialogHeader>
+          <SyncPixconsig />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
