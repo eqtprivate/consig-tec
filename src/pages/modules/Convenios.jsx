@@ -5,6 +5,7 @@ import { overlayApi } from '@/lib/api/overlay';
 import { produtosConvenioApi } from '@/lib/api/produtosConvenio';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { importarConveniosCSV } from '@/lib/pixconsigImport';
+import { importarConveniosPixconsigJSON } from '@/lib/pixconsigApiImport';
 import { importarBaseMargemCSV } from '@/lib/margemImport';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ export default function Convenios() {
   const [form, setForm] = useState(emptyForm);
 
   const [importOpen, setImportOpen] = useState(false);
+  const [importFmt, setImportFmt] = useState('csv');
   const [csv, setCsv] = useState('');
   const [importing, setImporting] = useState(false);
   const [importRes, setImportRes] = useState(null);
@@ -134,9 +136,12 @@ export default function Convenios() {
     setImporting(true);
     setImportRes(null);
     try {
-      const res = await importarConveniosCSV(csv, new Date().toISOString());
+      const now = new Date().toISOString();
+      const res = importFmt === 'json'
+        ? await importarConveniosPixconsigJSON(csv, now)
+        : await importarConveniosCSV(csv, now);
       setImportRes(res);
-      await auditoriaApi.log('importar_convenios_csv', 'convenios', null, { total: res.total, ok: res.ok });
+      await auditoriaApi.log(importFmt === 'json' ? 'importar_convenios_api' : 'importar_convenios_csv', 'convenios', null, { total: res.total, ok: res.ok });
       load();
     } catch (err) {
       setImportRes({ total: 0, ok: 0, erros: [err.message] });
@@ -483,11 +488,19 @@ export default function Convenios() {
       {/* Importar CSV */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Importar convênios (CSV — espelho PixConsig)</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Importar convênios (espelho PixConsig)</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-slate-500">Cole o CSV ou selecione um arquivo. Mesmo schema da API — upsert por <code className="font-mono text-xs">pixconsig_convenio_id</code>.</p>
-            <Input type="file" accept=".csv,text/csv" onChange={onFile} />
-            <Textarea rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder="pixconsig_convenio_id,cnpj,nome_oficial,cidade,uf,status,..." className="font-mono text-xs" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setImportFmt('csv')} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${importFmt === 'csv' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-500'}`}>CSV</button>
+              <button type="button" onClick={() => setImportFmt('json')} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${importFmt === 'json' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-500'}`}>JSON (API PixConsig v1)</button>
+            </div>
+            {importFmt === 'csv' ? (
+              <p className="text-sm text-slate-500">Cole o CSV ou selecione um arquivo — upsert por <code className="font-mono text-xs">pixconsig_convenio_id</code>.</p>
+            ) : (
+              <p className="text-sm text-slate-500">Cole o JSON da API v1 (<code className="font-mono text-xs">{'{ data: [...] }'}</code> ou array). Sincroniza cadastro + margem; taxa/spread/comissão continuam do CONSIGTEC. REPROVADA é ignorada.</p>
+            )}
+            {importFmt === 'csv' && <Input type="file" accept=".csv,text/csv" onChange={onFile} />}
+            <Textarea rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder={importFmt === 'json' ? '{ "data": [ { "id": "...", "entidade": {...}, "credenciamento": {...}, "produtos": [...] } ] }' : 'pixconsig_convenio_id,cnpj,nome_oficial,cidade,uf,status,...'} className="font-mono text-xs" />
             {importRes && (
               <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm">
                 <p className="text-slate-700"><b>{importRes.ok}</b> de <b>{importRes.total}</b> convênios importados.</p>
