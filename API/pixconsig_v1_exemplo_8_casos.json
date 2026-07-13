@@ -1,0 +1,496 @@
+{
+  "data": [
+    {
+      "id": "5b63880c-c66d-45bd-9765-91d80e743aeb",
+      "entidade": {
+        "cnpj": "05.058.441/0001-68",
+        "nome_oficial": "Prefeitura Municipal de Ananindeua/PA",
+        "tipo": "prefeitura",
+        "cidade": "Ananindeua",
+        "uf": "PA",
+        "endereco": "Rodovia BR-316, Km 08, nº 1515, no bairro Centro",
+        "cep": "67030-970",
+        "codigo_ibge": "1500800",
+        "populacao": 509227,
+        "servidores": 13427
+      },
+      "credenciamento": {
+        "status": "ativo",
+        "status_detalhado": "ATIVA",
+        "decreto_enviado": false,
+        "data_credenciamento": "2026-07-07T17:41:07.557Z",
+        "data_atribuicao": "2026-07-03T18:58:27.896Z",
+        "data_cadastro": "2026-06-30T23:52:01.117Z",
+        "vigencia_inicio": "2026-07-07T17:41:07.557Z",
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": null,
+        "arquivo_decreto_url": null
+      },
+      "capag": {
+        "classificacao": "B",
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": [
+          {
+            "nome": "Arlindo Penha Da Silva",
+            "email": "semad@ananindeua.pa.gov.br",
+            "telefone": "(91) 3073-2510",
+            "papel": "institucional"
+          }
+        ]
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [
+        {
+          "produto_id": "cartao-beneficio",
+          "nome": "Cartao Beneficio",
+          "tipo_margem": "CARTAO_BENEFICIO",
+          "percentual_margem": null,
+          "prazo_min": null,
+          "prazo_max": null,
+          "valor_max": null,
+          "taxa": null,
+          "spread": null,
+          "comissao_prefeitura": null
+        },
+        {
+          "produto_id": "emprestimo-consignado",
+          "nome": "Emprestimo Consignado",
+          "tipo_margem": "EMPRESTIMO_CONSIGNADO",
+          "percentual_margem": null,
+          "prazo_min": null,
+          "prazo_max": null,
+          "valor_max": null,
+          "taxa": null,
+          "spread": null,
+          "comissao_prefeitura": null
+        },
+        {
+          "produto_id": "cartao-credito",
+          "nome": "Cartao de Credito Consignado",
+          "tipo_margem": "CARTAO_CREDITO",
+          "percentual_margem": null,
+          "prazo_min": null,
+          "prazo_max": null,
+          "valor_max": null,
+          "taxa": null,
+          "spread": null,
+          "comissao_prefeitura": null
+        }
+      ],
+      "updated_at": "2026-07-07T17:41:07.557Z"
+    },
+    {
+      "id": "a2bdc4ee-a294-40c9-ace4-10c1e5155096",
+      "entidade": {
+        "cnpj": "01.612.549/0001-08",
+        "nome_oficial": "Prefeitura Municipal de Guaraciama/MG",
+        "tipo": "prefeitura",
+        "cidade": "Guaraciama",
+        "uf": "MG",
+        "endereco": "Av. Maria José de Figueiredo, n° 307 Centro | Guaraciama MG",
+        "cep": "39397-000",
+        "codigo_ibge": "3128253",
+        "populacao": 5224,
+        "servidores": 356
+      },
+      "credenciamento": {
+        "status": "em_credenciamento",
+        "status_detalhado": "AGUARDANDO_DECRETO",
+        "decreto_enviado": true,
+        "data_credenciamento": null,
+        "data_atribuicao": "2026-06-29T23:33:11.274Z",
+        "data_cadastro": "2026-02-21T22:56:14.664Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": "PRECISA_DECRETO",
+        "arquivo_decreto_url": "https://app.pixconsig.com.br/uploads/prefeituras/a2bdc4ee-a294-40c9-ace4-10c1e5155096/3ccdd887-ce90-493b-a5ff-99fa17835fbf.pdf"
+      },
+      "capag": {
+        "classificacao": "B",
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": [
+          {
+            "nome": "José Maria Figueiredo Sobrinho ( Dedim)",
+            "email": "gabinete@guaraciama.mg.gov.br",
+            "telefone": "(38) 99847-1218",
+            "papel": "institucional"
+          },
+          {
+            "nome": "gabinete@guaraciama.mg.gov.br",
+            "email": null,
+            "telefone": null,
+            "papel": "credenciamento"
+          }
+        ]
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [
+        {
+          "produto_id": "emprestimo-consignado",
+          "nome": "Emprestimo Consignado",
+          "tipo_margem": "EMPRESTIMO_CONSIGNADO",
+          "percentual_margem": 35,
+          "prazo_min": null,
+          "prazo_max": null,
+          "valor_max": null,
+          "taxa": null,
+          "spread": null,
+          "comissao_prefeitura": null
+        }
+      ],
+      "updated_at": "2026-07-09T18:03:36.348Z"
+    },
+    {
+      "id": "09459d1b-cfec-47f5-b184-b791343e105f",
+      "entidade": {
+        "cnpj": null,
+        "nome_oficial": "Prefeitura Municipal de Santaluz/BA",
+        "tipo": "prefeitura",
+        "cidade": "Santaluz",
+        "uf": "BA",
+        "endereco": null,
+        "cep": null,
+        "codigo_ibge": "2928000",
+        "populacao": 40066,
+        "servidores": 2387
+      },
+      "credenciamento": {
+        "status": "em_credenciamento",
+        "status_detalhado": "AGUARDANDO_DECRETO",
+        "decreto_enviado": false,
+        "data_credenciamento": null,
+        "data_atribuicao": "2026-06-29T23:33:11.274Z",
+        "data_cadastro": "2026-02-21T22:56:15.034Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": null,
+        "arquivo_decreto_url": null
+      },
+      "capag": {
+        "classificacao": "C",
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": []
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [],
+      "updated_at": "2026-06-30T00:19:00.965Z"
+    },
+    {
+      "id": "d8418182-6a1d-4089-908f-56ed848e3689",
+      "entidade": {
+        "cnpj": null,
+        "nome_oficial": "Prefeitura Municipal de Irará/BA",
+        "tipo": "prefeitura",
+        "cidade": "Irará",
+        "uf": "BA",
+        "endereco": null,
+        "cep": null,
+        "codigo_ibge": "2914505",
+        "populacao": 29572,
+        "servidores": 1979
+      },
+      "credenciamento": {
+        "status": "ativo",
+        "status_detalhado": "ATIVA",
+        "decreto_enviado": false,
+        "data_credenciamento": null,
+        "data_atribuicao": null,
+        "data_cadastro": "2026-02-26T16:38:14.320Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": null,
+        "arquivo_decreto_url": null
+      },
+      "capag": {
+        "classificacao": "C",
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": [
+          {
+            "nome": "Teodoro ",
+            "email": "recursoshumanos@irara.ba.gov.br",
+            "telefone": "(71) 99987-1212",
+            "papel": "institucional"
+          }
+        ]
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [
+        {
+          "produto_id": "emprestimo-consignado",
+          "nome": "Emprestimo Consignado",
+          "tipo_margem": "EMPRESTIMO_CONSIGNADO",
+          "percentual_margem": 40,
+          "prazo_min": null,
+          "prazo_max": null,
+          "valor_max": null,
+          "taxa": null,
+          "spread": null,
+          "comissao_prefeitura": null
+        },
+        {
+          "produto_id": "cartao-beneficio",
+          "nome": "Cartao Beneficio",
+          "tipo_margem": "CARTAO_BENEFICIO",
+          "percentual_margem": 5,
+          "prazo_min": null,
+          "prazo_max": null,
+          "valor_max": null,
+          "taxa": null,
+          "spread": null,
+          "comissao_prefeitura": null
+        }
+      ],
+      "updated_at": "2026-02-26T17:28:46.897Z"
+    },
+    {
+      "id": "1f290b1e-f7ea-4b5f-aaf3-a32ef02ab24f",
+      "entidade": {
+        "cnpj": null,
+        "nome_oficial": "Prefeitura Municipal de Acajás/BA",
+        "tipo": "prefeitura",
+        "cidade": "Acajás",
+        "uf": "BA",
+        "endereco": null,
+        "cep": null,
+        "codigo_ibge": null,
+        "populacao": null,
+        "servidores": null
+      },
+      "credenciamento": {
+        "status": "em_credenciamento",
+        "status_detalhado": "AGUARDANDO_ANALISE",
+        "decreto_enviado": false,
+        "data_credenciamento": null,
+        "data_atribuicao": "2026-06-29T23:33:11.274Z",
+        "data_cadastro": "2026-02-21T22:56:18.703Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": null,
+        "arquivo_decreto_url": null
+      },
+      "capag": {
+        "classificacao": null,
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": []
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [],
+      "updated_at": "2026-06-30T00:19:00.965Z"
+    },
+    {
+      "id": "039f46b5-c61d-4b49-bd51-8f2ad915bdfe",
+      "entidade": {
+        "cnpj": null,
+        "nome_oficial": "Prefeitura Municipal de Três Marias/MG",
+        "tipo": "prefeitura",
+        "cidade": "Três Marias",
+        "uf": "MG",
+        "endereco": "Praça Joaquim de Lima Avelar, n° 1, no Centro",
+        "cep": "39205-000",
+        "codigo_ibge": "3169356",
+        "populacao": 29985,
+        "servidores": 1824
+      },
+      "credenciamento": {
+        "status": "em_credenciamento",
+        "status_detalhado": "AGUARDANDO_ANALISE",
+        "decreto_enviado": false,
+        "data_credenciamento": null,
+        "data_atribuicao": "2026-06-29T23:33:11.274Z",
+        "data_cadastro": "2026-03-23T00:24:03.451Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": null,
+        "arquivo_decreto_url": null
+      },
+      "capag": {
+        "classificacao": null,
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": []
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [],
+      "updated_at": "2026-06-30T00:19:00.965Z"
+    },
+    {
+      "id": "a5966680-4702-4f90-a239-f1ae4c3f8f06",
+      "entidade": {
+        "cnpj": null,
+        "nome_oficial": "Prefeitura Municipal de Esplanada/BA",
+        "tipo": "prefeitura",
+        "cidade": "Esplanada",
+        "uf": "BA",
+        "endereco": null,
+        "cep": null,
+        "codigo_ibge": "2910602",
+        "populacao": 34163,
+        "servidores": 1864
+      },
+      "credenciamento": {
+        "status": "em_credenciamento",
+        "status_detalhado": "AGUARDANDO_ANALISE",
+        "decreto_enviado": false,
+        "data_credenciamento": null,
+        "data_atribuicao": "2026-06-29T23:33:11.274Z",
+        "data_cadastro": "2026-02-21T22:56:18.865Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": null,
+        "arquivo_decreto_url": "https://app.pixconsig.com.br/uploads/prefeituras/a5966680-4702-4f90-a239-f1ae4c3f8f06/e5f9e17c-a6f7-45f7-82fd-4ac75bd92f26.pdf"
+      },
+      "capag": {
+        "classificacao": "B",
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": []
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [],
+      "updated_at": "2026-06-30T00:19:00.965Z"
+    },
+    {
+      "id": "8b744f1b-9a22-43df-a766-d5ddebf43d1c",
+      "entidade": {
+        "cnpj": null,
+        "nome_oficial": "Prefeitura Municipal de Apucarana/PR",
+        "tipo": "prefeitura",
+        "cidade": "Apucarana",
+        "uf": "PR",
+        "endereco": null,
+        "cep": null,
+        "codigo_ibge": "4101408",
+        "populacao": 134910,
+        "servidores": 1043
+      },
+      "credenciamento": {
+        "status": "encerrado",
+        "status_detalhado": "REPROVADA",
+        "decreto_enviado": false,
+        "data_credenciamento": null,
+        "data_atribuicao": null,
+        "data_cadastro": "2026-02-21T22:56:10.146Z",
+        "vigencia_inicio": null,
+        "vigencia_fim": null
+      },
+      "norma_autorizadora": {
+        "tipo": "decreto",
+        "numero": null,
+        "data": null,
+        "status_decreto": null,
+        "arquivo_decreto_url": null
+      },
+      "capag": {
+        "classificacao": "A",
+        "data_consulta": null,
+        "fonte": null
+      },
+      "averbacao": {
+        "sistema": null,
+        "data_corte": null,
+        "contatos_operacionais": []
+      },
+      "margens": {
+        "decreto_cartao": null,
+        "disponivel": null
+      },
+      "produtos": [],
+      "updated_at": "2026-03-02T15:18:58.132Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 8,
+    "total": 1100,
+    "has_next": true
+  }
+}

@@ -16,6 +16,12 @@ import { entidadesApi } from '@/lib/api/entidades';
 
 const soDigitos = (v) => (v ? String(v).replace(/\D/g, '') : null);
 const soData = (v) => (v ? String(v).slice(0, 10) : null);
+// margem pode vir número, string ("35") ou vazia ("") — coage p/ número|null.
+const numOrNull = (v) => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+};
 
 // Enum PixConsig → tipo_margem interno (apartada|principal|cartao)
 const MARGEM_MAP = { CARTAO_BENEFICIO: 'cartao', CARTAO_CREDITO: 'cartao', EMPRESTIMO_CONSIGNADO: 'principal' };
@@ -67,20 +73,21 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
         vigencia_inicio: soData(cred.vigencia_inicio),
         vigencia_fim: soData(cred.vigencia_fim),
         capag: capag.classificacao || null,
+        contatos: Array.isArray(averb.contatos_operacionais) ? averb.contatos_operacionais : [],
         origem_dado: 'pixconsig', ultima_sincronizacao: now, status_sync: 'ok',
       };
       let entidadeId = await entidadesApi.encontrar({ cnpj, nome, cidade, uf });
       if (entidadeId) await entidadesApi.update(entidadeId, entPayload);
       else entidadeId = (await entidadesApi.create(entPayload)).id;
 
-      const pctApartada = margens.decreto_cartao ?? primary.percentual_margem ?? null;
+      const pctApartada = numOrNull(margens.decreto_cartao) ?? numOrNull(primary.percentual_margem);
       const convenio = {
         pixconsig_convenio_id: item.id,
         nome, orgao: cidade, tipo: 'publico', entidade_id: entidadeId,
         tipo_margem: mapMargem(primary.tipo_margem),
         percentual_margem_apartada: pctApartada,
         margem_consignavel: pctApartada,
-        margem_disponivel: margens.disponivel ?? null,
+        margem_disponivel: numOrNull(margens.disponivel),
         capag: capag.classificacao || null,
         arquivo_decreto_url: norma.arquivo_decreto_url || null,
         norma_autorizadora: norma.tipo || null,
@@ -97,7 +104,7 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
         const { error } = await supabase.from('produtos_convenio').upsert({
           convenio_id: conv.id, produto: mapProduto(p.tipo_margem),
           nome: p.nome || null, tipo_margem: mapMargem(p.tipo_margem),
-          margem_percentual: p.percentual_margem ?? null, ativo: true,
+          margem_percentual: numOrNull(p.percentual_margem), ativo: true,
         }, { onConflict: 'convenio_id,produto' });
         if (!error) res.produtos++;
       }

@@ -11,6 +11,11 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const soDigitos = (v: unknown) => (v ? String(v).replace(/\D/g, '') : null);
 const soData = (v: unknown) => (v ? String(v).slice(0, 10) : null);
+const numOrNull = (v: unknown) => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+};
 
 // Contrato v1 produção: produtos[] é array; tipo_margem é enum cru da PixConsig.
 const MARGEM_MAP: Record<string, string> = { CARTAO_BENEFICIO: 'cartao', CARTAO_CREDITO: 'cartao', EMPRESTIMO_CONSIGNADO: 'principal' };
@@ -94,6 +99,7 @@ Deno.serve(async (req) => {
             vigencia_inicio: soData(cred.vigencia_inicio),
             vigencia_fim: soData(cred.vigencia_fim),
             capag: capag.classificacao || null,
+            contatos: Array.isArray(averb.contatos_operacionais) ? averb.contatos_operacionais : [],
             origem_dado: 'pixconsig', ultima_sincronizacao: now, status_sync: 'ok',
           };
 
@@ -116,14 +122,14 @@ Deno.serve(async (req) => {
             entidadeId = data?.id ?? null;
           }
 
-          const pctApartada = margens.decreto_cartao ?? primary.percentual_margem ?? null;
+          const pctApartada = numOrNull(margens.decreto_cartao) ?? numOrNull(primary.percentual_margem);
           const convenio = {
             pixconsig_convenio_id: item.id,
             nome, orgao: cidade, tipo: 'publico', entidade_id: entidadeId,
             tipo_margem: mapMargem(primary.tipo_margem),
             percentual_margem_apartada: pctApartada,
             margem_consignavel: pctApartada,
-            margem_disponivel: margens.disponivel ?? null,
+            margem_disponivel: numOrNull(margens.disponivel),
             capag: capag.classificacao || null,
             arquivo_decreto_url: norma.arquivo_decreto_url || null,
             norma_autorizadora: norma.tipo || null,
@@ -143,7 +149,7 @@ Deno.serve(async (req) => {
             await admin.from('produtos_convenio').upsert({
               convenio_id: convRow?.id, produto: mapProduto(p.tipo_margem),
               nome: p.nome || null, tipo_margem: mapMargem(p.tipo_margem),
-              margem_percentual: p.percentual_margem ?? null, ativo: true,
+              margem_percentual: numOrNull(p.percentual_margem), ativo: true,
             }, { onConflict: 'convenio_id,produto' });
           }
           res.ok++;
