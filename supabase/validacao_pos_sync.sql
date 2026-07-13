@@ -76,4 +76,34 @@ SELECT secao, verificacao, valor, situacao FROM (
     (SELECT string_agg(s.k || ': ' || s.n, ' · ' ORDER BY s.n DESC)
        FROM (SELECT produto k, count(*) n FROM produtos_convenio GROUP BY 1) s), '—'
 
+  -- 9. RECONCILIAÇÃO DE VOLUME (espelho x total informado pela API) --------
+  -- Requer o backend v1.19.0+ (grava total_api/paginas na auditoria).
+  UNION ALL SELECT 90, '9. Reconciliação', 'Total informado pela API (última execução)',
+    coalesce((SELECT nullif(valor_novo->>'total_api', '') FROM auditoria
+              WHERE acao IN ('sync_pixconsig','sync_pixconsig_manual') AND (valor_novo->>'total_api') IS NOT NULL
+              ORDER BY created_at DESC LIMIT 1), '(sem dado — rode o sync novo)'), '—'
+  UNION ALL SELECT 91, '9. Reconciliação', 'Espelho cobre o total da API?',
+    (SELECT count(*)::text FROM convenios WHERE origem_dado = 'pixconsig')
+      || ' de ' || coalesce((SELECT nullif(valor_novo->>'total_api','') FROM auditoria
+            WHERE acao IN ('sync_pixconsig','sync_pixconsig_manual') AND (valor_novo->>'total_api') IS NOT NULL
+            ORDER BY created_at DESC LIMIT 1), '?'),
+    CASE
+      WHEN (SELECT (valor_novo->>'total_api')::int FROM auditoria
+              WHERE acao IN ('sync_pixconsig','sync_pixconsig_manual') AND (valor_novo->>'total_api') IS NOT NULL
+              ORDER BY created_at DESC LIMIT 1) IS NULL THEN '— (rode o sync novo)'
+      WHEN (SELECT count(*) FROM convenios WHERE origem_dado = 'pixconsig')
+           >= (SELECT (valor_novo->>'total_api')::int FROM auditoria
+                 WHERE acao IN ('sync_pixconsig','sync_pixconsig_manual') AND (valor_novo->>'total_api') IS NOT NULL
+                 ORDER BY created_at DESC LIMIT 1) THEN 'OK'
+      ELSE '⚠ faltam páginas'
+    END
+  UNION ALL SELECT 92, '9. Reconciliação', 'Páginas percorridas (última execução)',
+    coalesce((SELECT nullif(valor_novo->>'paginas','') FROM auditoria
+              WHERE acao IN ('sync_pixconsig','sync_pixconsig_manual')
+              ORDER BY created_at DESC LIMIT 1), '(sem dado)'), '—'
+  UNION ALL SELECT 93, '9. Reconciliação', 'Erros da última execução (amostra)',
+    coalesce((SELECT nullif((valor_novo->'erros_amostra')::text, '[]') FROM auditoria
+              WHERE acao IN ('sync_pixconsig','sync_pixconsig_manual')
+              ORDER BY created_at DESC LIMIT 1), '(nenhum)'), '—'
+
 ) q ORDER BY ord;
