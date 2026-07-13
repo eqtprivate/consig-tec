@@ -1,13 +1,29 @@
+import { supabase } from '@/lib/supabaseClient';
 import { conveniosApi } from '@/lib/api/convenios';
 import { entidadesApi } from '@/lib/api/entidades';
 
-// Consome o payload v1 da API de Convênios PixConsig (formato { data: [...] }
-// ou um array cru) e sincroniza o espelho local. Idempotente: upsert de
-// entidade (por CNPJ/nome) + convênio (por pixconsig_convenio_id).
-// NÃO toca em overlay_comercial_convenio nem em produtos_convenio: taxa/spread/
-// comissão/prazos são propriedade do CONSIGTEC. REPROVADA é ignorada por padrão.
+// Consome o payload v1 da API de Convênios PixConsig (produção) e sincroniza o
+// espelho local. Idempotente. NÃO sobrescreve taxa/spread/comissão/prazos
+// (propriedade do CONSIGTEC). REPROVADA ignorada por padrão.
+//
+// Contrato v1 (produção, 13/07/2026):
+// - `produtos[]` é ARRAY (um item por produto); pode vir vazio (91% dos casos).
+// - `produtos[].tipo_margem` é o enum CRU da PixConsig:
+//     EMPRESTIMO_CONSIGNADO | CARTAO_BENEFICIO | CARTAO_CREDITO
+// - `produtos[].percentual_margem` pode ser null mesmo com produto presente.
+// - `margens: { decreto_cartao, disponivel }` no topo do convênio.
+// A classificação apartada|principal|cartao é decisão comercial (CONSIGTEC).
+
 const soDigitos = (v) => (v ? String(v).replace(/\D/g, '') : null);
-const soData = (v) => (v ? String(v).slice(0, 10) : null); // ISO → date
+const soData = (v) => (v ? String(v).slice(0, 10) : null);
+
+// Enum PixConsig → tipo_margem interno (apartada|principal|cartao)
+const MARGEM_MAP = { CARTAO_BENEFICIO: 'cartao', CARTAO_CREDITO: 'cartao', EMPRESTIMO_CONSIGNADO: 'principal' };
+// Enum PixConsig → produto_consig interno
+const PRODUTO_MAP = { CARTAO_BENEFICIO: 'cartao_beneficio', CARTAO_CREDITO: 'cartao_credito', EMPRESTIMO_CONSIGNADO: 'consignado' };
+const up = (v) => String(v || '').toUpperCase();
+const mapMargem = (t) => MARGEM_MAP[up(t)] || 'cartao';
+const mapProduto = (t) => PRODUTO_MAP[up(t)] || 'cartao_beneficio';
 
 export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
   let parsed;
@@ -18,7 +34,7 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
 
   const now = nowIso || new Date().toISOString();
   const incluirReprovadas = !!opts.incluirReprovadas;
-  const res = { total: 0, ok: 0, ignorados: 0, erros: [] };
+  const res = { total: 0, ok: 0, ignorados: 0, produtos: 0, erros: [] };
 
   for (const item of lista) {
     res.total++;
@@ -28,12 +44,13 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
       const norma = item.norma_autorizadora || {};
       const capag = item.capag || {};
       const averb = item.averbacao || {};
-      const prod = (item.produtos && item.produtos[0]) || {};
+      const margens = item.margens || {};
+      const produtos = Array.isArray(item.produtos) ? item.produtos : [];
+      // Produto "principal" do convênio: cartão benefício se houver, senão o 1º.
+      const primary = produtos.find((p) => up(p.tipo_margem) === 'CARTAO_BENEFICIO') || produtos[0] || {};
 
       if (!item.id) throw new Error('item sem id (pixconsig_convenio_id)');
-      if (!incluirReprovadas && String(cred.status_detalhado || '').toUpperCase() === 'REPROVADA') {
-        res.ignorados++; continue;
-      }
+      if (!incluirReprovadas && up(cred.status_detalhado) === 'REPROVADA') { res.ignorados++; continue; }
 
       const cnpj = soDigitos(ent.cnpj);
       const nome = ent.nome_oficial || ent.cidade || item.id;
@@ -56,13 +73,14 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
       if (entidadeId) await entidadesApi.update(entidadeId, entPayload);
       else entidadeId = (await entidadesApi.create(entPayload)).id;
 
+      const pctApartada = margens.decreto_cartao ?? primary.percentual_margem ?? null;
       const convenio = {
         pixconsig_convenio_id: item.id,
         nome, orgao: cidade, tipo: 'publico', entidade_id: entidadeId,
-        tipo_margem: prod.tipo_margem || 'cartao',
-        percentual_margem_apartada: prod.percentual_margem_apartada ?? null,
-        margem_consignavel: prod.percentual_margem_apartada ?? null,
-        margem_disponivel: prod.margem_disponivel ?? null,
+        tipo_margem: mapMargem(primary.tipo_margem),
+        percentual_margem_apartada: pctApartada,
+        margem_consignavel: pctApartada,
+        margem_disponivel: margens.disponivel ?? null,
         capag: capag.classificacao || null,
         arquivo_decreto_url: norma.arquivo_decreto_url || null,
         norma_autorizadora: norma.tipo || null,
@@ -72,7 +90,17 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
         origem_dado: 'pixconsig', ultima_sincronizacao: now, status_sync: 'ok',
         ativo: cred.status === 'ativo',
       };
-      await conveniosApi.upsertByPixconsig(convenio);
+      const conv = await conveniosApi.upsertByPixconsig(convenio);
+
+      // Sincroniza os produtos SEM tocar taxa/prazo/valor (CONSIGTEC).
+      for (const p of produtos) {
+        const { error } = await supabase.from('produtos_convenio').upsert({
+          convenio_id: conv.id, produto: mapProduto(p.tipo_margem),
+          nome: p.nome || null, tipo_margem: mapMargem(p.tipo_margem),
+          margem_percentual: p.percentual_margem ?? null, ativo: true,
+        }, { onConflict: 'convenio_id,produto' });
+        if (!error) res.produtos++;
+      }
       res.ok++;
     } catch (e) {
       res.erros.push(`Item ${res.total} (${item?.id || '?'}): ${e.message}`);

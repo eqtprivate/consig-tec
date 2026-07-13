@@ -12,6 +12,13 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const soDigitos = (v: unknown) => (v ? String(v).replace(/\D/g, '') : null);
 const soData = (v: unknown) => (v ? String(v).slice(0, 10) : null);
 
+// Contrato v1 produção: produtos[] é array; tipo_margem é enum cru da PixConsig.
+const MARGEM_MAP: Record<string, string> = { CARTAO_BENEFICIO: 'cartao', CARTAO_CREDITO: 'cartao', EMPRESTIMO_CONSIGNADO: 'principal' };
+const PRODUTO_MAP: Record<string, string> = { CARTAO_BENEFICIO: 'cartao_beneficio', CARTAO_CREDITO: 'cartao_credito', EMPRESTIMO_CONSIGNADO: 'consignado' };
+const up = (v: unknown) => String(v || '').toUpperCase();
+const mapMargem = (t: unknown) => MARGEM_MAP[up(t)] || 'cartao';
+const mapProduto = (t: unknown) => PRODUTO_MAP[up(t)] || 'cartao_beneficio';
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return Response.json({ error: 'Método não permitido' }, { status: 405 });
 
@@ -47,7 +54,8 @@ Deno.serve(async (req) => {
     let page = 1;
     const pageSize = 200;
     for (;;) {
-      const endpoint = `${baseUrl.replace(/\/$/, '')}/v1/convenios?page=${page}&page_size=${pageSize}`;
+      // baseUrl já inclui .../v1 (ex.: https://app.pixconsig.com.br/api/integration/v1)
+      const endpoint = `${baseUrl.replace(/\/$/, '')}/convenios?page=${page}&page_size=${pageSize}`;
       const r = await fetch(endpoint, { headers: { 'x-api-key': apiKey, Accept: 'application/json' } });
       if (!r.ok) {
         res.erros.push(`HTTP ${r.status} na página ${page}`);
@@ -65,9 +73,11 @@ Deno.serve(async (req) => {
           const norma = item.norma_autorizadora || {};
           const capag = item.capag || {};
           const averb = item.averbacao || {};
-          const prod = (item.produtos && item.produtos[0]) || {};
+          const margens = item.margens || {};
+          const produtos = Array.isArray(item.produtos) ? item.produtos : [];
+          const primary = produtos.find((p: Record<string, unknown>) => up(p.tipo_margem) === 'CARTAO_BENEFICIO') || produtos[0] || {};
           if (!item.id) throw new Error('sem id');
-          if (!incluirReprovadas && String(cred.status_detalhado || '').toUpperCase() === 'REPROVADA') { res.ignorados++; continue; }
+          if (!incluirReprovadas && up(cred.status_detalhado) === 'REPROVADA') { res.ignorados++; continue; }
 
           const cnpj = soDigitos(ent.cnpj);
           const nome = ent.nome_oficial || ent.cidade || item.id;
@@ -106,13 +116,14 @@ Deno.serve(async (req) => {
             entidadeId = data?.id ?? null;
           }
 
+          const pctApartada = margens.decreto_cartao ?? primary.percentual_margem ?? null;
           const convenio = {
             pixconsig_convenio_id: item.id,
             nome, orgao: cidade, tipo: 'publico', entidade_id: entidadeId,
-            tipo_margem: prod.tipo_margem || 'cartao',
-            percentual_margem_apartada: prod.percentual_margem_apartada ?? null,
-            margem_consignavel: prod.percentual_margem_apartada ?? null,
-            margem_disponivel: prod.margem_disponivel ?? null,
+            tipo_margem: mapMargem(primary.tipo_margem),
+            percentual_margem_apartada: pctApartada,
+            margem_consignavel: pctApartada,
+            margem_disponivel: margens.disponivel ?? null,
             capag: capag.classificacao || null,
             arquivo_decreto_url: norma.arquivo_decreto_url || null,
             norma_autorizadora: norma.tipo || null,
@@ -122,8 +133,19 @@ Deno.serve(async (req) => {
             origem_dado: 'pixconsig', ultima_sincronizacao: now, status_sync: 'ok',
             ativo: cred.status === 'ativo',
           };
-          const { error } = await admin.from('convenios').upsert(convenio, { onConflict: 'pixconsig_convenio_id' });
+          const { data: convRow, error } = await admin.from('convenios')
+            .upsert(convenio, { onConflict: 'pixconsig_convenio_id' })
+            .select('id').single();
           if (error) throw new Error(error.message);
+
+          // Produtos (sem tocar taxa/prazo/valor — CONSIGTEC).
+          for (const p of produtos) {
+            await admin.from('produtos_convenio').upsert({
+              convenio_id: convRow?.id, produto: mapProduto(p.tipo_margem),
+              nome: p.nome || null, tipo_margem: mapMargem(p.tipo_margem),
+              margem_percentual: p.percentual_margem ?? null, ativo: true,
+            }, { onConflict: 'convenio_id,produto' });
+          }
           res.ok++;
         } catch (e) {
           res.erros.push(`Item ${item?.id || '?'}: ${(e as Error).message}`);
