@@ -10,39 +10,193 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Pencil, Plus, Plug, RefreshCw } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Pencil, Plus, Plug, RefreshCw, Clock, CheckCircle2, AlertTriangle, Save } from 'lucide-react';
+
+const dataHoraBR = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
+const h2 = (h) => String(h).padStart(2, '0') + ':00';
+// horas BRT dentro da janela, de `intervalo` em `intervalo` (espelha o cálculo do backend)
+const horariosBRT = (ini, fim, intervalo) => {
+  const out = [];
+  if (intervalo >= 1 && fim >= ini) for (let h = ini; h <= fim; h += intervalo) out.push(h);
+  return out;
+};
+const INTERVALOS = [1, 2, 3, 4, 6, 8, 12, 24];
 
 function SyncPixconsig() {
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  // rascunho do editor de janela
+  const [cfg, setCfg] = useState({ intervalo_horas: 4, hora_inicio: 9, hora_fim: 17, ativo: true });
+  const [savingCfg, setSavingCfg] = useState(false);
+
+  const carregarStatus = async () => {
+    setLoadingStatus(true);
+    try {
+      const s = await pixconsigApi.status();
+      setStatus(s);
+      if (s?.config) setCfg({
+        intervalo_horas: s.config.intervalo_horas ?? 4,
+        hora_inicio: s.config.hora_inicio ?? 9,
+        hora_fim: s.config.hora_fim ?? 17,
+        ativo: s.config.ativo ?? true,
+      });
+    } catch (err) { /* silencioso: painel apenas informativo */ }
+    finally { setLoadingStatus(false); }
+  };
+  useEffect(() => { carregarStatus(); }, []);
+
   const sincronizar = async () => {
     setBusy(true); setRes(null);
     try {
       const r = await pixconsigApi.sync();
-      await auditoriaApi.log('sync_pixconsig_manual', 'convenios', null, { ok: r.ok, total: r.total });
+      await auditoriaApi.log('sync_pixconsig_manual', 'convenios', null, { ok: r.ok, total: r.total, ignorados: r.ignorados, erros: r.erros?.length || 0 });
       setRes(r);
       if (r.configurado === false) toast.warning('API PixConsig ainda não configurada (base URL / api key).');
       else toast.success(`Sync concluído: ${r.ok}/${r.total} convênios (${r.paginas} página(s)).`);
+      carregarStatus();
     } catch (err) { toast.error(err.message || 'Falha na sincronização.'); setRes({ erro: err.message }); }
     finally { setBusy(false); }
   };
+
+  const salvarConfig = async () => {
+    if (cfg.hora_fim < cfg.hora_inicio) { toast.error('A hora final deve ser maior ou igual à inicial.'); return; }
+    setSavingCfg(true);
+    try {
+      await pixconsigApi.configurar(cfg);
+      await auditoriaApi.log('configurar_sync_pixconsig', 'configuracoes', null, cfg);
+      toast.success('Janela de sincronização atualizada.');
+      carregarStatus();
+    } catch (err) { toast.error(err.message || 'Falha ao salvar a janela.'); }
+    finally { setSavingCfg(false); }
+  };
+
+  const previewBRT = horariosBRT(cfg.hora_inicio, cfg.hora_fim, cfg.intervalo_horas);
+  const cronAtivo = status?.cron?.active;
+  // percentual da última execução (ou da rodada manual recém-terminada)
+  const ult = res && !res.erro ? { ok: res.ok, total: res.total } : status?.execucoes?.[0];
+  const pct = ult && ult.total > 0 ? Math.round((ult.ok / ult.total) * 100) : (ult && ult.total === 0 ? 100 : null);
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <p className="text-sm font-semibold text-slate-800">Convênios PixConsig (espelho)</p>
-          <p className="text-[11px] text-slate-400">Full sync diário automático + botão manual. Cadastro e margem vêm da PixConsig; taxa/spread/comissão são do CONSIGTEC.</p>
+          <p className="text-[11px] text-slate-400">Cadastro e margem vêm da PixConsig; taxa/spread/comissão são do CONSIGTEC.</p>
         </div>
-        <Button variant="outline" onClick={sincronizar} disabled={busy} className="gap-2"><RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} /> {busy ? 'Sincronizando…' : 'Sincronizar agora'}</Button>
+        <div className="flex items-center gap-2">
+          {!loadingStatus && (
+            <Badge variant={cronAtivo ? 'default' : 'secondary'} className="gap-1">
+              <Clock className="w-3 h-3" /> {cronAtivo ? 'Automático ativo' : 'Automático pausado'}
+            </Badge>
+          )}
+          <Button variant="outline" onClick={sincronizar} disabled={busy} className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} /> {busy ? 'Sincronizando…' : 'Sincronizar agora'}
+          </Button>
+        </div>
       </div>
+
+      {/* Barra de status / percentual */}
+      <div>
+        <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+          <span>{busy ? 'Sincronizando com a PixConsig…' : pct != null ? 'Última sincronização' : 'Aguardando primeira sincronização'}</span>
+          {pct != null && !busy && <span className="font-semibold text-slate-700">{ult.ok}/{ult.total} · {pct}%</span>}
+        </div>
+        <Progress value={busy ? 100 : (pct ?? 0)} className={busy ? 'animate-pulse' : ''} />
+      </div>
+
+      {/* Cartões de resumo do espelho */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5">
+          <p className="text-[10px] uppercase tracking-wide text-slate-400">Convênios (PixConsig)</p>
+          <p className="text-lg font-bold text-slate-800">{status?.espelho?.convenios ?? '—'}</p>
+        </div>
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5">
+          <p className="text-[10px] uppercase tracking-wide text-slate-400">Convênios (total)</p>
+          <p className="text-lg font-bold text-slate-800">{status?.espelho?.convenios_total ?? '—'}</p>
+        </div>
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 col-span-2">
+          <p className="text-[10px] uppercase tracking-wide text-slate-400">Última sincronização</p>
+          <p className="text-sm font-semibold text-slate-800">{dataHoraBR(status?.espelho?.ultima_sync)}</p>
+        </div>
+      </div>
+
       {res && !res.erro && res.configurado !== false && (
-        <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
+        <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
           <b>{res.ok}</b> de <b>{res.total}</b> sincronizados · {res.ignorados} ignorado(s) · {res.paginas} página(s){res.erros?.length ? ` · ${res.erros.length} erro(s)` : ''}
         </div>
       )}
       {res?.configurado === false && (
-        <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
           Configure os secrets <code>PIXCONSIG_BASE_URL</code> e <code>PIXCONSIG_API_KEY</code> no backend para habilitar.
+        </div>
+      )}
+
+      {/* Editor da janela de sincronização */}
+      <div className="rounded-lg border border-slate-200 p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Janela de sincronização automática</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-slate-500">{cfg.ativo ? 'Ativa' : 'Pausada'}</span>
+            <Switch checked={cfg.ativo} onCheckedChange={(v) => setCfg({ ...cfg, ativo: v })} />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label className="text-[11px] text-slate-500">A cada</Label>
+            <Select value={String(cfg.intervalo_horas)} onValueChange={(v) => setCfg({ ...cfg, intervalo_horas: Number(v) })} disabled={!cfg.ativo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{INTERVALOS.map((h) => <SelectItem key={h} value={String(h)}>{h === 24 ? '24 horas (1x/dia)' : `${h} em ${h} horas`}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-slate-500">Das (BRT)</Label>
+            <Select value={String(cfg.hora_inicio)} onValueChange={(v) => setCfg({ ...cfg, hora_inicio: Number(v) })} disabled={!cfg.ativo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{Array.from({ length: 24 }, (_, h) => <SelectItem key={h} value={String(h)}>{h2(h)}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[11px] text-slate-500">Até (BRT)</Label>
+            <Select value={String(cfg.hora_fim)} onValueChange={(v) => setCfg({ ...cfg, hora_fim: Number(v) })} disabled={!cfg.ativo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{Array.from({ length: 24 }, (_, h) => <SelectItem key={h} value={String(h)}>{h2(h)}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-[11px] text-slate-500">
+            {cfg.ativo
+              ? <>Rodará às <b className="text-slate-700">{previewBRT.map(h2).join(' · ') || '—'}</b> (horário de Brasília){previewBRT.length ? ` · ${previewBRT.length}x/dia` : ''}</>
+              : 'Sincronização automática pausada — apenas manual.'}
+          </p>
+          <Button size="sm" onClick={salvarConfig} disabled={savingCfg} className="gap-1.5"><Save className="w-3.5 h-3.5" /> {savingCfg ? 'Salvando…' : 'Salvar janela'}</Button>
+        </div>
+      </div>
+
+      {/* Últimas execuções */}
+      {status?.execucoes?.length > 0 && (
+        <div className="rounded-lg border border-slate-200 p-3">
+          <p className="text-xs font-semibold text-slate-700 mb-2">Últimas execuções</p>
+          <div className="space-y-1">
+            {status.execucoes.map((e, i) => {
+              const temErro = (e.erros || 0) > 0;
+              return (
+                <div key={i} className="flex items-center justify-between text-[11px] text-slate-600 border-b border-slate-100 last:border-0 py-1">
+                  <span className="flex items-center gap-1.5">
+                    {temErro ? <AlertTriangle className="w-3 h-3 text-amber-500" /> : <CheckCircle2 className="w-3 h-3 text-green-500" />}
+                    {dataHoraBR(e.created_at)}
+                    <span className="text-slate-400">· {e.acao === 'sync_pixconsig_manual' ? 'manual' : 'automático'}</span>
+                  </span>
+                  <span className="text-slate-500">{e.ok ?? 0}/{e.total ?? 0}{e.ignorados ? ` · ${e.ignorados} ign.` : ''}{temErro ? ` · ${e.erros} erro(s)` : ''}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
