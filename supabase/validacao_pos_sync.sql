@@ -106,4 +106,14 @@ SELECT secao, verificacao, valor, situacao FROM (
               WHERE acao IN ('sync_pixconsig','sync_pixconsig_manual')
               ORDER BY created_at DESC LIMIT 1), '(nenhum)'), '—'
 
+  -- Referência PixConsig (full sync completo v2.0.124): total 1100 =
+  -- AGUARDANDO_ANALISE 434 · PROCESSO_EM_ANDAMENTO 393 · AGUARDANDO_DECRETO 239 · ATIVA 34
+  UNION ALL SELECT 94, '9. Reconciliação', 'Convênios PixConsig no espelho (meta: 1100)',
+    (SELECT count(*) FROM convenios WHERE origem_dado = 'pixconsig')::text,
+    CASE WHEN (SELECT count(*) FROM convenios WHERE origem_dado = 'pixconsig') >= 1100 THEN 'OK'
+         ELSE '⚠ abaixo de 1100' END
+  UNION ALL SELECT 95, '9. Reconciliação', 'ATIVA no espelho (meta PixConsig: 34)',
+    count(*)::text, CASE WHEN count(*) >= 34 THEN 'OK' ELSE '⚠ conferir' END
+    FROM convenios WHERE status_detalhado = 'ATIVA'
+
 ) q ORDER BY ord;

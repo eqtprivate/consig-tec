@@ -56,28 +56,49 @@ Deno.serve(async (req) => {
   const res = { total: 0, ok: 0, ignorados: 0, paginas: 0, erros: [] as string[], total_api: null as number | null, diag: null as unknown };
 
   try {
-    let page = 1;
+    // Paginação KEYSET por cursor (PixConsig v2.0.124+): imune a updated_at
+    // repetidos. 1ª chamada sem cursor; depois ecoa pagination.next_cursor até
+    // has_next=false. Mantém fallback offset (?page=) caso a API não devolva
+    // next_cursor. NUNCA usamos updated_since (sync é full).
+    const headers = { 'x-api-key': apiKey, Accept: 'application/json' };
+    const baseConv = `${baseUrl.replace(/\/$/, '')}/convenios`;
     const pageSize = 200;
+    let cursor: string | null = null;
+    let page = 1;                 // usado só no fallback offset
     let totalApi: number | null = null;
+    let guard = 0;
+
+    // Descobre o total informado pela API (offset expõe pagination.total; o
+    // keyset pode omitir). Chamada leve, só para a reconciliação de volume.
+    try {
+      const pr = await fetch(`${baseConv}?page=1&page_size=1`, { headers });
+      if (pr.ok) { const pj = await pr.json(); totalApi = numOrNull(pj?.pagination?.total ?? pj?.total); }
+    } catch { /* opcional — não bloqueia o sync */ }
+
     for (;;) {
-      // baseUrl já inclui .../v1 (ex.: https://app.pixconsig.com.br/api/integration/v1)
-      const endpoint = `${baseUrl.replace(/\/$/, '')}/convenios?page=${page}&page_size=${pageSize}`;
-      // busca a página com até 2 retentativas (evita que um blip HTTP corte a paginação no meio)
+      guard++;
+      if (guard > 1000) { res.erros.push('Limite de páginas atingido (1000).'); break; }
+      const qs = new URLSearchParams({ page_size: String(pageSize) });
+      if (cursor) qs.set('cursor', cursor);
+      else if (page > 1) qs.set('page', String(page));
+      const endpoint = `${baseConv}?${qs.toString()}`;
+      // busca a página com até 2 retentativas (um blip HTTP não corta a paginação)
       let r: Response | null = null;
       for (let tent = 0; tent < 3; tent++) {
-        r = await fetch(endpoint, { headers: { 'x-api-key': apiKey, Accept: 'application/json' } });
+        r = await fetch(endpoint, { headers });
         if (r.ok) break;
         if (tent < 2) await new Promise((s) => setTimeout(s, 500 * (tent + 1)));
       }
-      if (!r || !r.ok) { res.erros.push(`HTTP ${r?.status ?? '?'} na página ${page} (após retentativas)`); break; }
+      if (!r || !r.ok) { res.erros.push(`HTTP ${r?.status ?? '?'} (página ${guard}, após retentativas)`); break; }
       const json = await r.json();
       const lista = Array.isArray(json) ? json : (json?.data || json?.items || json?.results || json?.convenios || []);
       const pg = ((!Array.isArray(json) && (json.pagination || json.meta || json)) || {}) as Record<string, unknown>;
-      // Diagnóstico da 1ª página: registra o formato real da resposta (para ajustar paginação).
-      if (page === 1) {
+      if (numOrNull(pg.total) != null) totalApi = numOrNull(pg.total);
+      // Diagnóstico da 1ª página: registra o formato real da resposta.
+      if (guard === 1) {
         res.diag = Array.isArray(json)
           ? { formato: 'array', itens_pagina: lista.length }
-          : { chaves: Object.keys(json), pagination: json.pagination ?? json.meta ?? null, itens_pagina: lista.length };
+          : { modo: pg.mode ?? null, tem_next_cursor: typeof pg.next_cursor === 'string', has_next: pg.has_next ?? null, itens_pagina: lista.length, chaves: Object.keys(json) };
       }
       res.paginas++;
 
@@ -169,25 +190,20 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Decidir próxima página tolerando várias convenções de paginação.
+      // Próxima página: keyset (cursor) primeiro; senão fallback offset.
       if (lista.length === 0) break;
-      const totPag = numOrNull(pg.total_pages ?? pg.last_page ?? pg.pages ?? pg.num_pages);
-      const totItens = numOrNull(pg.total ?? pg.total_count ?? pg.count ?? (Array.isArray(json) ? null : json.total));
-      if (totItens != null) totalApi = totItens;
-      let flag: boolean | undefined;
-      for (const k of ['has_next', 'has_more', 'hasNext', 'hasMore']) {
-        if (typeof pg[k] === 'boolean') { flag = pg[k] as boolean; break; }
+      const nextCursor = (typeof pg.next_cursor === 'string' && pg.next_cursor) ? pg.next_cursor : null;
+      if (nextCursor) {
+        if (pg.has_next === false) break;   // última página do keyset
+        cursor = nextCursor;
+      } else {
+        // Fallback offset (API não devolveu next_cursor).
+        const totPag = numOrNull(pg.total_pages ?? pg.last_page ?? pg.pages);
+        const hasMore = pg.has_next === true
+          || (totPag != null ? page < totPag : (totalApi != null ? res.total < totalApi : lista.length >= pageSize));
+        if (!hasMore) break;
+        page++;
       }
-      if (flag === undefined && (pg.next || pg.next_page || pg.next_url)) flag = true;
-
-      let continuar: boolean;
-      if (totPag != null) continuar = page < totPag;
-      else if (totItens != null) continuar = res.total < totItens;
-      else if (flag !== undefined) continuar = flag;
-      else continuar = lista.length >= pageSize; // heurística: página cheia ⇒ provavelmente há mais
-      if (!continuar) break;
-      page++;
-      if (page > 1000) { res.erros.push('Limite de páginas atingido (1000).'); break; }
     }
     res.total_api = totalApi;
 
