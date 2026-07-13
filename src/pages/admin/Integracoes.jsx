@@ -140,6 +140,51 @@ function SyncPixconsig() {
         </div>
       </div>
 
+      {/* Reconciliação de volume (espelho x total informado pela API) */}
+      {(() => {
+        const rec = status?.reconciliacao;
+        if (!rec || rec.total_api == null) {
+          return (
+            <div className="rounded-lg border border-slate-200 p-3 text-[11px] text-slate-400">
+              Reconciliação de volume disponível após uma sincronização com o backend v1.19.0+ (a API passa a informar o total).
+            </div>
+          );
+        }
+        const esp = Number(rec.espelho || 0);
+        const api = Number(rec.total_api || 0);
+        const cobre = esp >= api && api > 0;
+        const recPct = api > 0 ? Math.min(100, Math.round((esp / api) * 100)) : 0;
+        const amostra = Array.isArray(rec.erros_amostra) ? rec.erros_amostra : [];
+        return (
+          <div className={`rounded-lg border p-3 space-y-2 ${cobre ? 'border-green-200 bg-green-50/40' : 'border-amber-200 bg-amber-50/40'}`}>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                {cobre ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
+                Reconciliação de volume
+              </p>
+              <span className={`text-[11px] font-semibold ${cobre ? 'text-green-700' : 'text-amber-700'}`}>
+                {cobre ? 'Espelho completo' : 'Faltam páginas'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-slate-800 whitespace-nowrap">{esp.toLocaleString('pt-BR')} / {api.toLocaleString('pt-BR')}</span>
+              <div className="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
+                <div className={`h-full rounded ${cobre ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${recPct}%` }} />
+              </div>
+              <span className="text-[11px] text-slate-500 whitespace-nowrap">{recPct}%</span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Espelho (PixConsig) vs total informado pela API · {rec.paginas ?? '—'} página(s){rec.erros ? ` · ${rec.erros} erro(s)` : ''} · {dataHoraBR(rec.quando)}
+            </p>
+            {amostra.length > 0 && (
+              <ul className="text-[11px] text-red-600 list-disc list-inside max-h-24 overflow-y-auto">
+                {amostra.map((e, i) => <li key={i} className="break-words">{e}</li>)}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
+
       {res && !res.erro && res.configurado !== false && (
         <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
           <b>{res.ok}</b> de <b>{res.total}</b> sincronizados{res.total_api != null ? ` (API informa ${res.total_api} no total)` : ''} · {res.ignorados} ignorado(s) · {res.paginas} página(s){res.erros?.length ? ` · ${res.erros.length} erro(s)` : ''}
