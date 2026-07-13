@@ -24,11 +24,19 @@ const horariosBRT = (ini, fim, intervalo) => {
   return out;
 };
 const INTERVALOS = [1, 2, 3, 4, 6, 8, 12, 24];
+const EVENTO_INFO = {
+  nova_prefeitura: { label: 'Novas prefeituras', dot: 'bg-blue-500' },
+  mudanca_status: { label: 'Mudanças de status', dot: 'bg-amber-500' },
+  ativada: { label: 'Convênios ativados', dot: 'bg-green-500' },
+  decreto_enviado: { label: 'Decretos enviados', dot: 'bg-indigo-500' },
+  mudanca_capag: { label: 'CAPAG alterada', dot: 'bg-violet-500' },
+};
 
 function SyncPixconsig() {
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState(null);
   const [status, setStatus] = useState(null);
+  const [novidades, setNovidades] = useState(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   // rascunho do editor de janela
   const [cfg, setCfg] = useState({ intervalo_horas: 4, hora_inicio: 9, hora_fim: 17, ativo: true });
@@ -62,6 +70,7 @@ function SyncPixconsig() {
         ativo: s.config.ativo ?? true,
       });
     } catch (err) { /* silencioso: painel apenas informativo */ }
+    try { setNovidades(await pixconsigApi.novidades(60)); } catch { /* opcional */ }
     finally { setLoadingStatus(false); }
   };
   useEffect(() => {
@@ -281,6 +290,49 @@ function SyncPixconsig() {
           </p>
           <Button size="sm" onClick={salvarConfig} disabled={savingCfg} className="gap-1.5"><Save className="w-3.5 h-3.5" /> {savingCfg ? 'Salvando…' : 'Salvar janela'}</Button>
         </div>
+      </div>
+
+      {/* Janela de avisos / novidades da sincronização */}
+      <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-blue-500" /> Novidades da sincronização</p>
+          <span className="text-[10px] text-slate-400">últimas 24h</span>
+        </div>
+        {(() => {
+          const resumo = novidades?.resumo_24h || {};
+          const chaves = Object.keys(resumo).filter((k) => resumo[k] > 0);
+          const itens = Array.isArray(novidades?.itens) ? novidades.itens : [];
+          if (chaves.length === 0 && itens.length === 0) {
+            return <p className="text-[11px] text-slate-400">Sem novidades registradas ainda. A cada sincronização, novas prefeituras, mudanças de status, decretos e CAPAG aparecem aqui.</p>;
+          }
+          return (
+            <>
+              {chaves.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {chaves.map((k) => (
+                    <span key={k} className="inline-flex items-center gap-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-full px-2.5 py-1">
+                      <span className={`w-2 h-2 rounded-full ${EVENTO_INFO[k]?.dot || 'bg-slate-400'}`} />
+                      <b className="text-slate-700">{resumo[k]}</b> <span className="text-slate-500">{EVENTO_INFO[k]?.label || k}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {itens.length > 0 && (
+                <div className="max-h-52 overflow-y-auto divide-y divide-slate-100">
+                  {itens.map((n, i) => (
+                    <div key={i} className="flex items-start gap-2 py-1.5">
+                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${EVENTO_INFO[n.evento]?.dot || 'bg-slate-400'}`} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] text-slate-700 break-words">{n.mensagem}</p>
+                        <p className="text-[10px] text-slate-400">{dataHoraBR(n.created_at)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Últimas execuções */}

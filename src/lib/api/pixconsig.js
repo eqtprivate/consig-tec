@@ -28,6 +28,13 @@ export const pixconsigApi = {
     return data; // { total, processados, pagina, rodando, mensagem, ... } | null
   },
 
+  // Feed de novidades da sincronização (novas prefeituras, mudanças de status…).
+  async novidades(limit = 100) {
+    const { data, error } = await supabase.rpc('novidades_sync_pixconsig', { p_limit: limit });
+    if (error) throw error;
+    return data; // { ultima, resumo_24h, itens: [...] }
+  },
+
   // Regrava a janela/intervalo do cron (horas em BRT) e persiste a preferência.
   async configurar({ intervalo_horas, hora_inicio, hora_fim, ativo }) {
     const { data, error } = await supabase.rpc('configurar_sync_pixconsig', {

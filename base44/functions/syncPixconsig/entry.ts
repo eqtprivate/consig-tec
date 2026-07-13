@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const incluirReprovadas = !!body.incluirReprovadas;
   const now = new Date().toISOString();
-  const res = { total: 0, ok: 0, ignorados: 0, paginas: 0, erros: [] as string[], total_api: null as number | null, diag: null as unknown };
+  const res = { total: 0, ok: 0, ignorados: 0, paginas: 0, erros: [] as string[], total_api: null as number | null, novidades: 0, novas: 0, diag: null as unknown };
 
   try {
     // Paginação KEYSET por cursor (PixConsig v2.0.124+): imune a updated_at
@@ -139,6 +139,11 @@ Deno.serve(async (req) => {
           const cidade = ent.cidade || null;
           const uf = ent.uf || null;
 
+          // Estado anterior do convênio — para detectar novidades desta sincronização.
+          const { data: antigo } = await admin.from('convenios')
+            .select('status_detalhado, decreto_enviado, capag, ativo')
+            .eq('pixconsig_convenio_id', item.id).maybeSingle();
+
           const entPayload: Record<string, unknown> = {
             nome, cnpj, cidade, uf,
             codigo_ibge: ent.codigo_ibge || null,
@@ -202,6 +207,36 @@ Deno.serve(async (req) => {
               margem_percentual: numOrNull(p.percentual_margem), ativo: true,
             }, { onConflict: 'convenio_id,produto' });
           }
+
+          // Novidades: compara estado anterior x novo e registra o que mudou.
+          const label = `${nome}${uf ? '/' + uf : ''}`;
+          const eventos: Array<{ evento: string; mensagem: string; de?: unknown; para?: unknown }> = [];
+          if (!antigo) {
+            eventos.push({ evento: 'nova_prefeitura', mensagem: `Nova prefeitura: ${label}` });
+            res.novas++;
+          } else {
+            if ((antigo.status_detalhado || null) !== (cred.status_detalhado || null)) {
+              eventos.push({ evento: 'mudanca_status', mensagem: `${label}: status ${antigo.status_detalhado || '—'} → ${cred.status_detalhado || '—'}`, de: antigo.status_detalhado, para: cred.status_detalhado });
+            }
+            if (antigo.ativo !== (cred.status === 'ativo') && cred.status === 'ativo') {
+              eventos.push({ evento: 'ativada', mensagem: `${label}: convênio ATIVADO` });
+            }
+            if (antigo.decreto_enviado !== true && cred.decreto_enviado === true) {
+              eventos.push({ evento: 'decreto_enviado', mensagem: `${label}: decreto enviado` });
+            }
+            if ((antigo.capag || null) !== (capag.classificacao || null) && capag.classificacao) {
+              eventos.push({ evento: 'mudanca_capag', mensagem: `${label}: CAPAG ${antigo.capag || '—'} → ${capag.classificacao}`, de: antigo.capag, para: capag.classificacao });
+            }
+          }
+          for (const ev of eventos) {
+            await admin.from('sincronizacoes_convenio').insert({
+              origem: 'pixconsig', evento: ev.evento, convenio_id: convRow?.id, entidade_id: entidadeId,
+              status: 'novidade', mensagem: ev.mensagem,
+              payload: { de: ev.de ?? null, para: ev.para ?? null }, created_at: now,
+            });
+            res.novidades++;
+          }
+
           res.ok++;
         } catch (e) {
           res.erros.push(`Item ${item?.id || '?'}: ${(e as Error).message}`);
@@ -243,7 +278,8 @@ Deno.serve(async (req) => {
       entidade: 'convenios', registro_id: null, acao: 'sync_pixconsig',
       valor_novo: {
         total: res.total, ok: res.ok, ignorados: res.ignorados, paginas: res.paginas,
-        total_api: res.total_api, erros: res.erros.length, erros_amostra: res.erros.slice(0, 5),
+        total_api: res.total_api, novidades: res.novidades, novas: res.novas,
+        erros: res.erros.length, erros_amostra: res.erros.slice(0, 5),
       },
     });
 
