@@ -167,7 +167,10 @@ Deno.serve(async (req) => {
     // Auditoria da sincronização
     await admin.from('auditoria').insert({
       entidade: 'convenios', registro_id: null, acao: 'sync_pixconsig',
-      valor_novo: { total: res.total, ok: res.ok, ignorados: res.ignorados, paginas: res.paginas, erros: res.erros.length },
+      valor_novo: {
+        total: res.total, ok: res.ok, ignorados: res.ignorados, paginas: res.paginas,
+        erros: res.erros.length, erros_amostra: res.erros.slice(0, 5),
+      },
     });
 
     return Response.json({ configurado: true, ...res });

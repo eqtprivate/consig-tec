@@ -143,6 +143,11 @@ function SyncPixconsig() {
       {res && !res.erro && res.configurado !== false && (
         <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
           <b>{res.ok}</b> de <b>{res.total}</b> sincronizados · {res.ignorados} ignorado(s) · {res.paginas} página(s){res.erros?.length ? ` · ${res.erros.length} erro(s)` : ''}
+          {res.erros?.length > 0 && (
+            <ul className="mt-2 text-xs text-red-600 list-disc list-inside max-h-40 overflow-y-auto space-y-0.5">
+              {res.erros.map((e, i) => <li key={i} className="break-words">{e}</li>)}
+            </ul>
+          )}
         </div>
       )}
       {res?.configurado === false && (
