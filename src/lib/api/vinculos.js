@@ -23,4 +23,12 @@ export const vinculosApi = {
     const { error } = await supabase.from('vinculos').delete().eq('id', id);
     if (error) throw error;
   },
+  // Aplica um tipo (papel) numa franquia criando os vínculos das áreas padrão.
+  async aplicarTipo(usuarioId, franquiaId, papelId) {
+    const { data, error } = await supabase.rpc('aplicar_tipo_usuario', {
+      p_usuario: usuarioId, p_franquia: franquiaId, p_papel: papelId,
+    });
+    if (error) throw error;
+    return data; // nº de vínculos criados
+  },
 };

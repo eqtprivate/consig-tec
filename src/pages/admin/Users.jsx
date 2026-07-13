@@ -7,6 +7,8 @@ import { papeisApi } from '@/lib/api/papeis';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { validarSenha } from '@/lib/validators';
+import { toast } from 'sonner';
+import { confirmar } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,7 +77,7 @@ export default function Users() {
       setEditUser(null);
       load();
     } catch (err) {
-      alert(err.message || 'Não foi possível salvar. Verifique suas permissões.');
+      toast.error(err.message || 'Não foi possível salvar. Verifique suas permissões.');
     }
   };
 
@@ -107,12 +109,12 @@ export default function Users() {
   };
 
   const handleReset = async (u) => {
-    if (!confirm(`Resetar a senha de "${u.nome}"? Será gerada uma senha temporária e enviada por e-mail (se configurado).`)) return;
+    if (!(await confirmar({ title: 'Resetar senha', description: `Gerar senha temporária para "${u.nome}" e enviar por e-mail?`, confirmText: 'Resetar' }))) return;
     try {
       const res = await usuariosApi.adminAction('reset_senha', u.id, { enviarEmail: true });
       await auditoriaApi.log('reset_senha', 'usuarios', u.id, { nome: u.nome });
       if (res?.senha) setSenhaGerada({ email: u.email, senha: res.senha, emailEnviado: res.emailEnviado });
-    } catch (err) { alert(err.message); }
+    } catch (err) { toast.error(err.message); }
   };
 
   // ---- Acessos (vínculos) por usuário ----
@@ -133,9 +135,26 @@ export default function Users() {
     const v = await vinculosApi.list().catch(() => []);
     setAcessos(v.filter((x) => x.usuario_id === acessosUser.id));
   };
+  const [tipoForm, setTipoForm] = useState({ franquia_id: '', papel_id: '' });
+  const [aplicandoTipo, setAplicandoTipo] = useState(false);
+  const aplicarTipo = async () => {
+    if (!tipoForm.franquia_id || !tipoForm.papel_id) return toast.error('Selecione a franquia e o tipo.');
+    setAplicandoTipo(true);
+    try {
+      const n = await vinculosApi.aplicarTipo(acessosUser.id, tipoForm.franquia_id, tipoForm.papel_id);
+      await auditoriaApi.log('aplicar_tipo_usuario', 'vinculos', acessosUser.id, { papel_id: tipoForm.papel_id, criados: n });
+      toast.success(n > 0 ? `${n} acesso(s) concedido(s) pelo tipo.` : 'Nenhum acesso novo — o usuário já tinha as áreas do tipo.');
+      setTipoForm({ franquia_id: '', papel_id: '' });
+      reloadAcessos();
+    } catch (err) { toast.error(err.message || 'Falha ao aplicar tipo.'); }
+    finally { setAplicandoTipo(false); }
+  };
+  const papelSel = papeis.find((p) => p.id === tipoForm.papel_id);
+  const areasDoTipo = (papelSel?.areas_padrao || []).map((cod) => areas.find((a) => a.codigo === cod)?.nome || cod);
+
   const addVinculo = async (e) => {
     e.preventDefault();
-    if (!vincForm.area_id || !vincForm.papel_id) return alert('Selecione área e papel.');
+    if (!vincForm.area_id || !vincForm.papel_id) return toast.error('Selecione área e papel.');
     setSavingVinc(true);
     try {
       await vinculosApi.create({
@@ -146,7 +165,7 @@ export default function Users() {
       await auditoriaApi.log('criar_vinculo', 'vinculos', null, { usuario_id: acessosUser.id });
       setVincForm({ franquia_id: '', area_id: '', papel_id: '' });
       reloadAcessos();
-    } catch (err) { alert(err.message || 'Falha ao adicionar acesso.'); }
+    } catch (err) { toast.error(err.message || 'Falha ao adicionar acesso.'); }
     finally { setSavingVinc(false); }
   };
   const toggleVinculo = async (v) => {
@@ -155,7 +174,7 @@ export default function Users() {
     reloadAcessos();
   };
   const removeVinculo = async (v) => {
-    if (!confirm('Remover este acesso?')) return;
+    if (!(await confirmar({ title: 'Remover acesso', description: 'Remover este acesso?', destructive: true, confirmText: 'Remover' }))) return;
     await vinculosApi.remove(v.id);
     await auditoriaApi.log('remover_vinculo', 'vinculos', v.id, {});
     reloadAcessos();
@@ -166,16 +185,16 @@ export default function Users() {
       await usuariosApi.adminAction(u.ativo ? 'desativar' : 'ativar', u.id);
       await auditoriaApi.log(u.ativo ? 'desativar_usuario' : 'ativar_usuario', 'usuarios', u.id, { nome: u.nome });
       load();
-    } catch (err) { alert(err.message); }
+    } catch (err) { toast.error(err.message); }
   };
 
   const handleDelete = async (u) => {
-    if (!confirm(`Excluir "${u.nome}" definitivamente? A conta de acesso será removida.`)) return;
+    if (!(await confirmar({ title: 'Excluir usuário', description: `Excluir "${u.nome}" definitivamente? A conta de acesso será removida.`, destructive: true, confirmText: 'Excluir' }))) return;
     try {
       await usuariosApi.adminAction('excluir', u.id);
       await auditoriaApi.log('excluir_usuario', 'usuarios', u.id, { nome: u.nome });
       load();
-    } catch (err) { alert(err.message); }
+    } catch (err) { toast.error(err.message); }
   };
 
   return (
@@ -377,8 +396,34 @@ export default function Users() {
             ))}
           </div>
 
+          <div className="border-t border-slate-100 pt-3 space-y-3">
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Aplicar tipo (papel padrão)</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label>Franquia</Label>
+                <Select value={tipoForm.franquia_id} onValueChange={(v) => setTipoForm({ ...tipoForm, franquia_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>{franquias.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tipo de usuário</Label>
+                <Select value={tipoForm.papel_id} onValueChange={(v) => setTipoForm({ ...tipoForm, papel_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>{papeis.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button type="button" onClick={aplicarTipo} disabled={aplicandoTipo} className="w-full gap-2"><ShieldCheck className="w-4 h-4" /> {aplicandoTipo ? 'Aplicando…' : 'Aplicar tipo'}</Button>
+              </div>
+            </div>
+            {areasDoTipo.length > 0 && (
+              <p className="text-[11px] text-slate-500">Concede acesso a: <b className="text-slate-700">{areasDoTipo.join(', ')}</b></p>
+            )}
+          </div>
+
           <form onSubmit={addVinculo} className="border-t border-slate-100 pt-3 space-y-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Conceder acesso</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Conceder acesso avulso</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Franquia</Label>
