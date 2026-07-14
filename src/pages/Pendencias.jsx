@@ -10,12 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Filter, Clock, AlertTriangle } from 'lucide-react';
+import { PageHeader, Panel, StatusBadge, EmptyState } from '@/components/kit';
+import { Plus, Filter, Clock, AlertTriangle, Inbox } from 'lucide-react';
 
 const PRIORIDADE_LABELS = { baixa: 'Baixa', media: 'Média', alta: 'Alta', critica: 'Crítica' };
 const STATUS_LABELS = { aberta: 'Aberta', em_andamento: 'Em andamento', aguardando_terceiro: 'Aguardando terceiro', vencida: 'Vencida', resolvida: 'Resolvida', cancelada: 'Cancelada' };
-const PRIORIDADE_CORES = { baixa: 'bg-slate-100 text-slate-600', media: 'bg-blue-50 text-blue-700', alta: 'bg-amber-50 text-amber-700', critica: 'bg-red-50 text-red-700' };
-const STATUS_CORES = { aberta: 'bg-slate-100 text-slate-600', em_andamento: 'bg-blue-50 text-blue-700', aguardando_terceiro: 'bg-amber-50 text-amber-700', vencida: 'bg-red-50 text-red-700', resolvida: 'bg-green-50 text-green-700', cancelada: 'bg-slate-100 text-slate-400' };
+const PRIORIDADE_CORES = { baixa: 'bg-muted text-muted-foreground', media: 'bg-blue-50 text-blue-700', alta: 'bg-amber-50 text-amber-700', critica: 'bg-red-50 text-red-700' };
+const STATUS_CORES = { aberta: 'bg-muted text-muted-foreground', em_andamento: 'bg-blue-50 text-blue-700', aguardando_terceiro: 'bg-amber-50 text-amber-700', vencida: 'bg-red-50 text-red-700', resolvida: 'bg-green-50 text-green-700', cancelada: 'bg-muted text-muted-foreground/70' };
 
 function formatSLA(data) {
   if (!data) return '—';
@@ -28,7 +29,7 @@ function formatSLA(data) {
 }
 
 export default function Pendencias() {
-  const { activeUnidade, perfil } = useAuth();
+  const { activeUnidade } = useAuth();
   const [pendencias, setPendencias] = useState([]);
   const [areas, setAreas] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
@@ -85,18 +86,18 @@ export default function Pendencias() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Central de Pendências</h1>
-          <p className="text-sm text-slate-500 mt-1">{activeUnidade?.nome || 'Todas as unidades'}</p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Nova pendência
-        </Button>
-      </div>
+      <PageHeader
+        title="Central de Pendências"
+        subtitle={activeUnidade?.nome || 'Todas as unidades'}
+        actions={(
+          <Button onClick={() => setDialogOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Nova pendência
+          </Button>
+        )}
+      />
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <div className="flex items-center gap-2 mb-3 text-slate-500">
+      <Panel>
+        <div className="flex items-center gap-2 mb-3 text-muted-foreground">
           <Filter className="w-4 h-4" />
           <span className="text-xs font-medium uppercase tracking-wider">Filtros</span>
         </div>
@@ -130,48 +131,44 @@ export default function Pendencias() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </Panel>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState title="Carregando…" />
         ) : sorted.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhuma pendência encontrada.</div>
+          <EmptyState icon={Inbox} title="Nenhuma pendência encontrada" description="Ajuste os filtros ou crie uma nova pendência para acompanhar aqui." />
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Título</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Área</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Responsável</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Prioridade</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">SLA</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Título</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Área</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Responsável</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Prioridade</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">SLA</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((p) => {
                 const slaOverdue = p.prazo_sla && new Date(p.prazo_sla) < new Date() && p.status !== 'resolvida';
                 return (
-                  <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={p.id} className="border-b border-border hover:bg-muted/50">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-slate-800">{p.titulo}</p>
-                      {p.descricao && <p className="text-xs text-slate-400 truncate max-w-xs">{p.descricao}</p>}
+                      <p className="font-medium text-foreground">{p.titulo}</p>
+                      {p.descricao && <p className="text-xs text-muted-foreground truncate max-w-xs">{p.descricao}</p>}
                     </td>
-                    <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{p.area?.nome || '—'}</td>
-                    <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{p.responsavel?.nome || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{p.area?.nome || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{p.responsavel?.nome || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${PRIORIDADE_CORES[p.prioridade]}`}>
-                        {PRIORIDADE_LABELS[p.prioridade]}
-                      </span>
+                      <StatusBadge className={PRIORIDADE_CORES[p.prioridade]}>{PRIORIDADE_LABELS[p.prioridade]}</StatusBadge>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${STATUS_CORES[p.status]}`}>
-                        {STATUS_LABELS[p.status]}
-                      </span>
+                      <StatusBadge className={STATUS_CORES[p.status]}>{STATUS_LABELS[p.status]}</StatusBadge>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className={`inline-flex items-center gap-1 text-xs ${slaOverdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
+                      <span className={`inline-flex items-center gap-1 text-xs ${slaOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                         {slaOverdue ? <AlertTriangle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                         {formatSLA(p.prazo_sla)}
                       </span>
