@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { confirmar } from '@/lib/confirm';
 import { brl, dataBR, num } from '@/lib/format';
 import Contratos from '@/pages/modules/Contratos';
+import IngestaoCCB from '@/pages/modules/IngestaoCCB';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ import { Plus, Pencil, ShieldCheck, ShieldAlert, ShieldQuestion, FileCheck2, Fil
 const TABS = [
   { key: 'form', label: 'Formalização & Antifraude' },
   { key: 'ccb', label: 'CCB' },
+  { key: 'ingestao', label: 'Ingestão de CCB' },
   { key: 'contratos', label: 'Contratos' },
 ];
 
@@ -412,15 +414,15 @@ export default function Formalizacao() {
   const [tab, setTab] = useTabParam('form');
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto overflow-y-hidden">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}
       </div>
-      {tab === 'form' ? <FormalizacaoTab /> : tab === 'ccb' ? <CcbTab /> : <Contratos />}
+      {tab === 'form' ? <FormalizacaoTab /> : tab === 'ccb' ? <CcbTab /> : tab === 'ingestao' ? <IngestaoCCB /> : <Contratos />}
     </div>
   );
 }

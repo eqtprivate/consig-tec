@@ -27,6 +27,7 @@ export const AREA_SUBITEMS = {
   formalizacao: [
     { key: 'form', label: 'Formalização & Antifraude' },
     { key: 'ccb', label: 'CCB' },
+    { key: 'ingestao', label: 'Ingestão de CCB' },
     { key: 'contratos', label: 'Contratos' },
   ],
   financeiro: [
