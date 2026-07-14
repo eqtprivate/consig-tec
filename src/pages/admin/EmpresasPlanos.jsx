@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PageHeader, Panel, StatusBadge, EmptyState } from '@/components/kit';
 import { Building2, Plus, Pencil, Package, ShieldAlert } from 'lucide-react';
 
 const TIPOS = { grupo: 'Grupo', originadora: 'Originadora', franqueadora: 'Franqueadora', investidor: 'Investidor', operacional: 'Operacional' };
@@ -57,30 +58,28 @@ export default function EmpresasPlanos() {
     return (
       <div className="p-12 text-center">
         <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-        <p className="text-sm text-slate-500">Gestão de empresas e planos é restrita a superadministradores.</p>
+        <p className="text-sm text-muted-foreground">Gestão de empresas e planos é restrita a superadministradores.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Empresas & Planos</h1>
-          <p className="text-sm text-slate-500 mt-1">Clientes da CONSIGTEC (tenants) e seus planos de acesso.</p>
-        </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova empresa</Button>
-      </div>
+      <PageHeader
+        title="Empresas & Planos"
+        subtitle="Clientes da CONSIGTEC (tenants) e seus planos de acesso."
+        actions={<Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova empresa</Button>}
+      />
 
       {/* Planos (catálogo) */}
       <div>
-        <h2 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2"><Package className="w-4 h-4 text-primary" /> Planos</h2>
+        <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2"><Package className="w-4 h-4 text-primary" /> Planos</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {planos.map((p) => (
-            <div key={p.id} className="bg-white rounded-xl border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-800">{p.nome}</p>
-              <p className="text-[11px] text-slate-400 mb-2">{p.descricao}</p>
-              <ul className="text-xs text-slate-600 space-y-0.5">
+            <Panel key={p.id}>
+              <p className="text-sm font-semibold text-foreground">{p.nome}</p>
+              <p className="text-[11px] text-muted-foreground mb-2">{p.descricao}</p>
+              <ul className="text-xs text-muted-foreground space-y-0.5">
                 <li>Usuários: <b>{lim(p.limite_usuarios)}</b></li>
                 <li>Convênios: <b>{lim(p.limite_convenios)}</b></li>
                 <li>Propostas/mês: <b>{lim(p.limite_propostas_mes)}</b></li>
@@ -88,45 +87,45 @@ export default function EmpresasPlanos() {
               <div className="mt-2 flex flex-wrap gap-1">
                 {(p.modulos || []).includes('*')
                   ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Todos os módulos</span>
-                  : (p.modulos || []).map((m) => <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">{AREAS_LABEL[m] || m}</span>)}
+                  : (p.modulos || []).map((m) => <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{AREAS_LABEL[m] || m}</span>)}
               </div>
-            </div>
+            </Panel>
           ))}
         </div>
       </div>
 
       {/* Empresas */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando…</div>
-        : empresas.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma empresa.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : empresas.length === 0 ? <EmptyState title="Nenhuma empresa." />
         : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Empresa</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Tipo</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Plano</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Empresa</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Tipo</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Plano</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
               {empresas.map((e) => (
-                <tr key={e.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <tr key={e.id} className="border-b border-border hover:bg-muted/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center"><Building2 className="w-4 h-4" /></span>
-                      <div><p className="font-medium text-slate-800">{e.nome}</p><p className="text-[11px] text-slate-400">{e.cnpj || '—'}</p></div>
+                      <div><p className="font-medium text-foreground">{e.nome}</p><p className="text-[11px] text-muted-foreground">{e.cnpj || '—'}</p></div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">{TIPOS[e.tipo] || e.tipo}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{TIPOS[e.tipo] || e.tipo}</td>
                   <td className="px-4 py-3">
-                    {e.plano ? <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">{e.plano.nome}</span>
+                    {e.plano ? <StatusBadge className="bg-primary/10 text-primary">{e.plano.nome}</StatusBadge>
                       : <span className="text-xs text-amber-600">sem plano</span>}
                   </td>
-                  <td className="px-4 py-3"><span className={`text-xs ${e.ativo ? 'text-green-700' : 'text-slate-400'}`}>{e.ativo ? 'Ativa' : 'Inativa'}</span></td>
+                  <td className="px-4 py-3"><span className={`text-xs ${e.ativo ? 'text-green-700' : 'text-muted-foreground'}`}>{e.ativo ? 'Ativa' : 'Inativa'}</span></td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(e)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(e)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}

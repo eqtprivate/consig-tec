@@ -36,7 +36,7 @@ export default function TrocarSenha() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4"
-         style={{ background: 'linear-gradient(150deg, #0e1726 0%, hsl(230 60% 12%) 55%, hsl(230 50% 20%) 100%)' }}>
+         style={{ background: 'linear-gradient(150deg, #1a2733 0%, #2E4053 60%, #37506a 100%)' }}>
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center mb-4 ring-1 ring-white/15">
