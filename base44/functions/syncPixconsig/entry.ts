@@ -87,6 +87,25 @@ Deno.serve(async (req) => {
     };
     await prog({ total: totalApi, processados: 0, pagina: 0, rodando: true, mensagem: 'iniciando', iniciado_em: now });
 
+    // Preload em memória — evita SELECTs por item (o grande gargalo de latência).
+    const entByCnpj = new Map<string, string>();
+    const entByNome = new Map<string, string>(); // chave: nome|cidade|uf
+    {
+      const { data } = await admin.from('entidades_cadastro').select('id, cnpj, nome, cidade, uf');
+      for (const e of data || []) {
+        if (e.cnpj) entByCnpj.set(e.cnpj, e.id);
+        entByNome.set(`${e.nome}|${e.cidade || ''}|${e.uf || ''}`, e.id);
+      }
+    }
+    const convByPix = new Map<string, { status_detalhado: string | null; decreto_enviado: boolean | null; capag: string | null; ativo: boolean | null }>();
+    {
+      const { data } = await admin.from('convenios')
+        .select('pixconsig_convenio_id, status_detalhado, decreto_enviado, capag, ativo')
+        .eq('origem_dado', 'pixconsig');
+      for (const c of data || []) if (c.pixconsig_convenio_id) convByPix.set(c.pixconsig_convenio_id, c);
+    }
+    const baselineVazio = convByPix.size === 0; // 1ª carga: não gera avisos de "nova prefeitura"
+
     for (;;) {
       guard++;
       if (guard > 1000) { res.erros.push('Limite de páginas atingido (1000).'); break; }
@@ -120,6 +139,11 @@ Deno.serve(async (req) => {
       }
       res.paginas++;
 
+      // ===== Processamento da página EM LOTE (evita ~6 round-trips por item) =====
+      const procItens: any[] = [];
+      const novasEnt = new Map<string, Record<string, unknown>>(); // dedupKey -> payload (sem id)
+      const updEnt = new Map<string, Record<string, unknown>>();    // id -> payload (com id)
+
       for (const item of lista) {
         res.total++;
         try {
@@ -138,11 +162,7 @@ Deno.serve(async (req) => {
           const nome = ent.nome_oficial || ent.cidade || item.id;
           const cidade = ent.cidade || null;
           const uf = ent.uf || null;
-
-          // Estado anterior do convênio — para detectar novidades desta sincronização.
-          const { data: antigo } = await admin.from('convenios')
-            .select('status_detalhado, decreto_enviado, capag, ativo')
-            .eq('pixconsig_convenio_id', item.id).maybeSingle();
+          const entKey = `${nome}|${cidade || ''}|${uf || ''}`;
 
           const entPayload: Record<string, unknown> = {
             nome, cnpj, cidade, uf,
@@ -158,29 +178,18 @@ Deno.serve(async (req) => {
             origem_dado: 'pixconsig', ultima_sincronizacao: now, status_sync: 'ok',
           };
 
-          // encontrar entidade por cnpj, senão por nome(+cidade+uf)
-          let entidadeId: string | null = null;
-          if (cnpj) {
-            const { data } = await admin.from('entidades_cadastro').select('id').eq('cnpj', cnpj).limit(1);
-            if (data && data[0]) entidadeId = data[0].id;
-          }
-          if (!entidadeId && nome) {
-            let q = admin.from('entidades_cadastro').select('id').eq('nome', nome);
-            if (cidade) q = q.eq('cidade', cidade);
-            if (uf) q = q.eq('uf', uf);
-            const { data } = await q.limit(1);
-            if (data && data[0]) entidadeId = data[0].id;
-          }
-          if (entidadeId) await admin.from('entidades_cadastro').update(entPayload).eq('id', entidadeId);
+          // resolve entidade existente (memória) ou agenda criação em lote
+          const existente = (cnpj && entByCnpj.get(cnpj)) || entByNome.get(entKey) || null;
+          if (existente) updEnt.set(existente, { id: existente, ...entPayload });
           else {
-            const { data } = await admin.from('entidades_cadastro').insert(entPayload).select('id').single();
-            entidadeId = data?.id ?? null;
+            const dk = cnpj ? `c:${cnpj}` : `n:${entKey}`;
+            if (!novasEnt.has(dk)) novasEnt.set(dk, entPayload);
           }
 
           const pctApartada = numOrNull(margens.decreto_cartao) ?? numOrNull(primary.percentual_margem);
-          const convenio = {
+          const convenio: Record<string, unknown> = {
             pixconsig_convenio_id: item.id,
-            nome, orgao: cidade, tipo: 'publico', entidade_id: entidadeId,
+            nome, orgao: cidade, tipo: 'publico', entidade_id: null,
             tipo_margem: mapMargem(primary.tipo_margem),
             percentual_margem_apartada: pctApartada,
             margem_consignavel: pctApartada,
@@ -194,53 +203,84 @@ Deno.serve(async (req) => {
             origem_dado: 'pixconsig', ultima_sincronizacao: now, status_sync: 'ok',
             ativo: cred.status === 'ativo',
           };
-          const { data: convRow, error } = await admin.from('convenios')
-            .upsert(convenio, { onConflict: 'pixconsig_convenio_id' })
-            .select('id').single();
-          if (error) throw new Error(error.message);
-
-          // Produtos (sem tocar taxa/prazo/valor — CONSIGTEC).
-          for (const p of produtos) {
-            await admin.from('produtos_convenio').upsert({
-              convenio_id: convRow?.id, produto: mapProduto(p.tipo_margem),
-              nome: p.nome || null, tipo_margem: mapMargem(p.tipo_margem),
-              margem_percentual: numOrNull(p.percentual_margem), ativo: true,
-            }, { onConflict: 'convenio_id,produto' });
-          }
-
-          // Novidades: compara estado anterior x novo e registra o que mudou.
-          const label = `${nome}${uf ? '/' + uf : ''}`;
-          const eventos: Array<{ evento: string; mensagem: string; de?: unknown; para?: unknown }> = [];
-          if (!antigo) {
-            eventos.push({ evento: 'nova_prefeitura', mensagem: `Nova prefeitura: ${label}` });
-            res.novas++;
-          } else {
-            if ((antigo.status_detalhado || null) !== (cred.status_detalhado || null)) {
-              eventos.push({ evento: 'mudanca_status', mensagem: `${label}: status ${antigo.status_detalhado || '—'} → ${cred.status_detalhado || '—'}`, de: antigo.status_detalhado, para: cred.status_detalhado });
-            }
-            if (antigo.ativo !== (cred.status === 'ativo') && cred.status === 'ativo') {
-              eventos.push({ evento: 'ativada', mensagem: `${label}: convênio ATIVADO` });
-            }
-            if (antigo.decreto_enviado !== true && cred.decreto_enviado === true) {
-              eventos.push({ evento: 'decreto_enviado', mensagem: `${label}: decreto enviado` });
-            }
-            if ((antigo.capag || null) !== (capag.classificacao || null) && capag.classificacao) {
-              eventos.push({ evento: 'mudanca_capag', mensagem: `${label}: CAPAG ${antigo.capag || '—'} → ${capag.classificacao}`, de: antigo.capag, para: capag.classificacao });
-            }
-          }
-          for (const ev of eventos) {
-            await admin.from('sincronizacoes_convenio').insert({
-              origem: 'pixconsig', evento: ev.evento, convenio_id: convRow?.id, entidade_id: entidadeId,
-              status: 'novidade', mensagem: ev.mensagem,
-              payload: { de: ev.de ?? null, para: ev.para ?? null }, created_at: now,
-            });
-            res.novidades++;
-          }
-
-          res.ok++;
+          procItens.push({ id: item.id, nome, uf, cnpj, entKey, convenio, produtos, capagCls: capag.classificacao || null, cred });
         } catch (e) {
           res.erros.push(`Item ${item?.id || '?'}: ${(e as Error).message}`);
         }
+      }
+
+      try {
+        // 1) cria entidades novas em lote e mapeia as chaves para os novos ids
+        if (novasEnt.size) {
+          const { data, error } = await admin.from('entidades_cadastro')
+            .insert([...novasEnt.values()]).select('id, cnpj, nome, cidade, uf');
+          if (error) throw new Error(`entidades(new): ${error.message}`);
+          for (const e of data || []) {
+            if (e.cnpj) entByCnpj.set(e.cnpj, e.id);
+            entByNome.set(`${e.nome}|${e.cidade || ''}|${e.uf || ''}`, e.id);
+          }
+        }
+        // 2) atualiza entidades existentes em lote (upsert por id)
+        if (updEnt.size) {
+          const { error } = await admin.from('entidades_cadastro')
+            .upsert([...updEnt.values()], { onConflict: 'id' });
+          if (error) throw new Error(`entidades(upd): ${error.message}`);
+        }
+        // 3) resolve entidade_id e faz upsert dos convênios em lote
+        const convByKey = new Map<string, Record<string, unknown>>();
+        for (const it of procItens) {
+          const eid = (it.cnpj && entByCnpj.get(it.cnpj)) || entByNome.get(it.entKey) || null;
+          it.entidadeId = eid;
+          convByKey.set(it.id, { ...it.convenio, entidade_id: eid }); // dedup por pixconsig id
+        }
+        let convIdByPix = new Map<string, string>();
+        const convRows = [...convByKey.values()];
+        if (convRows.length) {
+          const { data, error } = await admin.from('convenios')
+            .upsert(convRows, { onConflict: 'pixconsig_convenio_id' }).select('id, pixconsig_convenio_id');
+          if (error) throw new Error(`convenios: ${error.message}`);
+          convIdByPix = new Map((data || []).map((c: any) => [c.pixconsig_convenio_id, c.id]));
+          res.ok += convRows.length;
+        }
+        // 4) produtos + novidades em lote
+        const prodByKey = new Map<string, Record<string, unknown>>();
+        const eventRows: Record<string, unknown>[] = [];
+        for (const it of procItens) {
+          const convId = convIdByPix.get(it.id);
+          if (!convId) continue;
+          for (const p of it.produtos) {
+            const prod = mapProduto(p.tipo_margem);
+            prodByKey.set(`${convId}|${prod}`, {
+              convenio_id: convId, produto: prod, nome: p.nome || null,
+              tipo_margem: mapMargem(p.tipo_margem), margem_percentual: numOrNull(p.percentual_margem), ativo: true,
+            });
+          }
+          // Novidades vs estado ORIGINAL (convByPix, pré-sync).
+          const antigo = convByPix.get(it.id);
+          const label = `${it.nome}${it.uf ? '/' + it.uf : ''}`;
+          const st = it.cred.status_detalhado || null;
+          const ev = (evento: string, mensagem: string, payload?: unknown) =>
+            eventRows.push({ origem: 'pixconsig', evento, convenio_id: convId, entidade_id: it.entidadeId, status: 'novidade', mensagem, payload: payload ?? null, created_at: now });
+          if (!antigo) {
+            res.novas++;
+            if (!baselineVazio) ev('nova_prefeitura', `Nova prefeitura: ${label}`);
+          } else {
+            if ((antigo.status_detalhado || null) !== st) ev('mudanca_status', `${label}: status ${antigo.status_detalhado || '—'} → ${st || '—'}`, { de: antigo.status_detalhado, para: st });
+            if (antigo.ativo !== (it.cred.status === 'ativo') && it.cred.status === 'ativo') ev('ativada', `${label}: convênio ATIVADO`);
+            if (antigo.decreto_enviado !== true && it.cred.decreto_enviado === true) ev('decreto_enviado', `${label}: decreto enviado`);
+            if ((antigo.capag || null) !== it.capagCls && it.capagCls) ev('mudanca_capag', `${label}: CAPAG ${antigo.capag || '—'} → ${it.capagCls}`, { de: antigo.capag, para: it.capagCls });
+          }
+        }
+        if (prodByKey.size) {
+          const { error } = await admin.from('produtos_convenio').upsert([...prodByKey.values()], { onConflict: 'convenio_id,produto' });
+          if (error) res.erros.push(`produtos: ${error.message}`);
+        }
+        if (eventRows.length) {
+          const { error } = await admin.from('sincronizacoes_convenio').insert(eventRows);
+          if (!error) res.novidades += eventRows.length;
+        }
+      } catch (e) {
+        res.erros.push(`Página ${guard}: ${(e as Error).message}`);
       }
 
       // Progresso ao vivo após cada página.
