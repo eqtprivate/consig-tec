@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { empresasApi, brandingApi } from '@/lib/api/tenant';
-import { THEMES, applyBranding } from '@/lib/branding';
+import { THEMES, applyBranding, hexToHsl } from '@/lib/branding';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,18 +50,25 @@ function LogoField({ valor, onChange, empresaId, variante, fundo, dica }) {
   );
 }
 
-// Mini-prévia de um kit: sidebar (fundo) + realce + botão primário.
+// Mini-prévia de um kit: sidebar (fundo) + página tingida + realce + botão.
 function KitPreview({ kit }) {
+  const p = hexToHsl(kit.primary) || { h: 215, s: 30 };
+  const sSoft = Math.round(Math.max(14, Math.min(p.s, 42)) * 0.7);
+  const pageBg = `hsl(${p.h} ${sSoft}% 97%)`;
+  const cardBg = `hsl(${p.h} ${Math.round(sSoft * 0.6)}% 99%)`;
   return (
-    <div className="flex items-stretch h-14 rounded-md overflow-hidden border border-border">
+    <div className="flex items-stretch h-16 rounded-md overflow-hidden border border-border">
       <div className="w-8 flex flex-col items-center justify-center gap-1" style={{ background: kit.sidebar }}>
         <span className="w-3 h-3 rounded-sm" style={{ background: kit.accent }} />
         <span className="w-4 h-1 rounded-full" style={{ background: 'rgba(255,255,255,.35)' }} />
         <span className="w-4 h-1 rounded-full" style={{ background: 'rgba(255,255,255,.2)' }} />
       </div>
-      <div className="flex-1 bg-card flex items-center justify-center gap-1.5">
-        <span className="px-2 py-1 rounded text-[9px] font-semibold text-white" style={{ background: kit.primary }}>Botão</span>
-        <span className="text-[9px] font-medium" style={{ color: kit.primary }}>link</span>
+      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 p-1.5" style={{ background: pageBg }}>
+        <div className="w-full h-4 rounded-sm border" style={{ background: cardBg, borderColor: `hsl(${p.h} ${sSoft}% 89%)` }} />
+        <div className="flex items-center gap-1.5">
+          <span className="px-2 py-0.5 rounded text-[9px] font-semibold text-white" style={{ background: kit.primary }}>Botão</span>
+          <span className="text-[9px] font-medium" style={{ color: kit.primary }}>link</span>
+        </div>
       </div>
     </div>
   );
