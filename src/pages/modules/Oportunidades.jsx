@@ -12,12 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Calculator, FileUp } from 'lucide-react';
+import { Plus, Pencil, Calculator, FileUp, Loader2, Inbox } from 'lucide-react';
+import { PageHeader, StatCard, StatusBadge, EmptyState } from '@/components/kit';
 
 const ETAPA = { qualificacao: 'Qualificação', simulacao: 'Simulação', proposta_enviada: 'Proposta enviada', em_formalizacao: 'Em formalização', ganha: 'Ganha', perdida: 'Perdida' };
 const ETAPA_ORDER = ['qualificacao', 'simulacao', 'proposta_enviada', 'em_formalizacao', 'ganha', 'perdida'];
 const ETAPA_COR = {
-  qualificacao: 'bg-slate-100 text-slate-600', simulacao: 'bg-blue-50 text-blue-700', proposta_enviada: 'bg-amber-50 text-amber-700',
+  qualificacao: 'bg-muted text-muted-foreground', simulacao: 'bg-blue-50 text-blue-700', proposta_enviada: 'bg-amber-50 text-amber-700',
   em_formalizacao: 'bg-violet-50 text-violet-700', ganha: 'bg-green-50 text-green-700', perdida: 'bg-red-50 text-red-700',
 };
 const PRODUTO = { cartao_beneficio: 'Cartão benefício', consignado: 'Consignado', cartao_credito: 'Cartão de crédito', saque_complementar: 'Saque complementar' };
@@ -119,50 +120,47 @@ export default function Oportunidades() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Pipeline de vendas — oportunidades qualificadas</p>
-        <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova oportunidade</Button>
-      </div>
+      <PageHeader
+        title="Oportunidades"
+        subtitle="Pipeline de vendas — oportunidades qualificadas"
+        actions={<Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova oportunidade</Button>}
+      />
 
       {/* Pipeline resumo */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {resumo.map((r) => (
-          <div key={r.etapa} className="bg-white rounded-xl border border-slate-200 p-3">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide">{ETAPA[r.etapa]}</p>
-            <p className="text-lg font-bold text-slate-900 num">{r.n}</p>
-            <p className="text-[11px] text-slate-400 num">{brl(r.valor)}</p>
-          </div>
+          <StatCard key={r.etapa} label={ETAPA[r.etapa]} value={r.n} hint={brl(r.valor)} />
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma oportunidade. Qualifique um lead na aba Leads.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState icon={Loader2} title="Carregando…" />
+        : itens.length === 0 ? <EmptyState icon={Inbox} title="Nenhuma oportunidade" description="Qualifique um lead na aba Leads." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Cliente/Lead</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Produto</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Valor</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Parcela</th>
-              <th className="text-center px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Prob.</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Etapa</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Cliente/Lead</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Produto</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Valor</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Parcela</th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Prob.</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Etapa</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((o) => (
-                <tr key={o.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{o.cliente?.nome || o.lead?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{PRODUTO[o.produto]}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 num">{brl(o.valor_estimado)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 num hidden lg:table-cell">{brl(o.valor_parcela)}</td>
-                  <td className="px-4 py-3 text-center text-slate-500 hidden sm:table-cell num">{o.probabilidade ?? '—'}%</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${ETAPA_COR[o.etapa]}`}>{ETAPA[o.etapa]}</span></td>
+                <tr key={o.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{o.cliente?.nome || o.lead?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{PRODUTO[o.produto]}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground num">{brl(o.valor_estimado)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground num hidden lg:table-cell">{brl(o.valor_parcela)}</td>
+                  <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell num">{o.probabilidade ?? '—'}%</td>
+                  <td className="px-4 py-3"><StatusBadge className={ETAPA_COR[o.etapa]}>{ETAPA[o.etapa]}</StatusBadge></td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     {!o.proposta_id && o.cliente_id && (
-                      <button onClick={() => gerarProposta(o)} disabled={busy} title="Gerar proposta" className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded"><FileUp className="w-4 h-4" /></button>
+                      <button onClick={() => gerarProposta(o)} disabled={busy} title="Gerar proposta" className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded"><FileUp className="w-4 h-4" /></button>
                     )}
-                    <button onClick={() => openEdit(o)} title="Editar" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(o)} title="Editar" className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}

@@ -12,7 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Phone, CalendarClock, CheckCircle2, Upload, MessageCircle, Shuffle, BookOpen } from 'lucide-react';
+import { Plus, Pencil, Phone, CalendarClock, CheckCircle2, Upload, MessageCircle, Shuffle, BookOpen, Users } from 'lucide-react';
+import { PageHeader, Panel, StatusBadge, EmptyState } from '@/components/kit';
 
 const RESULTADOS_PERDA = ['sem_interesse', 'nao_perturbe', 'numero_errado'];
 
@@ -23,7 +24,7 @@ const waHref = (t) => `https://wa.me/55${soDigitos(t)}`;
 const STATUS = { novo: 'Novo', contatado: 'Contatado', qualificado: 'Qualificado', convertido: 'Convertido', perdido: 'Perdido' };
 const ORDER = ['novo', 'contatado', 'qualificado', 'convertido', 'perdido'];
 const CHIP = {
-  novo: 'bg-slate-100 text-slate-600', contatado: 'bg-blue-50 text-blue-700', qualificado: 'bg-amber-50 text-amber-700',
+  novo: 'bg-muted text-muted-foreground', contatado: 'bg-blue-50 text-blue-700', qualificado: 'bg-amber-50 text-amber-700',
   convertido: 'bg-green-50 text-green-700', perdido: 'bg-red-50 text-red-700',
 };
 const TIPO = { ligacao: 'Ligação', whatsapp: 'WhatsApp', email: 'E-mail', sms: 'SMS', nota: 'Nota', retorno: 'Retorno' };
@@ -35,7 +36,7 @@ const emptyForm = { nome: '', telefone: '', email: '', cpf: '', origem: '', camp
 const num = (v) => (v === '' || v == null ? null : Number(v));
 const PRIOR_ORDER = { alta: 0, media: 1, baixa: 2, sem_prioridade: 3 };
 const PRIOR_LABEL = { alta: 'Alta', media: 'Média', baixa: 'Baixa' };
-const PRIOR_COR = { alta: 'bg-green-50 text-green-700', media: 'bg-amber-50 text-amber-700', baixa: 'bg-slate-100 text-slate-500' };
+const PRIOR_COR = { alta: 'bg-green-50 text-green-700', media: 'bg-amber-50 text-amber-700', baixa: 'bg-muted text-muted-foreground' };
 const fmtDT = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 
 export default function Leads() {
@@ -246,65 +247,68 @@ export default function Leads() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-slate-500">Leads e discagem — fila de trabalho do call center</p>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={filtroResp} onValueChange={setFiltroResp}>
-            <SelectTrigger className="h-9 w-40 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os leads</SelectItem>
-              <SelectItem value="meus">Meus leads</SelectItem>
-              {operadores.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          {isAdmin && <Button variant="outline" onClick={distribuir} disabled={distribuindo} className="gap-2"><Shuffle className="w-4 h-4" /> Distribuir</Button>}
-          {isAdmin && <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2"><Upload className="w-4 h-4" /> Importar</Button>}
-          <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo lead</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Leads"
+        subtitle="Leads e discagem — fila de trabalho do call center"
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={filtroResp} onValueChange={setFiltroResp}>
+              <SelectTrigger className="h-9 w-40 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os leads</SelectItem>
+                <SelectItem value="meus">Meus leads</SelectItem>
+                {operadores.map((o) => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {isAdmin && <Button variant="outline" onClick={distribuir} disabled={distribuindo} className="gap-2"><Shuffle className="w-4 h-4" /> Distribuir</Button>}
+            {isAdmin && <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2"><Upload className="w-4 h-4" /> Importar</Button>}
+            <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo lead</Button>
+          </div>
+        }
+      />
 
       {/* Resumo da fila + funil */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4 grid grid-cols-3 gap-2 text-center">
-          <div><p className="text-2xl font-bold text-slate-900 num">{novos}</p><p className="text-[11px] text-slate-500 uppercase">Novos</p></div>
-          <div><p className="text-2xl font-bold text-amber-600 num">{agendadosVencidos}</p><p className="text-[11px] text-slate-500 uppercase">Retornos vencidos</p></div>
-          <div><p className="text-2xl font-bold text-slate-900 num">{trabalhaveis.length}</p><p className="text-[11px] text-slate-500 uppercase">Na fila</p></div>
-        </div>
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-4">
+        <Panel bodyClassName="grid grid-cols-3 gap-2 text-center">
+          <div><p className="text-2xl font-bold text-foreground num">{novos}</p><p className="text-[11px] text-muted-foreground uppercase">Novos</p></div>
+          <div><p className="text-2xl font-bold text-amber-600 num">{agendadosVencidos}</p><p className="text-[11px] text-muted-foreground uppercase">Retornos vencidos</p></div>
+          <div><p className="text-2xl font-bold text-foreground num">{trabalhaveis.length}</p><p className="text-[11px] text-muted-foreground uppercase">Na fila</p></div>
+        </Panel>
+        <Panel className="lg:col-span-2">
           <div className="grid grid-cols-5 gap-2">
             {funil.map((f) => (
               <div key={f.status} className="text-center">
                 <div className="h-12 flex items-end justify-center">
                   <div className="w-full bar-brand rounded-t" style={{ height: `${(f.n / max) * 100}%`, minHeight: f.n ? 6 : 0 }} />
                 </div>
-                <p className="text-sm font-bold text-slate-800 num mt-1">{f.n}</p>
-                <p className="text-[10px] text-slate-500 uppercase">{STATUS[f.status]}</p>
+                <p className="text-sm font-bold text-foreground num mt-1">{f.n}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">{STATUS[f.status]}</p>
               </div>
             ))}
           </div>
-        </div>
+        </Panel>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : leadsView.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum lead.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : leadsView.length === 0 ? <EmptyState icon={Users} title="Nenhum lead." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nome</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Telefone</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden xl:table-cell">Operador</th>
-              <th className="text-center px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Tent.</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Próx. contato</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Nome</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Telefone</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden xl:table-cell">Operador</th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Tent.</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Próx. contato</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {leadsView.map((l) => {
                 const vencido = l.proximo_contato && new Date(l.proximo_contato).getTime() <= agora;
                 return (
-                  <tr key={l.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">
+                  <tr key={l.id} className="border-b border-border hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       <span className="inline-flex items-center gap-2">
                         {l.nome}
                         {PRIOR_LABEL[l.convenio?.prioridade_comercial] && (
@@ -315,22 +319,22 @@ export default function Leads() {
                     <td className="px-4 py-3 hidden md:table-cell">
                       {l.telefone ? (
                         <span className="inline-flex items-center gap-2">
-                          <a href={telHref(l.telefone)} className="text-slate-600 hover:text-primary">{l.telefone}</a>
+                          <a href={telHref(l.telefone)} className="text-muted-foreground hover:text-primary">{l.telefone}</a>
                           <a href={waHref(l.telefone)} target="_blank" rel="noreferrer" title="WhatsApp" className="text-green-600 hover:text-green-700"><MessageCircle className="w-3.5 h-3.5" /></a>
                         </span>
-                      ) : <span className="text-slate-400">—</span>}
+                      ) : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 hidden xl:table-cell text-xs">{l.responsavel_id ? nomeOperador(l.responsavel_id) : <span className="text-slate-300">não atribuído</span>}</td>
-                    <td className="px-4 py-3 text-center text-slate-500 hidden sm:table-cell num">{l.tentativas || 0}</td>
-                    <td className={`px-4 py-3 hidden lg:table-cell text-xs ${vencido ? 'text-amber-600 font-medium' : 'text-slate-500'}`}>
+                    <td className="px-4 py-3 text-muted-foreground hidden xl:table-cell text-xs">{l.responsavel_id ? nomeOperador(l.responsavel_id) : <span className="text-muted-foreground/60">não atribuído</span>}</td>
+                    <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell num">{l.tentativas || 0}</td>
+                    <td className={`px-4 py-3 hidden lg:table-cell text-xs ${vencido ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
                       {l.proximo_contato ? <span className="inline-flex items-center gap-1"><CalendarClock className="w-3 h-3" /> {fmtDT(l.proximo_contato)}</span> : '—'}
                     </td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CHIP[l.status]}`}>{STATUS[l.status]}</span></td>
+                    <td className="px-4 py-3"><StatusBadge className={CHIP[l.status]}>{STATUS[l.status]}</StatusBadge></td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       {!['convertido', 'perdido'].includes(l.status) && (
-                        <button onClick={() => abrirAtender(l)} title="Atender / discar" className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded"><Phone className="w-4 h-4" /></button>
+                        <button onClick={() => abrirAtender(l)} title="Atender / discar" className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded"><Phone className="w-4 h-4" /></button>
                       )}
-                      <button onClick={() => openEdit(l)} title="Editar" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(l)} title="Editar" className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 );
@@ -384,31 +388,31 @@ export default function Leads() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" /> {atender?.nome}</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center gap-3 text-sm text-slate-600 -mt-1 flex-wrap">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground -mt-1 flex-wrap">
             {atender?.telefone ? (
               <span className="inline-flex items-center gap-2">
                 <a href={telHref(atender.telefone)} className="inline-flex items-center gap-1 text-primary font-medium"><Phone className="w-3.5 h-3.5" /> {atender.telefone}</a>
                 <a href={waHref(atender.telefone)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-green-600"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</a>
               </span>
-            ) : <span className="text-slate-400">sem telefone</span>}
-            {atender?.cpf && <span className="text-slate-400">CPF {atender.cpf}</span>}
-            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CHIP[atender?.status]}`}>{STATUS[atender?.status]}</span>
+            ) : <span className="text-muted-foreground">sem telefone</span>}
+            {atender?.cpf && <span className="text-muted-foreground">CPF {atender.cpf}</span>}
+            <StatusBadge className={CHIP[atender?.status]}>{STATUS[atender?.status]}</StatusBadge>
           </div>
 
           {/* Roteiro de atendimento */}
           {roteiro.length > 0 && (
-            <div className="border border-slate-200 rounded-lg">
-              <button type="button" onClick={() => setShowRoteiro((v) => !v)} className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-700">
+            <div className="border border-border rounded-lg">
+              <button type="button" onClick={() => setShowRoteiro((v) => !v)} className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground">
                 <span className="inline-flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" /> Roteiro de atendimento</span>
-                <span className="text-xs text-slate-400">{showRoteiro ? 'ocultar' : 'mostrar'}</span>
+                <span className="text-xs text-muted-foreground">{showRoteiro ? 'ocultar' : 'mostrar'}</span>
               </button>
               {showRoteiro && (
                 <div className="px-3 pb-3 space-y-2 max-h-40 overflow-y-auto">
                   {roteiro.map((r) => (
                     <div key={r.id} className="text-xs">
-                      <span className="uppercase text-[10px] text-slate-400 tracking-wide">{r.categoria}</span>
-                      <p className="text-slate-700 font-medium">{r.titulo}</p>
-                      <p className="text-slate-500">{(r.conteudo || '').replace('{NOME}', atender?.nome || '').replace('{VALOR}', atender?.valor_estimado ? brl(atender.valor_estimado) : '—').replace('{PARCELA}', '—')}</p>
+                      <span className="uppercase text-[10px] text-muted-foreground tracking-wide">{r.categoria}</span>
+                      <p className="text-foreground font-medium">{r.titulo}</p>
+                      <p className="text-muted-foreground">{(r.conteudo || '').replace('{NOME}', atender?.nome || '').replace('{VALOR}', atender?.valor_estimado ? brl(atender.valor_estimado) : '—').replace('{PARCELA}', '—')}</p>
                     </div>
                   ))}
                 </div>
@@ -417,21 +421,21 @@ export default function Leads() {
           )}
 
           {/* Timeline */}
-          <div className="space-y-2 max-h-40 overflow-y-auto border-t border-slate-100 pt-3">
-            {interacoes.length === 0 ? <p className="text-sm text-slate-400">Nenhuma interação ainda.</p>
+          <div className="space-y-2 max-h-40 overflow-y-auto border-t border-border pt-3">
+            {interacoes.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma interação ainda.</p>
             : interacoes.map((i) => (
-              <div key={i.id} className="text-xs border-l-2 border-slate-200 pl-3 py-0.5">
-                <span className="font-medium text-slate-700">{TIPO[i.tipo]}</span>
-                <span className="text-slate-400"> · {i.resultado ? RESULTADO[i.resultado] : '—'} · {fmtDT(i.created_at)} · {i.operador?.nome || ''}</span>
-                {i.observacao && <p className="text-slate-500">{i.observacao}</p>}
+              <div key={i.id} className="text-xs border-l-2 border-border pl-3 py-0.5">
+                <span className="font-medium text-foreground">{TIPO[i.tipo]}</span>
+                <span className="text-muted-foreground"> · {i.resultado ? RESULTADO[i.resultado] : '—'} · {fmtDT(i.created_at)} · {i.operador?.nome || ''}</span>
+                {i.observacao && <p className="text-muted-foreground">{i.observacao}</p>}
                 {i.proximo_contato && <p className="text-amber-600">↳ retorno {fmtDT(i.proximo_contato)}</p>}
               </div>
             ))}
           </div>
 
           {/* Registrar contato */}
-          <form onSubmit={registrarInteracao} className="border-t border-slate-100 pt-3 space-y-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Registrar contato</p>
+          <form onSubmit={registrarInteracao} className="border-t border-border pt-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registrar contato</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo</Label>
@@ -499,7 +503,7 @@ export default function Leads() {
               <Label>Dados (CSV — colunas: nome, telefone, cpf, email, origem)</Label>
               <Textarea rows={8} value={importText} onChange={(e) => setImportText(e.target.value)}
                 placeholder={'nome;telefone;cpf;email;origem\nMaria Silva;11999998888;12345678900;maria@x.com;mailing\nJoão Souza;11988887777;;;lista fria'} />
-              <p className="text-xs text-slate-400">Aceita separador vírgula, ponto-e-vírgula ou tab. A 1ª linha pode ser cabeçalho. Só o nome é obrigatório.</p>
+              <p className="text-xs text-muted-foreground">Aceita separador vírgula, ponto-e-vírgula ou tab. A 1ª linha pode ser cabeçalho. Só o nome é obrigatório.</p>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setImportOpen(false)}>Cancelar</Button>

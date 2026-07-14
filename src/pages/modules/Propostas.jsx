@@ -12,12 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, ShieldCheck } from 'lucide-react';
+import { StatusBadge, EmptyState } from '@/components/kit';
+import { Plus, Pencil, ShieldCheck, FileText } from 'lucide-react';
 
 const STATUS = { rascunho: 'Rascunho', em_analise: 'Em análise', aprovada: 'Aprovada', reprovada: 'Reprovada', cancelada: 'Cancelada' };
 const CORES = {
-  rascunho: 'bg-slate-100 text-slate-600', em_analise: 'bg-blue-50 text-blue-700',
-  aprovada: 'bg-green-50 text-green-700', reprovada: 'bg-red-50 text-red-700', cancelada: 'bg-slate-100 text-slate-400',
+  rascunho: 'bg-muted text-muted-foreground', em_analise: 'bg-blue-50 text-blue-700',
+  aprovada: 'bg-green-50 text-green-700', reprovada: 'bg-red-50 text-red-700', cancelada: 'bg-muted text-muted-foreground',
 };
 const emptyForm = { cliente_id: '', matricula_id: '', convenio_id: '', valor_solicitado: '', prazo: '', taxa_mensal: '', valor_parcela: '', status: 'rascunho', observacoes: '' };
 
@@ -96,45 +97,45 @@ export default function Propostas() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Propostas de crédito consignado</p>
+        <p className="text-sm text-muted-foreground">Propostas de crédito consignado</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova proposta</Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState title="Carregando…" />
         ) : propostas.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhuma proposta.</div>
+          <EmptyState icon={FileText} title="Nenhuma proposta." />
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Cliente</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Convênio</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Valor</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Prazo</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Vínculo</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Cliente</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Convênio</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Valor</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Prazo</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Vínculo</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
               {propostas.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{p.cliente?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{p.convenio?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-700">{brl(p.valor_solicitado)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden sm:table-cell">{p.prazo ? `${p.prazo}x` : '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{p.matricula ? `#${p.matricula.matricula}` : <span className="text-slate-300">—</span>}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[p.status]}`}>{STATUS[p.status]}</span></td>
+                <tr key={p.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{p.cliente?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{p.convenio?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-right text-foreground">{brl(p.valor_solicitado)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell">{p.prazo ? `${p.prazo}x` : '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{p.matricula ? `#${p.matricula.matricula}` : <span className="text-muted-foreground/60">—</span>}</td>
+                  <td className="px-4 py-3"><StatusBadge className={CORES[p.status]}>{STATUS[p.status]}</StatusBadge></td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => reservarMargem(p)}
                       disabled={!p.matricula_id || reservando === p.id}
                       title={p.matricula_id ? 'Reservar margem apartada' : 'Vincule uma matrícula para reservar'}
-                      className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded disabled:opacity-40 disabled:hover:bg-transparent"
+                      className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded disabled:opacity-40 disabled:hover:bg-transparent"
                     ><ShieldCheck className="w-4 h-4" /></button>
-                    <button onClick={() => openEdit(p)} title="Editar" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(p)} title="Editar" className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -176,8 +177,8 @@ export default function Propostas() {
                 </SelectContent>
               </Select>
               {matSelecionada && (
-                <p className="text-xs text-slate-400">
-                  Margem disponível no vínculo: <span className="font-medium text-slate-600">{brl(matSelecionada.margem_disponivel)}</span>
+                <p className="text-xs text-muted-foreground">
+                  Margem disponível no vínculo: <span className="font-medium text-muted-foreground">{brl(matSelecionada.margem_disponivel)}</span>
                   {form.valor_parcela && Number(form.valor_parcela) > Number(matSelecionada.margem_disponivel || 0) && (
                     <span className="text-red-600"> · parcela excede a margem</span>
                   )}
