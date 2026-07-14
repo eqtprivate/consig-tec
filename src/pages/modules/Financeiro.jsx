@@ -14,9 +14,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState, StatusBadge } from '@/components/kit';
+import ConciliacaoFolha from '@/pages/modules/ConciliacaoFolha';
 import { Wallet, CheckCircle2, ListPlus, Plus } from 'lucide-react';
 
-const TABS = [{ key: 'receb', label: 'Recebíveis' }, { key: 'carteira', label: 'Carteira' }, { key: 'concil', label: 'Conciliação (repasse)' }];
+const TABS = [{ key: 'receb', label: 'Recebíveis' }, { key: 'carteira', label: 'Carteira' }, { key: 'concil', label: 'Conciliação (repasse)' }, { key: 'folha', label: 'Conciliação (folha)' }];
 const C_CT = { ativo: 'bg-green-50 text-green-700', quitado: 'bg-muted text-muted-foreground', inadimplente: 'bg-red-50 text-red-700', cancelado: 'bg-muted text-muted-foreground' };
 const C_CT_LBL = { ativo: 'Ativo', quitado: 'Quitado', inadimplente: 'Inadimplente', cancelado: 'Cancelado' };
 const STATUS = { aberta: 'Aberta', paga: 'Paga', atrasada: 'Atrasada', renegociada: 'Renegociada' };
@@ -397,7 +398,7 @@ export default function Financeiro() {
           </button>
         ))}
       </div>
-      {tab === 'receb' ? <RecebiveisTab /> : tab === 'carteira' ? <CarteiraTab /> : <ConciliacaoTab />}
+      {tab === 'receb' ? <RecebiveisTab /> : tab === 'carteira' ? <CarteiraTab /> : tab === 'folha' ? <ConciliacaoFolha /> : <ConciliacaoTab />}
     </div>
   );
 }

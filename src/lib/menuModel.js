@@ -33,6 +33,7 @@ export const AREA_SUBITEMS = {
     { key: 'receb', label: 'Recebíveis' },
     { key: 'carteira', label: 'Carteira' },
     { key: 'concil', label: 'Conciliação (repasse)' },
+    { key: 'folha', label: 'Conciliação (folha)' },
   ],
   comissoes: [
     { key: 'comissoes', label: 'Comissões' },
