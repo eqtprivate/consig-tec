@@ -7,6 +7,10 @@
 -- Após 0055. Idempotente.
 -- ============================================================
 
+-- Garante a coluna usada por capacidade_por_convenio (a migração 0026 pode não
+-- ter sido aplicada neste banco). Idempotente.
+ALTER TABLE matriculas ADD COLUMN IF NOT EXISTS margem_atualizada_em timestamptz;
+
 -- Empresa efetiva para filtro: superadmin pode focar (p_empresa), demais são
 -- travados na própria empresa.
 CREATE OR REPLACE FUNCTION public.auth_empresa_efetiva(p_empresa uuid)
