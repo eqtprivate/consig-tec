@@ -24,6 +24,7 @@ import AreasAdmin from '@/pages/admin/Areas';
 import Notificacoes from '@/pages/admin/Notificacoes';
 import Expansao from '@/pages/admin/Expansao';
 import Integracoes from '@/pages/admin/Integracoes';
+import EmpresasPlanos from '@/pages/admin/EmpresasPlanos';
 import Auditoria from '@/pages/Auditoria';
 
 const AuthenticatedApp = () => {
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/notificacoes" element={<Notificacoes />} />
             <Route path="/admin/expansao" element={<Expansao />} />
             <Route path="/admin/integracoes" element={<Integracoes />} />
+            <Route path="/admin/empresas" element={<EmpresasPlanos />} />
             <Route path="/admin/auditoria" element={<Auditoria />} />
           </Route>
         </Route>

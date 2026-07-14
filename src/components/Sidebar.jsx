@@ -64,7 +64,7 @@ function Badge({ value, tone = 'default' }) {
 }
 
 export default function Sidebar() {
-  const { perfil, isAdmin, availableAreas, activeUnidade, vinculos } = useAuth();
+  const { perfil, isAdmin, availableAreas, activeUnidade, vinculos, hasAreaAccess } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [allAreas, setAllAreas] = useState([]);
@@ -105,9 +105,8 @@ export default function Sidebar() {
   const isOpen = (codigo) => expanded[codigo] ?? isOnArea(codigo);
   const currentTab = searchParams.get('tab');
 
-  const visibleAreas = allAreas.filter((a) =>
-    isAdmin || availableAreas.some((va) => va.codigo === a.codigo)
-  );
+  // Visibilidade = acesso por área (vínculo/admin) E módulo liberado pelo plano.
+  const visibleAreas = allAreas.filter((a) => hasAreaAccess(a.codigo));
 
   const itemClass = (active) =>
     `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${

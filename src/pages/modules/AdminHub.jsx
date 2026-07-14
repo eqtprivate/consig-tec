@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
-import { Users, Link2, Settings, Bell, TrendingUp, Plug, ScrollText, ArrowRight } from 'lucide-react';
+import PlanoUsoBanner from '@/components/PlanoUsoBanner';
+import { Users, Link2, Settings, Bell, TrendingUp, Plug, ScrollText, ArrowRight, Building2 } from 'lucide-react';
 
 const CARDS = [
+  { to: '/admin/empresas', icon: Building2, nome: 'Empresas & Planos', desc: 'Clientes (tenants) e planos de acesso', superadmin: true },
   { to: '/admin/usuarios', icon: Users, nome: 'Usuários', desc: 'Cadastro, papéis, senha temporária e ativação' },
   { to: '/admin/vinculos', icon: Link2, nome: 'Vínculos', desc: 'Usuário × unidade × papel (escopo de acesso)' },
   { to: '/admin/areas', icon: Settings, nome: 'Áreas & Papéis', desc: 'Áreas do processo e permissões por papel' },
@@ -14,7 +16,8 @@ const CARDS = [
 ];
 
 export default function AdminHub() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperadmin } = useAuth();
+  const cards = CARDS.filter((c) => !c.superadmin || isSuperadmin);
 
   if (!isAdmin) {
     return (
@@ -27,8 +30,9 @@ export default function AdminHub() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-500">Central de administração — acessos, configuração e integrações do CONSIGTEC.</p>
+      <PlanoUsoBanner />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {CARDS.map(({ to, icon: Icon, nome, desc }) => (
+        {cards.map(({ to, icon: Icon, nome, desc }) => (
           <Link
             key={to}
             to={to}

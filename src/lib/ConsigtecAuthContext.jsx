@@ -7,6 +7,8 @@ export const ConsigtecAuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [perfil, setPerfil] = useState(null);
   const [vinculos, setVinculos] = useState([]);
+  const [empresa, setEmpresa] = useState(null);
+  const [planoUso, setPlanoUso] = useState(null);
   const [activeUnidade, setActiveUnidade] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,6 +29,16 @@ export const ConsigtecAuthProvider = ({ children }) => {
         .eq('ativo', true);
 
       setVinculos(vinculosData || []);
+
+      // Empresa (tenant) + plano + uso — multi-tenant / planos de acesso.
+      if (perfilData.empresa_id) {
+        const { data: empresaData } = await supabase
+          .from('empresas').select('*, plano:planos(*)').eq('id', perfilData.empresa_id).maybeSingle();
+        setEmpresa(empresaData || null);
+      } else {
+        setEmpresa(null);
+      }
+      supabase.rpc('plano_uso_empresa').then(({ data }) => setPlanoUso(data || null)).catch(() => setPlanoUso(null));
 
       const franquiasMap = new Map();
       (vinculosData || []).forEach((v) => {
@@ -68,6 +80,8 @@ export const ConsigtecAuthProvider = ({ children }) => {
           setPerfil(null);
           setVinculos([]);
           setActiveUnidade(null);
+          setEmpresa(null);
+          setPlanoUso(null);
         }
         setLoading(false);
       });
@@ -106,8 +120,19 @@ export const ConsigtecAuthProvider = ({ children }) => {
     return [...new Map(areas.map((a) => [a.id, a])).values()];
   })();
 
+  // Módulos liberados pelo plano da empresa ('*' = todos; sem plano = não bloqueia).
+  const modulos = empresa?.plano?.modulos || null;
+  const moduloLiberado = (areaCodigo) => {
+    if (isSuperadmin) return true;               // superadmin transita tudo
+    if (!modulos) return true;                   // empresa sem plano definido não bloqueia
+    return modulos.includes('*') || modulos.includes(areaCodigo);
+  };
+
   const hasAreaAccess = (areaCodigo) => {
-    if (isAdmin) return true;
+    if (isSuperadmin) return true;
+    if (areaCodigo === 'admin') return isAdmin;  // console de gestão sempre p/ admin da empresa
+    if (!moduloLiberado(areaCodigo)) return false; // plano não inclui o módulo
+    if (isAdmin) return true;                    // admin vê todos os módulos do plano
     return availableAreas.some((a) => a.codigo === areaCodigo);
   };
 
@@ -122,6 +147,10 @@ export const ConsigtecAuthProvider = ({ children }) => {
       session,
       perfil,
       vinculos,
+      empresa,
+      plano: empresa?.plano || null,
+      planoUso,
+      modulos,
       activeUnidade,
       uniqueUnidades,
       availableAreas,
@@ -132,6 +161,7 @@ export const ConsigtecAuthProvider = ({ children }) => {
       switchUnidade,
       logout,
       hasAreaAccess,
+      moduloLiberado,
       reloadUserData: () => session?.user && loadUserData(session.user),
     }}>
       {children}

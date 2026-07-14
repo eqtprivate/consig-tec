@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     const { data: caller, error: callerErr } = await admin.auth.getUser(token);
     if (callerErr || !caller?.user) return Response.json({ error: 'Sessão inválida' }, { status: 401 });
 
-    const { data: perfil } = await admin.from('usuarios').select('role').eq('id', caller.user.id).single();
+    const { data: perfil } = await admin.from('usuarios').select('role, empresa_id').eq('id', caller.user.id).single();
     if (!perfil || !['admin', 'superadmin'].includes(perfil.role)) {
       return Response.json({ error: 'Sem permissão para criar usuários' }, { status: 403 });
     }
@@ -88,6 +88,9 @@ Deno.serve(async (req) => {
     if (perfil.role !== 'superadmin' && role !== 'usuario') role = 'usuario';
     if (!['usuario', 'admin', 'superadmin'].includes(role)) role = 'usuario';
 
+    // Tenant do novo usuário: superadmin pode indicar a empresa; admin herda a própria.
+    const empresaId = (perfil.role === 'superadmin' && body.empresa_id) ? body.empresa_id : perfil.empresa_id;
+
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password: senha,
@@ -102,6 +105,7 @@ Deno.serve(async (req) => {
         nome: nome || email.split('@')[0],
         email,
         role,
+        empresa_id: empresaId || null,
         is_grupo_admin: role !== 'usuario',
         must_change_password: true, // senha definida por admin é sempre temporária
       },
