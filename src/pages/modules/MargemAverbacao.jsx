@@ -19,7 +19,7 @@ export default function MargemAverbacao() {
   };
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
+      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto overflow-y-hidden">
         {TABS.map((t) => (
           <button
             key={t.key}

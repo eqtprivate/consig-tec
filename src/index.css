@@ -195,6 +195,30 @@
 .dark .text-blue-700, .dark .text-blue-600 { color: #9db4d6; }
 .dark .bg-violet-50 { background-color: rgba(140, 193, 82, .16); }
 .dark .text-violet-700, .dark .text-violet-600 { color: #a9d97f; }
+
+/* ---- Contraste dos REALCES no escuro: tons -800 (texto), -200/-300
+   (bordas) e -100 (fundos) que o shim base não cobria. Corrige os chips
+   de alerta e caixas de status em todas as telas. ---- */
+.dark .text-amber-800, .dark .text-amber-600 { color: #f7b23f; }
+.dark .text-green-800 { color: #a9d97f; }
+.dark .text-red-800 { color: #f4607f; }
+.dark .text-blue-800 { color: #9db4d6; }
+.dark .border-amber-200, .dark .border-amber-300 { border-color: rgba(226, 160, 63, .34); }
+.dark .border-green-200, .dark .border-green-300 { border-color: rgba(140, 193, 82, .34); }
+.dark .border-red-200, .dark .border-red-300 { border-color: rgba(231, 81, 90, .34); }
+.dark .border-blue-200, .dark .border-blue-300 { border-color: rgba(90, 120, 160, .34); }
+.dark .bg-amber-100 { background-color: rgba(226, 160, 63, .2); }
+.dark .bg-green-100 { background-color: rgba(140, 193, 82, .2); }
+.dark .bg-red-100 { background-color: rgba(231, 81, 90, .2); }
+.dark .bg-blue-100 { background-color: rgba(90, 120, 160, .2); }
+
+/* Famílias de acento novas (dashboard) — mantêm brilho/contraste no escuro */
+.dark .text-emerald-500, .dark .text-emerald-600 { color: #9ad46f; }
+.dark .text-sky-500, .dark .text-sky-600 { color: #7cb3df; }
+.dark .text-indigo-500, .dark .text-indigo-600 { color: #97aee0; }
+.dark .text-rose-500, .dark .text-rose-600 { color: #f4718c; }
+.dark .bg-emerald-50, .dark .bg-sky-50, .dark .bg-indigo-50, .dark .bg-rose-50 { background-color: rgba(120, 140, 170, .14); }
+
 .num, .tabular { font-variant-numeric: tabular-nums; }
 /* ============ Polish Pack: micro-interações e transições ============ */
 /* Elevação suave em cards clicáveis */

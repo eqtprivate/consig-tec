@@ -63,7 +63,7 @@ export default function Tomador360({ cliente, onClose }) {
         </DialogHeader>
         <p className="text-xs text-slate-500 -mt-1">CPF {cliente.cpf || '—'} · {cliente.telefone || 'sem telefone'} · {cliente.email || 'sem e-mail'}</p>
 
-        <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
+        <div className="flex gap-1 border-b border-slate-200 overflow-x-auto overflow-y-hidden">
           {TABS.map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-3 py-1.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
