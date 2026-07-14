@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building2, MapPin, ShieldCheck, ShieldAlert, Copy, Mail, CheckCircle2, ArrowRight } from 'lucide-react';
 
-const TIPOS = { operacional: 'Operacional', originadora: 'Originadora', franqueadora: 'Franqueadora', grupo: 'Grupo', investidor: 'Investidor' };
+const SEGMENTOS = ['Correspondente', 'Promotora', 'Financeira', 'Banco', 'Cooperativa', 'Securitizadora/FIDC', 'Outro'];
 
 function Section({ n, icon: Icon, title, desc, children }) {
   return (
@@ -37,7 +37,7 @@ export default function OnboardingEmpresa() {
   const [saving, setSaving] = useState(false);
   const [resultado, setResultado] = useState(null); // { empresa, senha, email, emailEnviado }
 
-  const [emp, setEmp] = useState({ nome: '', cnpj: '', tipo: 'operacional', plano_id: '' });
+  const [emp, setEmp] = useState({ nome: '', cnpj: '', segmento: '', plano_id: '' });
   const [uni, setUni] = useState({ nome: 'Matriz', cidade: '', uf: '' });
   const [adm, setAdm] = useState({ nome: '', email: '', enviarEmail: true });
 
@@ -61,7 +61,7 @@ export default function OnboardingEmpresa() {
     try {
       // 1) Empresa + plano
       empresaCriada = await empresasApi.create({
-        nome: emp.nome.trim(), cnpj: emp.cnpj || null, tipo: emp.tipo, ativo: true,
+        nome: emp.nome.trim(), cnpj: emp.cnpj || null, segmento: emp.segmento || null, ativo: true,
         plano_id: emp.plano_id, plano_desde: new Date().toISOString().slice(0, 10),
       });
       await auditoriaApi.log('onboarding_empresa', 'empresas', empresaCriada.id, { nome: emp.nome });
@@ -106,7 +106,7 @@ export default function OnboardingEmpresa() {
           <p className="text-[11px] text-muted-foreground mt-2">O administrador troca a senha no primeiro acesso e passa a gerenciar os próprios usuários e cadastros.</p>
         </div>
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={() => { setResultado(null); setEmp({ nome: '', cnpj: '', tipo: 'operacional', plano_id: '' }); setUni({ nome: 'Matriz', cidade: '', uf: '' }); setAdm({ nome: '', email: '', enviarEmail: true }); }}>Novo cliente</Button>
+          <Button variant="outline" onClick={() => { setResultado(null); setEmp({ nome: '', cnpj: '', segmento: '', plano_id: '' }); setUni({ nome: 'Matriz', cidade: '', uf: '' }); setAdm({ nome: '', email: '', enviarEmail: true }); }}>Novo cliente</Button>
           <Button onClick={() => navigate('/admin/empresas')} className="gap-2">Ir para Empresas & Planos <ArrowRight className="w-4 h-4" /></Button>
         </div>
       </div>
@@ -126,10 +126,10 @@ export default function OnboardingEmpresa() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5 sm:col-span-1"><Label>CNPJ</Label><Input value={emp.cnpj} onChange={(e) => setEmp({ ...emp, cnpj: e.target.value })} /></div>
             <div className="space-y-1.5">
-              <Label>Tipo</Label>
-              <Select value={emp.tipo} onValueChange={(v) => setEmp({ ...emp, tipo: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(TIPOS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              <Label>Segmento</Label>
+              <Select value={emp.segmento} onValueChange={(v) => setEmp({ ...emp, segmento: v })}>
+                <SelectTrigger><SelectValue placeholder="Classificação" /></SelectTrigger>
+                <SelectContent>{SEGMENTOS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">

@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { PageHeader, Panel, StatusBadge, EmptyState } from '@/components/kit';
 import { Building2, Plus, Pencil, Package, ShieldAlert } from 'lucide-react';
 
-const TIPOS = { grupo: 'Grupo', originadora: 'Originadora', franqueadora: 'Franqueadora', investidor: 'Investidor', operacional: 'Operacional' };
+// Segmento comercial do cliente (informativo) — organiza a carteira de tenants.
+const SEGMENTOS = ['Correspondente', 'Promotora', 'Financeira', 'Banco', 'Cooperativa', 'Securitizadora/FIDC', 'Outro'];
 const AREAS_LABEL = {
   convenios: 'Convênios', crm: 'CRM/Vendas', averbacao: 'Averbação', formalizacao: 'Formalização',
   financeiro: 'Financeiro', comissoes: 'Comissões', cobranca: 'Cobrança', cessao_fidc: 'Cessão/FIDC',
@@ -27,7 +28,7 @@ export default function EmpresasPlanos() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
-  const [form, setForm] = useState({ nome: '', cnpj: '', tipo: 'operacional', plano_id: '', ativo: true });
+  const [form, setForm] = useState({ nome: '', cnpj: '', segmento: '', plano_id: '', ativo: true });
 
   const load = async () => {
     setLoading(true);
@@ -36,13 +37,13 @@ export default function EmpresasPlanos() {
   };
   useEffect(() => { load(); }, []);
 
-  const openCreate = () => { setEdit(null); setForm({ nome: '', cnpj: '', tipo: 'operacional', plano_id: '', ativo: true }); setOpen(true); };
-  const openEdit = (e) => { setEdit(e); setForm({ nome: e.nome, cnpj: e.cnpj || '', tipo: e.tipo, plano_id: e.plano_id || '', ativo: e.ativo }); setOpen(true); };
+  const openCreate = () => { setEdit(null); setForm({ nome: '', cnpj: '', segmento: '', plano_id: '', ativo: true }); setOpen(true); };
+  const openEdit = (e) => { setEdit(e); setForm({ nome: e.nome, cnpj: e.cnpj || '', segmento: e.segmento || '', plano_id: e.plano_id || '', ativo: e.ativo }); setOpen(true); };
 
   const save = async (ev) => {
     ev.preventDefault();
     const payload = {
-      nome: form.nome, cnpj: form.cnpj || null, tipo: form.tipo, ativo: form.ativo,
+      nome: form.nome, cnpj: form.cnpj || null, segmento: form.segmento || null, ativo: form.ativo,
       plano_id: form.plano_id || null,
       plano_desde: form.plano_id ? (edit?.plano_desde || new Date().toISOString().slice(0, 10)) : null,
     };
@@ -103,7 +104,7 @@ export default function EmpresasPlanos() {
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Empresa</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Tipo</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Segmento</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Plano</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
@@ -118,7 +119,7 @@ export default function EmpresasPlanos() {
                       <div><p className="font-medium text-foreground">{e.nome}</p><p className="text-[11px] text-muted-foreground">{e.cnpj || '—'}</p></div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{TIPOS[e.tipo] || e.tipo}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{e.segmento || '—'}</td>
                   <td className="px-4 py-3">
                     {e.plano ? <StatusBadge className="bg-primary/10 text-primary">{e.plano.nome}</StatusBadge>
                       : <span className="text-xs text-amber-600">sem plano</span>}
@@ -142,10 +143,10 @@ export default function EmpresasPlanos() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>CNPJ</Label><Input value={form.cnpj} onChange={(ev) => setForm({ ...form, cnpj: ev.target.value })} /></div>
               <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={form.tipo} onValueChange={(v) => setForm({ ...form, tipo: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(TIPOS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <Label>Segmento</Label>
+                <Select value={form.segmento} onValueChange={(v) => setForm({ ...form, segmento: v })}>
+                  <SelectTrigger><SelectValue placeholder="Classificação do cliente" /></SelectTrigger>
+                  <SelectContent>{SEGMENTOS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
