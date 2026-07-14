@@ -15,6 +15,14 @@ export const usuariosApi = {
     const { error } = await supabase.from('usuarios').delete().eq('id', id);
     if (error) throw error;
   },
+  // Edição do PRÓPRIO perfil (nome/telefone/cpf) — RPC segura (não toca role/empresa).
+  async atualizarMeuPerfil({ nome, telefone, cpf }) {
+    const { data, error } = await supabase.rpc('atualizar_meu_perfil', {
+      p_nome: nome, p_telefone: telefone ?? null, p_cpf: cpf ?? null,
+    });
+    if (error) throw error;
+    return data;
+  },
   async _callFunction(fn, payload) {
     const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch(`/api/functions/${fn}`, {

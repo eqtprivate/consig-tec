@@ -153,18 +153,19 @@ export default function TopBar({ onToggleSidebar, onToggleCollapse, collapsed })
 
         <div className="w-px h-6 bg-border mx-0.5 hidden sm:block" />
 
-        <div className="flex items-center gap-2 pl-0.5">
-          <span
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 bg-primary/10 text-primary"
-            title={perfil?.nome}
-          >
+        <Link
+          to="/perfil"
+          className="flex items-center gap-2 pl-0.5 pr-1 py-1 rounded-lg hover:bg-muted transition-colors"
+          title="Meu perfil"
+        >
+          <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 bg-primary/10 text-primary">
             {initials(perfil?.nome)}
           </span>
           <div className="text-left hidden md:block min-w-0">
             <p className="text-xs font-medium text-foreground truncate max-w-[140px] leading-tight">{perfil?.nome}</p>
             <p className="text-[10px] text-muted-foreground truncate max-w-[140px] leading-tight">{perfil?.email}</p>
           </div>
-        </div>
+        </Link>
         <button onClick={logout} className={iconBtn} title="Sair">
           <LogOut className="w-4 h-4" />
         </button>

@@ -27,6 +27,7 @@ import Integracoes from '@/pages/admin/Integracoes';
 import EmpresasPlanos from '@/pages/admin/EmpresasPlanos';
 import OnboardingEmpresa from '@/pages/admin/OnboardingEmpresa';
 import Auditoria from '@/pages/Auditoria';
+import Perfil from '@/pages/Perfil';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/perfil" element={<Perfil />} />
             <Route path="/pendencias" element={<Pendencias />} />
             <Route path="/area/:codigo" element={<AreaPage />} />
             <Route path="/admin/usuarios" element={<Users />} />
