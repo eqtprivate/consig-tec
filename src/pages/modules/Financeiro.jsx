@@ -15,9 +15,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState, StatusBadge } from '@/components/kit';
 import ConciliacaoFolha from '@/pages/modules/ConciliacaoFolha';
+import Averbadoras from '@/pages/modules/Averbadoras';
 import { Wallet, CheckCircle2, ListPlus, Plus } from 'lucide-react';
 
-const TABS = [{ key: 'receb', label: 'Recebíveis' }, { key: 'carteira', label: 'Carteira' }, { key: 'concil', label: 'Conciliação (repasse)' }, { key: 'folha', label: 'Conciliação (folha)' }];
+const TABS = [
+  { key: 'receb', label: 'Recebíveis' },
+  { key: 'carteira', label: 'Carteira' },
+  { key: 'concil', label: 'Conciliação (repasse)' },
+  { key: 'folha', label: 'Conciliação (folha)' },
+  { key: 'averbadoras', label: 'Averbadoras' },
+];
 const C_CT = { ativo: 'bg-green-50 text-green-700', quitado: 'bg-muted text-muted-foreground', inadimplente: 'bg-red-50 text-red-700', cancelado: 'bg-muted text-muted-foreground' };
 const C_CT_LBL = { ativo: 'Ativo', quitado: 'Quitado', inadimplente: 'Inadimplente', cancelado: 'Cancelado' };
 const STATUS = { aberta: 'Aberta', paga: 'Paga', atrasada: 'Atrasada', renegociada: 'Renegociada' };
@@ -390,15 +397,19 @@ export default function Financeiro() {
   const [tab, setTab] = useTabParam('receb');
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto overflow-y-hidden">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}
       </div>
-      {tab === 'receb' ? <RecebiveisTab /> : tab === 'carteira' ? <CarteiraTab /> : tab === 'folha' ? <ConciliacaoFolha /> : <ConciliacaoTab />}
+      {tab === 'receb' ? <RecebiveisTab />
+        : tab === 'carteira' ? <CarteiraTab />
+        : tab === 'folha' ? <ConciliacaoFolha />
+        : tab === 'averbadoras' ? <Averbadoras />
+        : <ConciliacaoTab />}
     </div>
   );
 }

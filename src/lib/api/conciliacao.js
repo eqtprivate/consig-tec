@@ -76,6 +76,42 @@ export const conciliacaoApi = {
   },
 };
 
+// Averbadoras (empregadores/portais) + vínculo com convênios.
+export const averbadorasApi = {
+  async list() {
+    let q = supabase.from('averbadoras').select('*').order('nome');
+    const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async create(item) {
+    const ev = getEmpresaView();
+    const payload = ev && item.empresa_id == null ? { ...item, empresa_id: ev } : item;
+    const { data, error } = await supabase.from('averbadoras').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async update(id, updates) {
+    const { data, error } = await supabase.from('averbadoras').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async remove(id) {
+    const { error } = await supabase.from('averbadoras').delete().eq('id', id);
+    if (error) throw error;
+  },
+  // (Re)vincula um conjunto de convênios a esta averbadora.
+  async vincularConvenios(averbadoraId, convenioIds) {
+    const { error } = await supabase.from('convenios').update({ averbadora_id: averbadoraId }).in('id', convenioIds);
+    if (error) throw error;
+  },
+  async desvincular(convenioId) {
+    const { error } = await supabase.from('convenios').update({ averbadora_id: null }).eq('id', convenioId);
+    if (error) throw error;
+  },
+};
+
 // Custos de processamento por convênio (abatidos no repasse líquido).
 export const custosApi = {
   async list(convenioId) {
