@@ -1,71 +1,108 @@
-# CONSIGTEC — Status de Implementação (placar × roadmap v2)
+# CONSIGTEC — Status de Implementação (régua do roadmap)
 
-Placar de progresso do produto contra o `CONSIGTEC_Roadmap_v2_Enriquecido.md`.
-Legenda: ✅ feito · 🟡 parcial/esqueleto · 🟠 divergente (precisa realinhar) · ⬜ não iniciado.
+> Linha de base atualizada em **2026-07-14**. Fonte da verdade: git (`main`);
+> o Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
+> Supabase). Migrações no repo: **0001–0077**.
 
-> Convenção de execução: git é a fonte da verdade; o Base44 sincroniza pelo
-> git; migrações SQL ficam em `supabase/migrations/` e são aplicadas no
-> Supabase (`blnslbrflspiflrwsuzh`).
+Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
-## Fundação arquitetural — ✅ alinhada ao `CONSIGTEC_Arquitetura_Tecnica.md`
-- Supabase (Postgres) como sistema de registro + **RLS multi-empresa** ✅
-- **Supabase Auth (JWT)** como identidade ✅ (recomendação do doc)
-- Base44 como camada de app consumindo o Supabase ✅
-- Claude Code + GitHub para lógica/migrações; git↔Base44 2-way ✅
-- Secrets de runtime no Base44 (service_role só no backend) ✅
+---
 
-## Progresso por estágio (roadmap v2)
+## 1) Núcleo do produto — Estágios 0–16 (migr. 0001–0051)
+Estrutura **100% implementada**. O que resta em cada um é integração real / dados,
+não arquitetura.
 
-| # | Estágio | Status | Falta para fechar |
-|---|---------|--------|-------------------|
-| 0 | Fundação & Setup | ✅ | Motor **Resend** ✅ (`dispatchNotificacao`); LGPD-mín/consentimentos em uso |
-| 1 | **Convênios via PixConsig (ACL)** | ✅ | Espelho local + `pixconsig_*_id` + overlay + import CSV + cartão benefício (migr. 0005 aplicada) |
-| 2 | CRM / Vendas | 🟡 | Tomadores+Propostas ✅; falta leads, funil visual, campanhas |
-| 3 | Tomadores & Vínculos | ✅ | Matrículas múltiplas + margem apartada + elegibilidade (`matricula_elegivel_cartao`) |
-| 4 | Margem & Averbação | ✅ | Reserva de margem (`reservar/liberar_margem_proposta`) + averbação via proposta + handoff UY3 (migr. 0007) |
-| 5 | Formalização, Anti-fraude & CCB | ✅ | formalizacoes/analises_antifraude/ccbs + módulo abas (migr. 0009) |
-| 6 | Recebíveis PMT & Conciliação | ✅ | Motor PMT (`calcular_pmt`/`simular_pmt`/`gerar_cronograma_contrato`) + repasses (migr. 0010) |
-| 7 | Comissões | ✅ | Motor de rateio (`calcular_comissoes_contrato`) + regras_comissao (migr. 0011) |
-| 8 | **Cessão, Lastro & FIDC** | ✅ | Fundos/Gestoras/Termos/Itens→CCB/PDD/Assinaturas multi-fundo (migr. 0012) |
-| 9 | Pendências, SLA & Notificações | ✅ | Motor Resend `dispatchNotificacao` + fila (migr. 0013). Falta SLA/escalonamento automático |
-| 10 | Dashboards executivo/investidor | 🟡 | KPIs de operação ✅ (funil/volume/comissões); falta VOP/VF/PDD/concentração semeados |
-| 11 | Cobrança, Default & Renegociação | ✅ | cobrancas + gatilhos (falha repasse/inadimplência/glosa) (migr. 0015) |
-| 12 | Chamados & Inconsistências | ✅ | chamados (chamado/inconsistência/lgpd) — área suporte (migr. 0015) |
-| 13 | LGPD completo | ✅ | lgpd_solicitacoes (titular) + consentimentos; restrito a admin (migr. 0015) |
-| 14 | Carteiras Adquiridas | ✅ | carteiras_adquiridas (due diligence/precificação) — admin/Expansão (migr. 0016) |
-| 15 | Refinanciamento | ✅ | refinanciamentos (fila/simulação/nova CCB) — admin/Expansão (migr. 0016) |
-| 16 | Integrações & Portais | ✅ | integracoes (painel de status UY3/FIDC/WhatsApp/Resend/PixConsig) (migr. 0016). Falta a implementação real de cada API/webhook |
+| # | Estágio | Estrutura | Falta (real/externo) |
+|---|---------|:---:|---|
+| 0 | Fundação & Setup (Auth, RLS, Resend) | ✅ | — |
+| 1 | Convênios via PixConsig (ACL/espelho) | ✅ | — |
+| 2 | CRM / Vendas | ✅ | (evoluído — ver §3) |
+| 3 | Tomadores & Vínculos | ✅ | — |
+| 4 | Margem & Averbação | ✅ | handoff UY3 real ⚠️ |
+| 5 | Formalização, Antifraude & CCB | ✅ | assinatura eletrônica real ⚠️ |
+| 6 | Recebíveis PMT & Conciliação | ✅ | — |
+| 7 | Comissões (rateio) | ✅ | — |
+| 8 | Cessão, Lastro & FIDC | ✅ | integração Kanastra/Utility ⚠️ |
+| 9 | Pendências, SLA & Notificações | ✅ | SLA/escalonamento automático 🟡 |
+| 10 | Dashboards executivo/investidor | 🟡 | semear carteira real (VOP/VF/PDD) ⚠️ |
+| 11 | Cobrança, Default & Renegociação | ✅ | — |
+| 12 | Chamados & Inconsistências | ✅ | — |
+| 13 | LGPD | ✅ | — |
+| 14 | Carteiras Adquiridas | ✅ | — |
+| 15 | Refinanciamento | ✅ | — |
+| 16 | Integrações & Portais | ✅ | APIs reais (UY3/FIDC/WhatsApp) ⚠️ |
 
-## O que já existe hoje (entregue)
-- **Estágio 0**: empresas (hierarquia), franquias, áreas, papéis, usuários, vínculos, pendências, auditoria, logs de acesso, configurações, consentimentos (tabela), sla_etapas (tabela).
-- **Acessos/segurança**: roles (usuario/admin/superadmin), criação de usuário, senhas temporárias + troca obrigatória, reset, ativar/desativar (bloqueio no login), exclusão real, RLS por escopo.
-- **Esqueleto Estágio 1–7 (CRUD)**: convênios, clientes, propostas, contratos, averbações, financeiro/parcelas, comissões — telas por área.
+---
 
-## Reposicionamentos do roadmap a absorver
-1. **Convênios = integração PixConsig** (espelho + overlay), não CRUD caseiro.
-2. **Cartão benefício** como produto de 1ª classe (margem apartada 5–20%, rotativo, saque vinculado).
-3. **PMT e comissão** = Edge/backend functions testáveis (não lógica de tela).
-4. **Cessão/FIDC** (Estágio 8) multi-fundo (WL3/Redwood + Pix Card Consig/Utility/Kanastra).
-5. **Dashboards** com KPIs reais da carteira (1.928 contratos, VOP R$ 9,06 mi, VF R$ 37 mi, PDD, concentração).
-6. **Nomenclatura** do escopo (`Tomadores`, `EntidadesCadastro`, `CCBs`, `RecebiveisPMT`) para rastreabilidade.
+## 2) Épico SaaS multi-tenant + white-label (migr. 0052–0069) — ✅
+Transformou a instância única (EmpresteiCard) em **plataforma multi-cliente**.
 
-## Roadmap completo — todos os 17 estágios (0–16) implementados ✅
-Espinha + fases F2/F3/F4/F5 no ar. Migrações **0001–0016**.
+- **Multi-tenancy** (0052–0057): `empresa_id` em tudo, RLS tenant-aware,
+  superadmin cross-tenant, RPCs de escopo/dashboard por empresa.
+- **Planos de acesso** (0054): Starter/Pro/Enterprise (limitam volume e módulos;
+  limites **avisam**, não bloqueiam).
+- **Switcher "ver como"** (superadmin) + menu admin **Clientes (CONSIGTEC)**.
+- **Onboarding de cliente** (empresa + plano + admin; sem unidade).
+- **PixConsig por empresa** (0059–0061): credenciais por cliente, sync carimba
+  `empresa_id`, cron respeita janela por empresa, tela de credenciais.
+- **Perfil do usuário** (0062) · **usuário exige empresa** na criação (exceto superadmin).
+- **White-label** (0063–0066): **16 kits de cores** (layout inteiro, light/dark) +
+  **logomarca clara/escura** com upload (Storage) e dimensões sugeridas.
+- **Segmento do cliente** (0064) substitui o "tipo" antigo.
+- **Consolidação empresa = unidade operacional** (0068): aposentou o escopo por
+  franquia em leads/comissões/repasses/cobranças.
+- **Menu lateral configurável por empresa** (0069): reordenar grupos/páginas + ocultar.
+- **Senha**: 1º login força troca com **checklist de requisitos** ao vivo.
 
-**O que resta é implementação/integração real, não estrutura:**
-- Dashboard: semear a carteira histórica real (1.928 contratos) para KPIs de captação.
-- Integrações (Est. 16): implementar de fato UY3 (CCB/CNAB/webhooks), Kanastra/Utility (FIDC), WhatsApp, PixConsig (quando a API existir) — hoje é registro/handoff manual + painel de status.
-- SLA/escalonamento automático (Est. 9) e templates de e-mail data-driven.
-- Segurança (painel Supabase): desligar signups + ativar proteção de senha vazada.
+---
 
-Dependências externas: RESEND_API_KEY (envio real), x-api-key PixConsig (sandbox), credenciais UY3/Kanastra.
-com 1–2 convênios reais (Sumaré/SP, Alenquer/PA) e dashboard semeado.
+## 3) CRM (Estágio 2) — evoluído ✅ (migr. 0070)
+- **Funil visual (Kanban)** nas Oportunidades (arrastar entre etapas).
+- **Painel de conversão** (taxa, ciclo médio, funil, motivos de perda, ranking de operadores).
+- **Agenda com tarefas/follow-ups** (`tarefas`, 0070) ligáveis a lead/oportunidade,
+  com **lembrete diário por e-mail** (cron).
+- Já existiam robustos: Leads & Discagem, Tomadores, Propostas, Campanhas,
+  Comercial (metas por município), Painel (call center), Config.
 
-## Dependências externas (para destravar estágios)
-- **Resend API key** → fechar Estágio 0 (motor de notificação).
-- **PixConsig**: API co-desenvolvida (ainda não existe) → MVP via **espelho CSV/manual** com o mesmo schema.
-- **UY3 / Kanastra / Utility**: fase 1 por handoff manual; API depois.
-- **WhatsApp Business API**: envio de link de formalização (fase de integração).
+---
 
-## Decisões já tomadas
-- Supabase Auth + RLS Postgres ✅ · Secrets no Base44 ✅ · PixConsig = fonte da verdade dos convênios ✅ · Rota A (evoluir módulos atuais em direção ao roadmap) ✅
+## 4) Conciliação de folha — paridade BPO CONSIG (migr. 0071–0077) — ✅
+Baseado na proposta **BPOPrévia/BPORetorno**. Tudo em **Financeiro** (abas).
+
+| Fase | Solução | Migr. |
+|---|---|---|
+| Retorno | Conciliação contrato-a-contrato → **ok / parcial / sem_desconto / sem_contrato** | 0071 |
+| Custos | Custos de processamento (linha/%/TED/fixo) → **repasse líquido** | 0072 |
+| Averbadoras | Cadastro (portal, tipo de integração, dias) + vínculo com convênios | 0073 |
+| Expectativa | **Gerar da carteira** ou **importar** do banco | 0074 |
+| Prévia (cartão) | Criar, enviar, **capturar resultado**, **tratar críticas** (margem×valor mínimo) | 0075 |
+| Datas/notificação | Lembrete nos dias de prévia/retorno (cron) | 0076 |
+| Monitor | Capturado × **faltando** por competência | 0077 |
+| Extração | **CSV padrão-banco** do conciliado | — |
+| Logs | Auditoria em cada ação | — |
+
+⚠️ **Único item externo:** captura viva via **RPA/API/FTP** nos portais das
+averbadoras (biblioteca de robôs/layouts). O arcabouço está pronto (import
+manual/CSV substitui a captura); a automação depende dos acessos reais.
+
+---
+
+## 5) Pendências operacionais (não é etapa — é publicação/dados)
+1. **Aplicar migrações** pendentes no Supabase (0058–0077 conforme o que faltar).
+2. **Publicar o frontend** no Base44 + **republicar funções** `syncPixconsig`, `criarUsuario`.
+3. **Cadastrar credenciais PixConsig** por empresa.
+4. **Semear dashboards** com a carteira histórica real.
+5. **Integrações reais** (UY3/CNAB, Kanastra/Utility FIDC, WhatsApp) + **RPA** das averbadoras.
+6. **SLA/escalonamento automático** (Est. 9).
+7. **Segurança Supabase**: desligar signups + proteção de senha vazada.
+
+## 6) Dependências externas (destravam o que resta)
+- **Resend API key** (envio real de e-mail/lembretes) — em uso.
+- **PixConsig** x-api-key por cliente.
+- **UY3 / Kanastra / Utility / WhatsApp** — handoff manual hoje; API depois.
+- **Acessos aos portais das averbadoras** — para o conector de captura (RPA/API/FTP).
+
+## 7) Decisões arquiteturais firmadas
+- Supabase Auth + RLS multi-empresa · Secrets no Base44 (service_role só no backend) ·
+  PixConsig = fonte da verdade dos convênios · empresa = tenant e unidade operacional ·
+  planos avisam (não bloqueiam) · superadmin nunca é bloqueado pela RLS.
