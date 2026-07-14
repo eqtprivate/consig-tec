@@ -3,17 +3,18 @@ import { carteirasApi, refinApi } from '@/lib/api/expansao';
 import { contratosApi } from '@/lib/api/contratos';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
-import { brl, dataBR, num } from '@/lib/format';
+import { brl, num } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PageHeader, StatusBadge, EmptyState } from '@/components/kit';
 import { Plus, Pencil } from 'lucide-react';
 
 /* -------- Carteiras adquiridas (14) -------- */
 const CART_STATUS = { prospeccao: 'Prospecção', due_diligence: 'Due diligence', precificada: 'Precificada', adquirida: 'Adquirida', descartada: 'Descartada' };
-const CART_CORES = { prospeccao: 'bg-slate-100 text-slate-600', due_diligence: 'bg-amber-50 text-amber-700', precificada: 'bg-blue-50 text-blue-700', adquirida: 'bg-green-50 text-green-700', descartada: 'bg-red-50 text-red-700' };
+const CART_CORES = { prospeccao: 'bg-muted text-muted-foreground', due_diligence: 'bg-amber-50 text-amber-700', precificada: 'bg-blue-50 text-blue-700', adquirida: 'bg-green-50 text-green-700', descartada: 'bg-red-50 text-red-700' };
 
 function CarteirasTab() {
   const [itens, setItens] = useState([]);
@@ -40,31 +41,31 @@ function CarteirasTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Aquisição de carteiras de terceiros (due diligence e precificação)</p>
+        <p className="text-sm text-muted-foreground">Aquisição de carteiras de terceiros (due diligence e precificação)</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova carteira</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma carteira.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : itens.length === 0 ? <EmptyState title="Nenhuma carteira." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Origem</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Face</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Aquisição</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Contratos</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Origem</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Face</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Aquisição</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Contratos</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{c.origem}</td>
-                  <td className="px-4 py-3 text-right num text-slate-700">{brl(c.valor_face)}</td>
-                  <td className="px-4 py-3 text-right num text-slate-700">{brl(c.valor_aquisicao)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden md:table-cell num">{c.qtd_contratos ?? '—'}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CART_CORES[c.status]}`}>{CART_STATUS[c.status]}</span></td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{c.origem}</td>
+                  <td className="px-4 py-3 text-right num text-foreground">{brl(c.valor_face)}</td>
+                  <td className="px-4 py-3 text-right num text-foreground">{brl(c.valor_aquisicao)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell num">{c.qtd_contratos ?? '—'}</td>
+                  <td className="px-4 py-3"><StatusBadge className={CART_CORES[c.status]}>{CART_STATUS[c.status]}</StatusBadge></td>
+                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button></td>
                 </tr>
               ))}
             </tbody>
@@ -105,7 +106,7 @@ function CarteirasTab() {
 
 /* -------- Refinanciamento (15) -------- */
 const REF_STATUS = { fila: 'Fila', simulado: 'Simulado', aprovado: 'Aprovado', emitido: 'Emitido', recusado: 'Recusado' };
-const REF_CORES = { fila: 'bg-slate-100 text-slate-600', simulado: 'bg-blue-50 text-blue-700', aprovado: 'bg-amber-50 text-amber-700', emitido: 'bg-green-50 text-green-700', recusado: 'bg-red-50 text-red-700' };
+const REF_CORES = { fila: 'bg-muted text-muted-foreground', simulado: 'bg-blue-50 text-blue-700', aprovado: 'bg-amber-50 text-amber-700', emitido: 'bg-green-50 text-green-700', recusado: 'bg-red-50 text-red-700' };
 
 function RefinTab() {
   const { activeUnidade } = useAuth();
@@ -135,31 +136,31 @@ function RefinTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Refinanciamento — fila, simulação e nova CCB (vínculo original ↔ nova)</p>
+        <p className="text-sm text-muted-foreground">Refinanciamento — fila, simulação e nova CCB (vínculo original ↔ nova)</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo refin</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum refinanciamento.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : itens.length === 0 ? <EmptyState title="Nenhum refinanciamento." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Cliente</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Quitação</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Novo</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Troco</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Cliente</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Quitação</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Novo</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Troco</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{r.cliente?.nome || r.contrato?.cliente?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-right num text-slate-700">{brl(r.valor_quitacao)}</td>
-                  <td className="px-4 py-3 text-right num text-slate-700">{brl(r.valor_novo)}</td>
-                  <td className="px-4 py-3 text-right num text-slate-600 hidden md:table-cell">{brl(r.troco)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${REF_CORES[r.status]}`}>{REF_STATUS[r.status]}</span></td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(r)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>
+                <tr key={r.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{r.cliente?.nome || r.contrato?.cliente?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-right num text-foreground">{brl(r.valor_quitacao)}</td>
+                  <td className="px-4 py-3 text-right num text-foreground">{brl(r.valor_novo)}</td>
+                  <td className="px-4 py-3 text-right num text-muted-foreground hidden md:table-cell">{brl(r.troco)}</td>
+                  <td className="px-4 py-3"><StatusBadge className={REF_CORES[r.status]}>{REF_STATUS[r.status]}</StatusBadge></td>
+                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(r)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button></td>
                 </tr>
               ))}
             </tbody>
@@ -206,19 +207,19 @@ export default function Expansao() {
   const [tab, setTab] = useState('carteiras');
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Expansão</h1>
-        <p className="text-sm text-slate-500 mt-1">Carteiras adquiridas de terceiros e refinanciamento</p>
-      </div>
-      <div className="flex gap-1 border-b border-slate-200">
+      <PageHeader
+        title="Expansão"
+        subtitle="Carteiras adquiridas de terceiros e refinanciamento"
+      />
+      <div className="flex gap-1 border-b border-border">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}
       </div>
-      {!isAdmin ? <p className="text-sm text-slate-500">Restrito a administradores do grupo.</p>
+      {!isAdmin ? <p className="text-sm text-muted-foreground">Restrito a administradores do grupo.</p>
         : tab === 'carteiras' ? <CarteirasTab /> : <RefinTab />}
     </div>
   );

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PageHeader, StatusBadge, EmptyState } from '@/components/kit';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 export default function Vinculos() {
@@ -83,53 +84,53 @@ export default function Vinculos() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Vínculos</h1>
-          <p className="text-sm text-slate-500 mt-1">Gestão de vínculos: usuário × franquia × área × papel</p>
-        </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="w-4 h-4" /> Novo vínculo
-        </Button>
-      </div>
+      <PageHeader
+        title="Vínculos"
+        subtitle="Gestão de vínculos: usuário × franquia × área × papel"
+        actions={(
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="w-4 h-4" /> Novo vínculo
+          </Button>
+        )}
+      />
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState title="Carregando…" />
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Usuário</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Franquia</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Área</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Papel</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Usuário</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Franquia</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Área</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Papel</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
               {vinculos.map((v) => (
-                <tr key={v.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{v.usuario?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{v.franquia?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden lg:table-cell">{v.area?.nome || '—'}</td>
+                <tr key={v.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{v.usuario?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{v.franquia?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{v.area?.nome || '—'}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                    <StatusBadge className="bg-muted text-muted-foreground">
                       {v.papel?.nome || '—'}
-                    </span>
+                    </StatusBadge>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs ${v.ativo ? 'text-green-700' : 'text-slate-400'}`}>
+                    <span className={`text-xs ${v.ativo ? 'text-green-700' : 'text-muted-foreground'}`}>
                       {v.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => openEdit(v)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded">
+                      <button onClick={() => openEdit(v)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded">
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(v)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded">
+                      <button onClick={() => handleDelete(v)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

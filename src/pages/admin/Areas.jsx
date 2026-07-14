@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PageHeader, EmptyState } from '@/components/kit';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 // Tabela genérica de cadastro (código/nome/descrição) reutilizada por Áreas e Papéis.
@@ -40,30 +41,30 @@ function CadastroTab({ api, entidade, titulo, descricao, codigoPlaceholder }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{descricao}</p>
+        <p className="text-sm text-muted-foreground">{descricao}</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> {titulo}</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum registro.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando..." />
+        : itens.length === 0 ? <EmptyState title="Nenhum registro." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Código</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nome</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Descrição</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Código</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Nome</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Descrição</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-500 font-mono text-xs">{a.codigo}</td>
-                  <td className="px-4 py-3 font-medium text-slate-800">{a.nome}</td>
-                  <td className="px-4 py-3 text-slate-500 hidden lg:table-cell">{a.descricao || '—'}</td>
+                <tr key={a.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{a.codigo}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{a.nome}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{a.descricao || '—'}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => openEdit(a)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(a)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(a)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(a)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -96,14 +97,14 @@ export default function Areas() {
   const [tab, setTab] = useState('areas');
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Configuração de acesso</h1>
-        <p className="text-sm text-slate-500 mt-1">Áreas do processo e papéis (tipos de acesso) usados nos vínculos</p>
-      </div>
-      <div className="flex gap-1 border-b border-slate-200">
+      <PageHeader
+        title="Configuração de acesso"
+        subtitle="Áreas do processo e papéis (tipos de acesso) usados nos vínculos"
+      />
+      <div className="flex gap-1 border-b border-border">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}

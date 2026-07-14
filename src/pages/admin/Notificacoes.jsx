@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PageHeader, StatusBadge, EmptyState } from '@/components/kit';
 import { Plus, Send, RefreshCw } from 'lucide-react';
 
 const CORES = { pendente: 'bg-amber-50 text-amber-700', enviado: 'bg-green-50 text-green-700', erro: 'bg-red-50 text-red-700' };
@@ -45,41 +46,39 @@ export default function Notificacoes() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Notificações</h1>
-          <p className="text-sm text-slate-500 mt-1">Fila de e-mails (motor Resend) e disparo</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Notificações"
+        subtitle="Fila de e-mails (motor Resend) e disparo"
+        actions={<>
           <Button variant="outline" onClick={processar} disabled={processando} className="gap-2"><RefreshCw className={`w-4 h-4 ${processando ? 'animate-spin' : ''}`} /> Processar fila</Button>
           <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="w-4 h-4" /> Nova</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       {info && <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-sm">{info}</div>}
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Fila vazia.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando..." />
+        : itens.length === 0 ? <EmptyState title="Fila vazia." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Evento</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Assunto</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Destinatários</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Criada</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Evento</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Assunto</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Destinatários</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Criada</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
             </tr></thead>
             <tbody>
               {itens.map((n) => {
                 const dest = Array.isArray(n.destinatarios) ? n.destinatarios : [];
                 return (
-                  <tr key={n.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{n.evento}</td>
-                    <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{n.assunto || '—'}</td>
-                    <td className="px-4 py-3 text-slate-500 hidden lg:table-cell text-xs">{dest.join(', ') || '—'}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 hidden sm:table-cell">{dataBR(n.created_at)}</td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[n.status_envio] || 'bg-slate-100 text-slate-500'}`}>{n.status_envio}</span></td>
+                  <tr key={n.id} className="border-b border-border hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{n.evento}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{n.assunto || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell text-xs">{dest.join(', ') || '—'}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell">{dataBR(n.created_at)}</td>
+                    <td className="px-4 py-3"><StatusBadge className={CORES[n.status_envio] || 'bg-muted text-muted-foreground'}>{n.status_envio}</StatusBadge></td>
                   </tr>
                 );
               })}

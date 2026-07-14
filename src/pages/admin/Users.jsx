@@ -16,10 +16,11 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Trash2, Pencil, ShieldCheck, ShieldAlert, Plus, KeyRound, Power, Copy, Link2, Mail } from 'lucide-react';
+import { PageHeader, StatusBadge, EmptyState } from '@/components/kit';
 
 const ROLE_LABELS = { usuario: 'Usuário', admin: 'Admin', superadmin: 'Superadmin' };
 const ROLE_CORES = {
-  usuario: 'bg-slate-100 text-slate-600',
+  usuario: 'bg-muted text-muted-foreground',
   admin: 'bg-blue-50 text-blue-700',
   superadmin: 'bg-violet-50 text-violet-700',
 };
@@ -211,64 +212,64 @@ export default function Users() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Usuários</h1>
-          <p className="text-sm text-slate-500 mt-1">
+      <PageHeader
+        title="Usuários"
+        subtitle={(
+          <>
             Gestão de usuários, papéis e acessos
             {limiteUsuarios != null && (
-              <span className={`ml-2 text-xs ${usadosUsuarios >= limiteUsuarios ? 'text-amber-600 font-medium' : 'text-slate-400'}`}>
+              <span className={`ml-2 text-xs ${usadosUsuarios >= limiteUsuarios ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`}>
                 · {usadosUsuarios}/{limiteUsuarios} do plano{usadosUsuarios >= limiteUsuarios ? ' (no limite)' : ''}
               </span>
             )}
-          </p>
-        </div>
-        <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo usuário</Button>
-      </div>
+          </>
+        )}
+        actions={<Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo usuário</Button>}
+      />
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState title="Carregando…" />
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nome</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">E-mail</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Papel</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Nome</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">E-mail</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Papel</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
               {usuariosView.map((u) => {
                 const isSelf = u.id === currentUser?.id;
                 return (
-                  <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{u.nome}</td>
-                    <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{u.email}</td>
+                  <tr key={u.id} className="border-b border-border hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{u.nome}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{u.email}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${ROLE_CORES[u.role] || ROLE_CORES.usuario}`}>
+                      <StatusBadge className={ROLE_CORES[u.role] || ROLE_CORES.usuario}>
                         {ROLE_LABELS[u.role] || 'Usuário'}
-                      </span>
+                      </StatusBadge>
                     </td>
                     <td className="px-4 py-3">
                       {u.ativo ? (
                         <span className="inline-flex items-center gap-1 text-xs text-green-700"><ShieldCheck className="w-3 h-3" /> Ativo</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-400"><ShieldAlert className="w-3 h-3" /> Inativo</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><ShieldAlert className="w-3 h-3" /> Inativo</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
-                        <button title="Acessos (vínculos)" onClick={() => openAcessos(u)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded"><Link2 className="w-4 h-4" /></button>
-                        <button title="Editar" onClick={() => openEdit(u)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
-                        <button title="Resetar senha" onClick={() => handleReset(u)} className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded"><KeyRound className="w-4 h-4" /></button>
+                        <button title="Acessos (vínculos)" onClick={() => openAcessos(u)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded"><Link2 className="w-4 h-4" /></button>
+                        <button title="Editar" onClick={() => openEdit(u)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
+                        <button title="Resetar senha" onClick={() => handleReset(u)} className="p-1.5 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded"><KeyRound className="w-4 h-4" /></button>
                         {!isSelf && (
-                          <button title={u.ativo ? 'Desativar' : 'Ativar'} onClick={() => handleToggleAtivo(u)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Power className="w-4 h-4" /></button>
+                          <button title={u.ativo ? 'Desativar' : 'Ativar'} onClick={() => handleToggleAtivo(u)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Power className="w-4 h-4" /></button>
                         )}
                         {!isSelf && (
-                          <button title="Excluir" onClick={() => handleDelete(u)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                          <button title="Excluir" onClick={() => handleDelete(u)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                         )}
                       </div>
                     </td>
@@ -294,12 +295,12 @@ export default function Users() {
               <Label>E-mail</Label>
               <Input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} required />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
               <Label htmlFor="gerar" className="cursor-pointer">Gerar senha temporária</Label>
               <Switch id="gerar" checked={createForm.gerarSenha} onCheckedChange={(v) => setCreateForm({ ...createForm, gerarSenha: v })} />
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
-              <Label htmlFor="enviar" className="cursor-pointer flex items-center gap-2"><Mail className="w-4 h-4 text-slate-400" /> Enviar senha por e-mail</Label>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+              <Label htmlFor="enviar" className="cursor-pointer flex items-center gap-2"><Mail className="w-4 h-4 text-muted-foreground" /> Enviar senha por e-mail</Label>
               <Switch id="enviar" checked={createForm.enviarEmail} onCheckedChange={(v) => setCreateForm({ ...createForm, enviarEmail: v })} />
             </div>
             {!createForm.gerarSenha && (
@@ -316,7 +317,7 @@ export default function Users() {
                   {rolesDisponiveis.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {!isSuperadmin && <p className="text-xs text-slate-400">Apenas superadmins podem criar admins/superadmins.</p>}
+              {!isSuperadmin && <p className="text-xs text-muted-foreground">Apenas superadmins podem criar admins/superadmins.</p>}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
@@ -333,12 +334,12 @@ export default function Users() {
           <div className="space-y-3">
             {senhaGerada?.emailEnviado
               ? <p className="text-sm text-green-700 flex items-center gap-2"><Mail className="w-4 h-4" /> Enviada por e-mail para o usuário. Guarde a cópia abaixo como backup.</p>
-              : <p className="text-sm text-slate-600">Repasse ao usuário (o envio por e-mail não foi feito ou falhou). Ele será obrigado a trocá-la no primeiro acesso.</p>}
-            <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
-              <p className="text-xs text-slate-500">{senhaGerada?.email}</p>
+              : <p className="text-sm text-muted-foreground">Repasse ao usuário (o envio por e-mail não foi feito ou falhou). Ele será obrigado a trocá-la no primeiro acesso.</p>}
+            <div className="rounded-lg bg-muted border border-border p-3">
+              <p className="text-xs text-muted-foreground">{senhaGerada?.email}</p>
               <div className="flex items-center justify-between gap-2 mt-1">
-                <code className="font-mono text-sm text-slate-900">{senhaGerada?.senha}</code>
-                <button onClick={() => navigator.clipboard?.writeText(senhaGerada?.senha || '')} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded" title="Copiar"><Copy className="w-4 h-4" /></button>
+                <code className="font-mono text-sm text-foreground">{senhaGerada?.senha}</code>
+                <button onClick={() => navigator.clipboard?.writeText(senhaGerada?.senha || '')} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded" title="Copiar"><Copy className="w-4 h-4" /></button>
               </div>
             </div>
           </div>
@@ -371,7 +372,7 @@ export default function Users() {
                   ))}
                 </SelectContent>
               </Select>
-              {!isSuperadmin && <p className="text-xs text-slate-400">Somente superadmins alteram papéis.</p>}
+              {!isSuperadmin && <p className="text-xs text-muted-foreground">Somente superadmins alteram papéis.</p>}
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="ativo">Usuário ativo</Label>
@@ -391,32 +392,32 @@ export default function Users() {
           <DialogHeader>
             <DialogTitle>Acessos — {acessosUser?.nome}</DialogTitle>
           </DialogHeader>
-          <p className="text-xs text-slate-500 -mt-2">
+          <p className="text-xs text-muted-foreground -mt-2">
             Papel global: <span className="font-medium">{ROLE_LABELS[acessosUser?.role] || 'Usuário'}</span>. Abaixo, os vínculos (franquia × área × papel) que definem o acesso operacional por área.
           </p>
 
           <div className="space-y-2 max-h-56 overflow-y-auto">
             {acessos.length === 0 ? (
-              <p className="text-sm text-slate-400 py-2">Nenhum vínculo. {acessosUser?.role === 'usuario' ? 'Sem vínculos, este usuário não acessa áreas operacionais.' : ''}</p>
+              <p className="text-sm text-muted-foreground py-2">Nenhum vínculo. {acessosUser?.role === 'usuario' ? 'Sem vínculos, este usuário não acessa áreas operacionais.' : ''}</p>
             ) : acessos.map((v) => (
-              <div key={v.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+              <div key={v.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800">
-                    {v.area?.nome || '—'} <span className="text-xs text-slate-400">· {v.papel?.nome || '—'}</span>
+                  <p className="text-sm font-medium text-foreground">
+                    {v.area?.nome || '—'} <span className="text-xs text-muted-foreground">· {v.papel?.nome || '—'}</span>
                   </p>
-                  <p className="text-xs text-slate-400">{v.franquia?.nome || 'Sem franquia'}</p>
+                  <p className="text-xs text-muted-foreground">{v.franquia?.nome || 'Sem franquia'}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-xs ${v.ativo ? 'text-green-700' : 'text-slate-400'}`}>{v.ativo ? 'Ativo' : 'Inativo'}</span>
-                  <button onClick={() => toggleVinculo(v)} title={v.ativo ? 'Desativar' : 'Ativar'} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Power className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => removeVinculo(v)} title="Remover" className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <span className={`text-xs ${v.ativo ? 'text-green-700' : 'text-muted-foreground'}`}>{v.ativo ? 'Ativo' : 'Inativo'}</span>
+                  <button onClick={() => toggleVinculo(v)} title={v.ativo ? 'Desativar' : 'Ativar'} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Power className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => removeVinculo(v)} title="Remover" className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="border-t border-slate-100 pt-3 space-y-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Aplicar tipo (papel padrão)</p>
+          <div className="border-t border-border pt-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Aplicar tipo (papel padrão)</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Franquia</Label>
@@ -437,12 +438,12 @@ export default function Users() {
               </div>
             </div>
             {areasDoTipo.length > 0 && (
-              <p className="text-[11px] text-slate-500">Concede acesso a: <b className="text-slate-700">{areasDoTipo.join(', ')}</b></p>
+              <p className="text-[11px] text-muted-foreground">Concede acesso a: <b className="text-foreground">{areasDoTipo.join(', ')}</b></p>
             )}
           </div>
 
-          <form onSubmit={addVinculo} className="border-t border-slate-100 pt-3 space-y-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Conceder acesso avulso</p>
+          <form onSubmit={addVinculo} className="border-t border-border pt-3 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conceder acesso avulso</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>Franquia</Label>

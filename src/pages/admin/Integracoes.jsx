@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader, Panel, StatusBadge, EmptyState } from '@/components/kit';
 import { Pencil, Plus, Plug, RefreshCw, Clock, CheckCircle2, AlertTriangle, Save } from 'lucide-react';
 
 const dataHoraBR = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
@@ -123,11 +124,11 @@ function SyncPixconsig() {
   const livePct = rodando && liveTotal > 0 ? Math.min(100, Math.round((liveProc / liveTotal) * 100)) : null;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
+    <Panel bodyClassName="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <p className="text-sm font-semibold text-slate-800">Convênios PixConsig (espelho)</p>
-          <p className="text-[11px] text-slate-400">Cadastro e margem vêm da PixConsig; taxa/spread/comissão são do CONSIGTEC.</p>
+          <p className="text-sm font-semibold text-foreground">Convênios PixConsig (espelho)</p>
+          <p className="text-[11px] text-muted-foreground">Cadastro e margem vêm da PixConsig; taxa/spread/comissão são do CONSIGTEC.</p>
         </div>
         <div className="flex items-center gap-2">
           {!loadingStatus && (
@@ -144,16 +145,16 @@ function SyncPixconsig() {
       {/* Barra de status / percentual */}
       <div>
         <div className="flex items-center justify-between text-[11px] mb-1">
-          <span className="text-slate-500">
+          <span className="text-muted-foreground">
             {rodando && livePct != null ? 'Sincronizando com a PixConsig…'
               : rodando ? 'Sincronizando com a PixConsig…'
               : pct != null ? 'Taxa de sucesso da última sincronização'
               : 'Aguardando primeira sincronização com dados'}
           </span>
           {rodando && livePct != null ? (
-            <span className="font-semibold text-slate-700">{liveProc.toLocaleString('pt-BR')}/{liveTotal.toLocaleString('pt-BR')}{prog?.pagina ? ` · pág. ${prog.pagina}` : ''} · <span className="text-primary">{livePct}%</span></span>
+            <span className="font-semibold text-foreground">{liveProc.toLocaleString('pt-BR')}/{liveTotal.toLocaleString('pt-BR')}{prog?.pagina ? ` · pág. ${prog.pagina}` : ''} · <span className="text-primary">{livePct}%</span></span>
           ) : pct != null && !rodando && (
-            <span className="font-semibold text-slate-700">{ult.ok}/{ult.total} convênios · <span className="text-primary">{pct}%</span></span>
+            <span className="font-semibold text-foreground">{ult.ok}/{ult.total} convênios · <span className="text-primary">{pct}%</span></span>
           )}
         </div>
         <Progress
@@ -161,7 +162,7 @@ function SyncPixconsig() {
           className={rodando && livePct == null ? 'animate-pulse' : ''}
         />
         {!rodando && pct == null && (
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-[11px] text-muted-foreground mt-1">
             Nenhuma sincronização retornou dados ainda — configure os secrets do backend e clique em “Sincronizar agora”.
           </p>
         )}
@@ -169,17 +170,17 @@ function SyncPixconsig() {
 
       {/* Cartões de resumo do espelho */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5">
-          <p className="text-[10px] uppercase tracking-wide text-slate-400">Convênios (PixConsig)</p>
-          <p className="text-lg font-bold text-slate-800">{status?.espelho?.convenios ?? '—'}</p>
+        <div className="rounded-lg bg-muted border border-border p-2.5">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Convênios (PixConsig)</p>
+          <p className="text-lg font-bold text-foreground">{status?.espelho?.convenios ?? '—'}</p>
         </div>
-        <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5">
-          <p className="text-[10px] uppercase tracking-wide text-slate-400">Convênios (total)</p>
-          <p className="text-lg font-bold text-slate-800">{status?.espelho?.convenios_total ?? '—'}</p>
+        <div className="rounded-lg bg-muted border border-border p-2.5">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Convênios (total)</p>
+          <p className="text-lg font-bold text-foreground">{status?.espelho?.convenios_total ?? '—'}</p>
         </div>
-        <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 col-span-2">
-          <p className="text-[10px] uppercase tracking-wide text-slate-400">Última sincronização</p>
-          <p className="text-sm font-semibold text-slate-800">{dataHoraBR(status?.espelho?.ultima_sync)}</p>
+        <div className="rounded-lg bg-muted border border-border p-2.5 col-span-2">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Última sincronização</p>
+          <p className="text-sm font-semibold text-foreground">{dataHoraBR(status?.espelho?.ultima_sync)}</p>
         </div>
       </div>
 
@@ -188,7 +189,7 @@ function SyncPixconsig() {
         const rec = status?.reconciliacao;
         if (!rec || rec.total_api == null) {
           return (
-            <div className="rounded-lg border border-slate-200 p-3 text-[11px] text-slate-400">
+            <div className="rounded-lg border border-border p-3 text-[11px] text-muted-foreground">
               Reconciliação de volume disponível após uma sincronização com o backend v1.19.0+ (a API passa a informar o total).
             </div>
           );
@@ -201,7 +202,7 @@ function SyncPixconsig() {
         return (
           <div className={`rounded-lg border p-3 space-y-2 ${cobre ? 'border-green-200 bg-green-50/40' : 'border-amber-200 bg-amber-50/40'}`}>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 {cobre ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
                 Reconciliação de volume
               </p>
@@ -210,13 +211,13 @@ function SyncPixconsig() {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm font-bold text-slate-800 whitespace-nowrap">{esp.toLocaleString('pt-BR')} / {api.toLocaleString('pt-BR')}</span>
-              <div className="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
+              <span className="text-sm font-bold text-foreground whitespace-nowrap">{esp.toLocaleString('pt-BR')} / {api.toLocaleString('pt-BR')}</span>
+              <div className="flex-1 h-2 bg-muted rounded overflow-hidden">
                 <div className={`h-full rounded ${cobre ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${recPct}%` }} />
               </div>
-              <span className="text-[11px] text-slate-500 whitespace-nowrap">{recPct}%</span>
+              <span className="text-[11px] text-muted-foreground whitespace-nowrap">{recPct}%</span>
             </div>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-muted-foreground">
               Espelho (PixConsig) vs total informado pela API · {rec.paginas ?? '—'} página(s){rec.erros ? ` · ${rec.erros} erro(s)` : ''} · {dataHoraBR(rec.quando)}
             </p>
             {amostra.length > 0 && (
@@ -229,12 +230,12 @@ function SyncPixconsig() {
       })()}
 
       {res && !res.erro && res.configurado !== false && (
-        <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
+        <div className="rounded-lg bg-muted border border-border p-3 text-sm text-foreground">
           <b>{res.ok}</b> de <b>{res.total}</b> sincronizados{res.total_api != null ? ` (API informa ${res.total_api} no total)` : ''} · {res.ignorados} ignorado(s) · {res.paginas} página(s){res.erros?.length ? ` · ${res.erros.length} erro(s)` : ''}
           {res.diag && (
-            <details className="mt-2 text-[11px] text-slate-500">
+            <details className="mt-2 text-[11px] text-muted-foreground">
               <summary className="cursor-pointer">Diagnóstico de paginação (1ª página)</summary>
-              <pre className="mt-1 bg-slate-100 rounded p-2 overflow-x-auto">{JSON.stringify(res.diag, null, 2)}</pre>
+              <pre className="mt-1 bg-muted rounded p-2 overflow-x-auto">{JSON.stringify(res.diag, null, 2)}</pre>
             </details>
           )}
           {res.erros?.length > 0 && (
@@ -251,31 +252,31 @@ function SyncPixconsig() {
       )}
 
       {/* Editor da janela de sincronização */}
-      <div className="rounded-lg border border-slate-200 p-3 space-y-3">
+      <div className="rounded-lg border border-border p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Janela de sincronização automática</p>
+          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Janela de sincronização automática</p>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-slate-500">{cfg.ativo ? 'Ativa' : 'Pausada'}</span>
+            <span className="text-[11px] text-muted-foreground">{cfg.ativo ? 'Ativa' : 'Pausada'}</span>
             <Switch checked={cfg.ativo} onCheckedChange={(v) => setCfg({ ...cfg, ativo: v })} />
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1">
-            <Label className="text-[11px] text-slate-500">A cada</Label>
+            <Label className="text-[11px] text-muted-foreground">A cada</Label>
             <Select value={String(cfg.intervalo_horas)} onValueChange={(v) => setCfg({ ...cfg, intervalo_horas: Number(v) })} disabled={!cfg.ativo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{INTERVALOS.map((h) => <SelectItem key={h} value={String(h)}>{h === 24 ? '24 horas (1x/dia)' : `${h} em ${h} horas`}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-[11px] text-slate-500">Das (BRT)</Label>
+            <Label className="text-[11px] text-muted-foreground">Das (BRT)</Label>
             <Select value={String(cfg.hora_inicio)} onValueChange={(v) => setCfg({ ...cfg, hora_inicio: Number(v) })} disabled={!cfg.ativo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{Array.from({ length: 24 }, (_, h) => <SelectItem key={h} value={String(h)}>{h2(h)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-[11px] text-slate-500">Até (BRT)</Label>
+            <Label className="text-[11px] text-muted-foreground">Até (BRT)</Label>
             <Select value={String(cfg.hora_fim)} onValueChange={(v) => setCfg({ ...cfg, hora_fim: Number(v) })} disabled={!cfg.ativo}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{Array.from({ length: 24 }, (_, h) => <SelectItem key={h} value={String(h)}>{h2(h)}</SelectItem>)}</SelectContent>
@@ -283,9 +284,9 @@ function SyncPixconsig() {
           </div>
         </div>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-muted-foreground">
             {cfg.ativo
-              ? <>Rodará às <b className="text-slate-700">{previewBRT.map(h2).join(' · ') || '—'}</b> (horário de Brasília){previewBRT.length ? ` · ${previewBRT.length}x/dia` : ''}</>
+              ? <>Rodará às <b className="text-foreground">{previewBRT.map(h2).join(' · ') || '—'}</b> (horário de Brasília){previewBRT.length ? ` · ${previewBRT.length}x/dia` : ''}</>
               : 'Sincronização automática pausada — apenas manual.'}
           </p>
           <Button size="sm" onClick={salvarConfig} disabled={savingCfg} className="gap-1.5"><Save className="w-3.5 h-3.5" /> {savingCfg ? 'Salvando…' : 'Salvar janela'}</Button>
@@ -293,38 +294,38 @@ function SyncPixconsig() {
       </div>
 
       {/* Janela de avisos / novidades da sincronização */}
-      <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+      <div className="rounded-lg border border-border p-3 space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-blue-500" /> Novidades da sincronização</p>
-          <span className="text-[10px] text-slate-400">últimas 24h</span>
+          <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-blue-500" /> Novidades da sincronização</p>
+          <span className="text-[10px] text-muted-foreground">últimas 24h</span>
         </div>
         {(() => {
           const resumo = novidades?.resumo_24h || {};
           const chaves = Object.keys(resumo).filter((k) => resumo[k] > 0);
           const itens = Array.isArray(novidades?.itens) ? novidades.itens : [];
           if (chaves.length === 0 && itens.length === 0) {
-            return <p className="text-[11px] text-slate-400">Sem novidades registradas ainda. A cada sincronização, novas prefeituras, mudanças de status, decretos e CAPAG aparecem aqui.</p>;
+            return <p className="text-[11px] text-muted-foreground">Sem novidades registradas ainda. A cada sincronização, novas prefeituras, mudanças de status, decretos e CAPAG aparecem aqui.</p>;
           }
           return (
             <>
               {chaves.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {chaves.map((k) => (
-                    <span key={k} className="inline-flex items-center gap-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-full px-2.5 py-1">
-                      <span className={`w-2 h-2 rounded-full ${EVENTO_INFO[k]?.dot || 'bg-slate-400'}`} />
-                      <b className="text-slate-700">{resumo[k]}</b> <span className="text-slate-500">{EVENTO_INFO[k]?.label || k}</span>
+                    <span key={k} className="inline-flex items-center gap-1.5 text-[11px] bg-muted border border-border rounded-full px-2.5 py-1">
+                      <span className={`w-2 h-2 rounded-full ${EVENTO_INFO[k]?.dot || 'bg-muted-foreground'}`} />
+                      <b className="text-foreground">{resumo[k]}</b> <span className="text-muted-foreground">{EVENTO_INFO[k]?.label || k}</span>
                     </span>
                   ))}
                 </div>
               )}
               {itens.length > 0 && (
-                <div className="max-h-52 overflow-y-auto divide-y divide-slate-100">
+                <div className="max-h-52 overflow-y-auto divide-y divide-border">
                   {itens.map((n, i) => (
                     <div key={i} className="flex items-start gap-2 py-1.5">
-                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${EVENTO_INFO[n.evento]?.dot || 'bg-slate-400'}`} />
+                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${EVENTO_INFO[n.evento]?.dot || 'bg-muted-foreground'}`} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] text-slate-700 break-words">{n.mensagem}</p>
-                        <p className="text-[10px] text-slate-400">{dataHoraBR(n.created_at)}</p>
+                        <p className="text-[11px] text-foreground break-words">{n.mensagem}</p>
+                        <p className="text-[10px] text-muted-foreground">{dataHoraBR(n.created_at)}</p>
                       </div>
                     </div>
                   ))}
@@ -337,30 +338,30 @@ function SyncPixconsig() {
 
       {/* Últimas execuções */}
       {status?.execucoes?.length > 0 && (
-        <div className="rounded-lg border border-slate-200 p-3">
-          <p className="text-xs font-semibold text-slate-700 mb-2">Últimas execuções</p>
+        <div className="rounded-lg border border-border p-3">
+          <p className="text-xs font-semibold text-foreground mb-2">Últimas execuções</p>
           <div className="space-y-1">
             {status.execucoes.map((e, i) => {
               const temErro = (e.erros || 0) > 0;
               return (
-                <div key={i} className="flex items-center justify-between text-[11px] text-slate-600 border-b border-slate-100 last:border-0 py-1">
+                <div key={i} className="flex items-center justify-between text-[11px] text-muted-foreground border-b border-border last:border-0 py-1">
                   <span className="flex items-center gap-1.5">
                     {temErro ? <AlertTriangle className="w-3 h-3 text-amber-500" /> : <CheckCircle2 className="w-3 h-3 text-green-500" />}
                     {dataHoraBR(e.created_at)}
-                    <span className="text-slate-400">· {e.acao === 'sync_pixconsig_manual' ? 'manual' : 'automático'}</span>
+                    <span className="text-muted-foreground">· {e.acao === 'sync_pixconsig_manual' ? 'manual' : 'automático'}</span>
                   </span>
-                  <span className="text-slate-500">{e.ok ?? 0}/{e.total ?? 0}{e.ignorados ? ` · ${e.ignorados} ign.` : ''}{temErro ? ` · ${e.erros} erro(s)` : ''}</span>
+                  <span className="text-muted-foreground">{e.ok ?? 0}/{e.total ?? 0}{e.ignorados ? ` · ${e.ignorados} ign.` : ''}{temErro ? ` · ${e.erros} erro(s)` : ''}</span>
                 </div>
               );
             })}
           </div>
         </div>
       )}
-    </div>
+    </Panel>
   );
 }
 
-const CORES = { ativo: 'bg-green-50 text-green-700', inativo: 'bg-slate-100 text-slate-500', erro: 'bg-red-50 text-red-700' };
+const CORES = { ativo: 'bg-green-50 text-green-700', inativo: 'bg-muted text-muted-foreground', erro: 'bg-red-50 text-red-700' };
 
 export default function Integracoes() {
   const { isAdmin } = useAuth();
@@ -391,50 +392,48 @@ export default function Integracoes() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Integrações & Portais</h1>
-          <p className="text-sm text-slate-500 mt-1">Status das integrações externas (UY3, FIDC, mensageria, notificação)</p>
-        </div>
-        {isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova</Button>}
-      </div>
+      <PageHeader
+        title="Integrações & Portais"
+        subtitle="Status das integrações externas (UY3, FIDC, mensageria, notificação)"
+        actions={isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova</Button>}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading ? <p className="text-sm text-slate-400">Carregando...</p>
+        {loading ? <EmptyState title="Carregando…" />
         : (<>
           {/* Card PixConsig sintético, caso ainda não exista um cadastrado */}
           {isAdmin && !pixExiste && (
-            <button onClick={() => setSyncOpen(true)} className="text-left bg-white rounded-xl border border-slate-200 p-4 hover:border-primary/40 hover:shadow-sm transition">
+            <button onClick={() => setSyncOpen(true)} className="text-left bg-card rounded-xl border border-border p-4 hover:border-primary/40 hover:shadow-sm transition">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><RefreshCw className="w-4 h-4" /></span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">PixConsig</p>
-                    <p className="text-[11px] text-slate-400">espelho de convênios</p>
+                    <p className="text-sm font-semibold text-foreground">PixConsig</p>
+                    <p className="text-[11px] text-muted-foreground">espelho de convênios</p>
                   </div>
                 </div>
                 <span className="text-[11px] text-primary font-medium">Configurar →</span>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400">Sincronização de cadastro e margem dos convênios.</div>
+              <div className="mt-3 text-[11px] text-muted-foreground">Sincronização de cadastro e margem dos convênios.</div>
             </button>
           )}
           {itens.map((i) => {
             const pix = isPix(i);
             return (
-              <div key={i.id} className={`bg-white rounded-xl border p-4 ${pix ? 'border-blue-200' : 'border-slate-200'}`}>
+              <div key={i.id} className={`bg-card rounded-xl border p-4 ${pix ? 'border-blue-200' : 'border-border'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${pix ? 'bg-blue-50 text-blue-600' : 'bg-primary/10 text-primary'}`}>{pix ? <RefreshCw className="w-4 h-4" /> : <Plug className="w-4 h-4" />}</span>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{i.nome}</p>
-                      <p className="text-[11px] text-slate-400">{i.tipo || '—'}</p>
+                      <p className="text-sm font-semibold text-foreground">{i.nome}</p>
+                      <p className="text-[11px] text-muted-foreground">{i.tipo || '—'}</p>
                     </div>
                   </div>
-                  {isAdmin && <button onClick={() => openEdit(i)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>}
+                  {isAdmin && <button onClick={() => openEdit(i)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button>}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[i.status] || CORES.inativo}`}>{i.status}</span>
-                  <span className="text-[11px] text-slate-400">{i.ultima_sincronizacao ? `sync ${dataBR(i.ultima_sincronizacao)}` : 'sem sync'}</span>
+                  <StatusBadge className={CORES[i.status] || CORES.inativo}>{i.status}</StatusBadge>
+                  <span className="text-[11px] text-muted-foreground">{i.ultima_sincronizacao ? `sync ${dataBR(i.ultima_sincronizacao)}` : 'sem sync'}</span>
                 </div>
                 {isAdmin && pix && (
                   <Button variant="outline" size="sm" onClick={() => setSyncOpen(true)} className="mt-3 w-full gap-2">
