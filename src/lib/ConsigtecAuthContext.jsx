@@ -17,29 +17,47 @@ export const ConsigtecAuthProvider = ({ children }) => {
   const [activeUnidade, setActiveUnidade] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Carrega perfil/vínculos/empresa do usuário logado. NUNCA lança: cada consulta
+  // é isolada, então uma falha pontual (RLS, rede, embed) degrada o dado afetado
+  // sem travar o app. Quem chama garante setLoading(false) via finally.
   const loadUserData = useCallback(async (authUser) => {
-    const { data: perfilData } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('id', authUser.id)
-      .single();
+    try {
+      const { data: perfilData, error: perfilErr } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle();
 
-    setPerfil(perfilData);
+      if (perfilErr) console.error('Erro ao carregar perfil:', perfilErr);
+      setPerfil(perfilData || null);
+      if (!perfilData) return;
 
-    if (perfilData) {
-      const { data: vinculosData } = await supabase
-        .from('vinculos')
-        .select('*, empresa:empresas(*), franquia:franquias(*), area:areas(*), papel:papeis(*)')
-        .eq('usuario_id', perfilData.id)
-        .eq('ativo', true);
-
-      setVinculos(vinculosData || []);
+      // Vínculos (embed de franquia/area/papel). Se o embed falhar, seguimos
+      // com lista vazia — nunca deixamos a falha propagar e travar o login.
+      let vinculosData = [];
+      try {
+        const { data, error } = await supabase
+          .from('vinculos')
+          .select('*, empresa:empresas(*), franquia:franquias(*), area:areas(*), papel:papeis(*)')
+          .eq('usuario_id', perfilData.id)
+          .eq('ativo', true);
+        if (error) console.error('Erro ao carregar vínculos:', error);
+        vinculosData = data || [];
+      } catch (e) {
+        console.error('Falha ao carregar vínculos:', e);
+      }
+      setVinculos(vinculosData);
 
       // Empresa (tenant) + plano + uso — multi-tenant / planos de acesso.
       if (perfilData.empresa_id) {
-        const { data: empresaData } = await supabase
-          .from('empresas').select('*, plano:planos(*)').eq('id', perfilData.empresa_id).maybeSingle();
-        setEmpresa(empresaData || null);
+        try {
+          const { data: empresaData } = await supabase
+            .from('empresas').select('*, plano:planos(*)').eq('id', perfilData.empresa_id).maybeSingle();
+          setEmpresa(empresaData || null);
+        } catch (e) {
+          console.error('Falha ao carregar empresa:', e);
+          setEmpresa(null);
+        }
       } else {
         setEmpresa(null);
       }
@@ -51,14 +69,18 @@ export const ConsigtecAuthProvider = ({ children }) => {
       }
 
       const franquiasMap = new Map();
-      (vinculosData || []).forEach((v) => {
+      vinculosData.forEach((v) => {
         if (v.franquia) franquiasMap.set(v.franquia.id, v.franquia);
       });
       const uniqueFranquias = [...franquiasMap.values()];
 
-      const savedId = localStorage.getItem('consigtec_active_unidade');
+      let savedId = null;
+      try { savedId = localStorage.getItem('consigtec_active_unidade'); } catch { /* ignore */ }
       const found = savedId ? uniqueFranquias.find((u) => u.id === savedId) : null;
       setActiveUnidade(found || uniqueFranquias[0] || null);
+    } catch (e) {
+      // Blindagem final: qualquer erro inesperado não pode travar o app no spinner.
+      console.error('Erro inesperado ao carregar dados do usuário:', e);
     }
   }, []);
 
@@ -67,41 +89,54 @@ export const ConsigtecAuthProvider = ({ children }) => {
 
     let subscription;
 
+    // Rede de segurança: se a inicialização travar (rede/backend fora do ar),
+    // liberamos o spinner assim mesmo — o usuário cai no /login em vez de ficar
+    // preso em "carregando" indefinidamente.
+    const failSafe = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 15000);
+
     const init = async () => {
       try {
         await initSupabase();
-      } catch (e) {
-        console.error('Erro ao inicializar Supabase:', e);
-        setLoading(false);
-        return;
-      }
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!mounted) return;
-      setSession(session);
-      if (session) await loadUserData(session.user);
-      setLoading(false);
 
-      const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+        const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
-        setSession(newSession);
-        if (newSession) {
-          await loadUserData(newSession.user);
-        } else {
-          setPerfil(null);
-          setVinculos([]);
-          setActiveUnidade(null);
-          setEmpresa(null);
-          setPlanoUso(null);
-        }
-        setLoading(false);
-      });
-      subscription = data.subscription;
+        setSession(session);
+        if (session) await loadUserData(session.user);
+
+        const { data } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+          if (!mounted) return;
+          setSession(newSession);
+          try {
+            if (newSession) {
+              await loadUserData(newSession.user);
+            } else {
+              setPerfil(null);
+              setVinculos([]);
+              setActiveUnidade(null);
+              setEmpresa(null);
+              setPlanoUso(null);
+            }
+          } finally {
+            if (mounted) setLoading(false);
+          }
+        });
+        subscription = data.subscription;
+      } catch (e) {
+        console.error('Erro ao inicializar autenticação:', e);
+      } finally {
+        // Independentemente de sucesso/erro, nunca deixamos o app preso no spinner.
+        if (mounted) setLoading(false);
+        clearTimeout(failSafe);
+      }
     };
 
     init();
 
     return () => {
       mounted = false;
+      clearTimeout(failSafe);
       if (subscription) subscription.unsubscribe();
     };
   }, [loadUserData]);
@@ -179,7 +214,11 @@ export const ConsigtecAuthProvider = ({ children }) => {
     : null;
   const menuConfig = brandEmpresa?.menu_config || null; // config do menu da empresa efetiva
   useEffect(() => {
-    applyBranding({ tema: brand?.tema, cor_primaria: brand?.cor_primaria });
+    try {
+      applyBranding({ tema: brand?.tema, cor_primaria: brand?.cor_primaria });
+    } catch (e) {
+      console.error('Falha ao aplicar branding:', e);
+    }
   }, [brand?.tema, brand?.cor_primaria]);
 
   return (
