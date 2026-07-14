@@ -16,6 +16,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAppState();
+    // Rede de segurança: nenhuma checagem de plataforma pode prender o app no
+    // spinner. Se em 15s ainda estiver "carregando" (fetch de public-settings
+    // ou base44.auth.me() pendurados), liberamos — o app cai no fluxo do
+    // Supabase (login) em vez de ficar em loading infinito.
+    const failSafe = setTimeout(() => {
+      setIsLoadingPublicSettings((v) => (v ? false : v));
+      setIsLoadingAuth((v) => (v ? false : v));
+    }, 15000);
+    return () => clearTimeout(failSafe);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAppState = async () => {
