@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { empresasApi, planosApi } from '@/lib/api/tenant';
-import { franquiasApi } from '@/lib/api/franquias';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
@@ -11,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, MapPin, ShieldCheck, ShieldAlert, Copy, Mail, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Building2, ShieldCheck, ShieldAlert, Copy, Mail, CheckCircle2, ArrowRight } from 'lucide-react';
 
 const SEGMENTOS = ['Correspondente', 'Promotora', 'Financeira', 'Banco', 'Cooperativa', 'Securitizadora/FIDC', 'Outro'];
 
@@ -38,7 +37,6 @@ export default function OnboardingEmpresa() {
   const [resultado, setResultado] = useState(null); // { empresa, senha, email, emailEnviado }
 
   const [emp, setEmp] = useState({ nome: '', cnpj: '', segmento: '', plano_id: '' });
-  const [uni, setUni] = useState({ nome: 'Matriz', cidade: '', uf: '' });
   const [adm, setAdm] = useState({ nome: '', email: '', enviarEmail: true });
 
   useEffect(() => { planosApi.list().then(setPlanos).catch(() => setPlanos([])); }, []);
@@ -66,15 +64,7 @@ export default function OnboardingEmpresa() {
       });
       await auditoriaApi.log('onboarding_empresa', 'empresas', empresaCriada.id, { nome: emp.nome });
 
-      // 2) Primeira unidade/franquia
-      if (uni.nome.trim()) {
-        await franquiasApi.create({
-          empresa_id: empresaCriada.id, nome: uni.nome.trim(),
-          cidade: uni.cidade || null, uf: uni.uf || null, ativo: true,
-        });
-      }
-
-      // 3) Admin da empresa (senha temporária, opcionalmente por e-mail)
+      // 2) Admin da empresa (senha temporária, opcionalmente por e-mail)
       const novo = await usuariosApi.criar({
         nome: adm.nome.trim(), email: adm.email.trim(), role: 'admin',
         gerarSenha: true, enviarEmail: adm.enviarEmail, empresa_id: empresaCriada.id,
@@ -94,7 +84,7 @@ export default function OnboardingEmpresa() {
         <div className="bg-card rounded-xl border border-green-200 shadow-sm p-6 text-center">
           <CheckCircle2 className="w-10 h-10 text-green-600 mx-auto mb-3" />
           <h1 className="text-lg font-bold text-foreground">Cliente {resultado.empresa} criado</h1>
-          <p className="text-sm text-muted-foreground mt-1">Empresa, unidade e administrador prontos.</p>
+          <p className="text-sm text-muted-foreground mt-1">Empresa e administrador prontos.</p>
         </div>
         <div className="bg-card rounded-xl border border-border shadow-sm p-4">
           <p className="text-xs text-muted-foreground mb-1">Senha temporária do administrador ({resultado.email})</p>
@@ -106,7 +96,7 @@ export default function OnboardingEmpresa() {
           <p className="text-[11px] text-muted-foreground mt-2">O administrador troca a senha no primeiro acesso e passa a gerenciar os próprios usuários e cadastros.</p>
         </div>
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={() => { setResultado(null); setEmp({ nome: '', cnpj: '', segmento: '', plano_id: '' }); setUni({ nome: 'Matriz', cidade: '', uf: '' }); setAdm({ nome: '', email: '', enviarEmail: true }); }}>Novo cliente</Button>
+          <Button variant="outline" onClick={() => { setResultado(null); setEmp({ nome: '', cnpj: '', segmento: '', plano_id: '' }); setAdm({ nome: '', email: '', enviarEmail: true }); }}>Novo cliente</Button>
           <Button onClick={() => navigate('/admin/empresas')} className="gap-2">Ir para Empresas & Planos <ArrowRight className="w-4 h-4" /></Button>
         </div>
       </div>
@@ -117,7 +107,7 @@ export default function OnboardingEmpresa() {
     <div className="max-w-2xl mx-auto space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Onboarding de cliente</h1>
-        <p className="text-sm text-muted-foreground mt-1">Cria a empresa-cliente, o plano, a primeira unidade e o administrador — em um passo.</p>
+        <p className="text-sm text-muted-foreground mt-1">Cria a empresa-cliente, o plano e o administrador — em um passo.</p>
       </div>
 
       <Section n={1} icon={Building2} title="Empresa (tenant)" desc="Dados do cliente e o plano de acesso contratado.">
@@ -143,15 +133,7 @@ export default function OnboardingEmpresa() {
         </div>
       </Section>
 
-      <Section n={2} icon={MapPin} title="Primeira unidade" desc="A franquia/unidade inicial do cliente (pode adicionar mais depois).">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="space-y-1.5 sm:col-span-1"><Label>Nome</Label><Input value={uni.nome} onChange={(e) => setUni({ ...uni, nome: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>Cidade</Label><Input value={uni.cidade} onChange={(e) => setUni({ ...uni, cidade: e.target.value })} /></div>
-          <div className="space-y-1.5"><Label>UF</Label><Input maxLength={2} value={uni.uf} onChange={(e) => setUni({ ...uni, uf: e.target.value.toUpperCase() })} /></div>
-        </div>
-      </Section>
-
-      <Section n={3} icon={ShieldCheck} title="Administrador da empresa" desc="Recebe senha temporária e passa a gerenciar o próprio tenant.">
+      <Section n={2} icon={ShieldCheck} title="Administrador da empresa" desc="Recebe senha temporária e passa a gerenciar o próprio tenant.">
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Nome</Label><Input value={adm.nome} onChange={(e) => setAdm({ ...adm, nome: e.target.value })} /></div>
