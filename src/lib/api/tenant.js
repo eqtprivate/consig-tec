@@ -55,6 +55,20 @@ export const brandingApi = {
     if (error) throw error;
     return data; // linha da empresa atualizada
   },
+  // Upload de logomarca p/ o Storage (bucket público 'branding'); devolve a URL.
+  async uploadLogo(empresaId, file, variante = 'logo') {
+    if (!empresaId) throw new Error('Empresa não definida.');
+    if (!file) throw new Error('Arquivo não informado.');
+    const okTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+    if (!okTypes.includes(file.type)) throw new Error('Formato inválido (use PNG, SVG, WEBP ou JPG).');
+    if (file.size > 1024 * 1024) throw new Error('Arquivo muito grande (máx. 1 MB).');
+    const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
+    const path = `${empresaId}/${variante}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('branding').upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type });
+    if (error) throw error;
+    const { data } = supabase.storage.from('branding').getPublicUrl(path);
+    return data.publicUrl;
+  },
 };
 
 // Credenciais PixConsig por empresa (superadmin). A api_key é sensível —

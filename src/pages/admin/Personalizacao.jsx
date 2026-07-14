@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { empresasApi, brandingApi } from '@/lib/api/tenant';
 import { THEMES, applyBranding } from '@/lib/branding';
@@ -8,7 +8,47 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PageHeader, Panel } from '@/components/kit';
-import { Palette, Save, RotateCcw, Loader2, Check, Image as ImageIcon, LayoutDashboard } from 'lucide-react';
+import { Palette, Save, RotateCcw, Loader2, Check, Image as ImageIcon, LayoutDashboard, Upload, X } from 'lucide-react';
+
+// Campo de logo: URL + upload de arquivo (Storage), com prévia e dimensões.
+function LogoField({ valor, onChange, empresaId, variante, fundo, dica }) {
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+  const escuro = fundo === 'escuro';
+
+  const enviar = async (file) => {
+    if (!file) return;
+    if (!empresaId) { toast.error('Selecione a empresa antes de enviar.'); return; }
+    setBusy(true);
+    try {
+      const url = await brandingApi.uploadLogo(empresaId, file, variante);
+      onChange(url);
+      toast.success('Logo enviada.');
+    } catch (err) { toast.error(err.message || 'Falha no upload.'); }
+    finally { setBusy(false); if (inputRef.current) inputRef.current.value = ''; }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Input value={valor} onChange={(e) => onChange(e.target.value)} placeholder="https://…/logo.png (ou envie um arquivo)" inputMode="url" className="flex-1" />
+        <input ref={inputRef} type="file" accept="image/png,image/svg+xml,image/webp,image/jpeg" className="hidden" onChange={(e) => enviar(e.target.files?.[0])} />
+        <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} disabled={busy} className="gap-1.5 shrink-0">
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Enviar
+        </Button>
+        {valor && (
+          <Button type="button" variant="ghost" size="icon" onClick={() => onChange('')} title="Remover" className="shrink-0"><X className="w-4 h-4" /></Button>
+        )}
+      </div>
+      <div className="rounded-lg border border-border p-4 flex items-center justify-center h-16" style={{ background: escuro ? '#0F1B2D' : '#ffffff' }}>
+        {valor.trim()
+          ? <img src={valor.trim()} alt="Prévia" className="h-9 w-auto max-w-[220px] object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          : <span className="text-xs text-slate-400 inline-flex items-center gap-1.5"><ImageIcon className="w-4 h-4" /> sem logo</span>}
+      </div>
+      <p className="text-[11px] text-muted-foreground">{dica}</p>
+    </div>
+  );
+}
 
 // Mini-prévia de um kit: sidebar (fundo) + realce + botão primário.
 function KitPreview({ kit }) {
@@ -120,29 +160,26 @@ export default function Personalizacao() {
         {!tema && <p className="text-[11px] text-muted-foreground mt-3">Nenhum kit selecionado — o sistema usa o tema padrão CONSIGTEC.</p>}
       </Panel>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Panel title="Logomarca — fundo claro" subtitle="Usada em superfícies claras (login, relatórios)">
-          <div className="space-y-3">
-            <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…/logo-clara.png" inputMode="url" />
-            <div className="rounded-lg border border-border p-4 bg-white flex items-center justify-center h-16">
-              {logo.trim()
-                ? <img src={logo.trim()} alt="Prévia (fundo claro)" className="h-9 w-auto max-w-[220px] object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                : <span className="text-xs text-slate-400 inline-flex items-center gap-1.5"><ImageIcon className="w-4 h-4" /> sem logo</span>}
-            </div>
+      <Panel title="Logomarca" subtitle="Envie um arquivo ou cole uma URL. Duas versões: para fundo claro e para a barra lateral (escura).">
+        <div className="rounded-lg bg-muted/50 border border-border px-3 py-2 mb-4">
+          <p className="text-[11px] text-muted-foreground">
+            <b className="text-foreground">Dimensões sugeridas:</b> logo horizontal ~<b>360×72&nbsp;px</b> (proporção ≈ 5:1, renderiza a 36&nbsp;px de altura) · símbolo/ícone ~<b>96×96&nbsp;px</b> ·
+            fundo <b>transparente</b> · <b>PNG</b> ou <b>SVG</b> · até <b>1&nbsp;MB</b>.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Fundo claro (login, relatórios)</Label>
+            <LogoField valor={logo} onChange={setLogo} empresaId={empresaAtual?.id} variante="claro" fundo="claro"
+              dica="Logo escura, para aparecer bem sobre fundo branco." />
           </div>
-        </Panel>
-
-        <Panel title="Logomarca — fundo escuro" subtitle="Usada na barra lateral (fundo escuro)">
-          <div className="space-y-3">
-            <Input value={logoDark} onChange={(e) => setLogoDark(e.target.value)} placeholder="https://…/logo-clara-sobre-escuro.png" inputMode="url" />
-            <div className="rounded-lg border border-border p-4 flex items-center justify-center h-16" style={{ background: '#0F1B2D' }}>
-              {(logoDark.trim() || logo.trim())
-                ? <img src={logoDark.trim() || logo.trim()} alt="Prévia (fundo escuro)" className="h-9 w-auto max-w-[220px] object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                : <span className="text-xs text-slate-400 inline-flex items-center gap-1.5"><ImageIcon className="w-4 h-4" /> usa a logo clara</span>}
-            </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block">Fundo escuro (barra lateral)</Label>
+            <LogoField valor={logoDark} onChange={setLogoDark} empresaId={empresaAtual?.id} variante="escuro" fundo="escuro"
+              dica="Logo clara, para a sidebar escura. Em branco, usa a logo de fundo claro." />
           </div>
-        </Panel>
-      </div>
+        </div>
+      </Panel>
 
       <Panel title="Prévia" subtitle="Elementos com o kit selecionado (a barra lateral já reflete ao vivo)">
         <div className="flex flex-wrap items-center gap-3">
