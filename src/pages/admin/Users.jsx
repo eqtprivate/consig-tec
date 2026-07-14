@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { usuariosApi } from '@/lib/api/usuarios';
+import { empresasApi } from '@/lib/api/tenant';
 import { vinculosApi } from '@/lib/api/vinculos';
 import { franquiasApi } from '@/lib/api/franquias';
 import { areasApi } from '@/lib/api/areas';
@@ -33,7 +34,8 @@ export default function Users() {
   const [form, setForm] = useState({ nome: '', cpf: '', role: 'usuario', ativo: true });
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ nome: '', email: '', password: '', role: 'usuario', gerarSenha: true, enviarEmail: true });
+  const [createForm, setCreateForm] = useState({ nome: '', email: '', password: '', role: 'usuario', gerarSenha: true, enviarEmail: true, empresa_id: '' });
+  const [empresas, setEmpresas] = useState([]);
   const [saving, setSaving] = useState(false);
   const [erro, setErro] = useState('');
   const [senhaGerada, setSenhaGerada] = useState(null); // { email, senha, emailEnviado }
@@ -61,6 +63,8 @@ export default function Users() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+  // Superadmin escolhe a empresa do novo usuário (obrigatória, salvo superadmin).
+  useEffect(() => { if (isSuperadmin) empresasApi.list().then(setEmpresas).catch(() => setEmpresas([])); }, [isSuperadmin]);
 
   const openEdit = (u) => {
     setEditUser(u);
@@ -90,7 +94,7 @@ export default function Users() {
 
   const openCreate = () => {
     setErro('');
-    setCreateForm({ nome: '', email: '', password: '', role: 'usuario', gerarSenha: true });
+    setCreateForm({ nome: '', email: '', password: '', role: 'usuario', gerarSenha: true, enviarEmail: true, empresa_id: empresaView || '' });
     setCreateOpen(true);
   };
 
@@ -101,6 +105,11 @@ export default function Users() {
       const problema = validarSenha(createForm.password);
       if (problema) return setErro(problema);
     }
+    // Empresa é obrigatória — exceto para novo superadmin (cross-tenant).
+    // Admin comum herda a própria empresa no backend; superadmin precisa escolher.
+    if (createForm.role !== 'superadmin' && isSuperadmin && !createForm.empresa_id) {
+      return setErro('Selecione a empresa do usuário.');
+    }
     // Aviso de limite de plano (não bloqueia).
     if (limiteUsuarios != null && usadosUsuarios + 1 > limiteUsuarios) {
       toast.warning(`Plano ${planoUso?.plano?.nome || ''} permite ${limiteUsuarios} usuário(s); este será o ${usadosUsuarios + 1}º. Considere fazer upgrade.`);
@@ -108,7 +117,10 @@ export default function Users() {
     setSaving(true);
     try {
       const payload = { ...createForm };
-      if (isSuperadmin && empresaView) payload.empresa_id = empresaView; // cria na empresa em foco
+      // superadmin envia a empresa escolhida (exceto ao criar superadmin);
+      // admin comum não envia — o backend usa a própria empresa.
+      if (isSuperadmin) payload.empresa_id = createForm.role === 'superadmin' ? null : createForm.empresa_id;
+      else delete payload.empresa_id;
       const res = await usuariosApi.criar(payload);
       await auditoriaApi.log('criar_usuario', 'usuarios', null, { email: createForm.email, role: createForm.role });
       setCreateOpen(false);
@@ -319,6 +331,21 @@ export default function Users() {
               </Select>
               {!isSuperadmin && <p className="text-xs text-muted-foreground">Apenas superadmins podem criar admins/superadmins.</p>}
             </div>
+            {/* Empresa obrigatória (exceto novo superadmin). Superadmin escolhe;
+                admin comum cria sempre na própria empresa. */}
+            {isSuperadmin && createForm.role !== 'superadmin' && (
+              <div className="space-y-2">
+                <Label>Empresa <span className="text-red-500">*</span></Label>
+                <Select value={createForm.empresa_id} onValueChange={(v) => setCreateForm({ ...createForm, empresa_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar empresa" /></SelectTrigger>
+                  <SelectContent>{empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Todo usuário deve pertencer a uma empresa.</p>
+              </div>
+            )}
+            {isSuperadmin && createForm.role === 'superadmin' && (
+              <p className="text-xs text-muted-foreground">Superadmin é global (cross-tenant) — não é vinculado a uma empresa.</p>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Criando…' : 'Criar usuário'}</Button>

@@ -90,6 +90,11 @@ Deno.serve(async (req) => {
 
     // Tenant do novo usuário: superadmin pode indicar a empresa; admin herda a própria.
     const empresaId = (perfil.role === 'superadmin' && body.empresa_id) ? body.empresa_id : perfil.empresa_id;
+    // Regra: todo usuário deve estar vinculado a uma empresa — EXCETO superadmin
+    // (que é cross-tenant). Admin sem empresa também é bloqueado por segurança.
+    if (role !== 'superadmin' && !empresaId) {
+      return Response.json({ error: 'O usuário deve estar vinculado a uma empresa.' }, { status: 400 });
+    }
 
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
