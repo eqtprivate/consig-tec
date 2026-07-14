@@ -10,6 +10,7 @@ const AREA_NOMES = {
   convenios: 'Convênios', crm: 'CRM / Vendas', averbacao: 'Averbação',
   formalizacao: 'Formalização', financeiro: 'Financeiro', comissoes: 'Comissões',
   cobranca: 'Cobrança', cessao_fidc: 'Cessão / FIDC', juridico: 'Jurídico', suporte: 'Suporte',
+  admin: 'Administração',
 };
 const ADMIN_NOMES = {
   usuarios: 'Usuários', vinculos: 'Vínculos', areas: 'Áreas & Papéis',
