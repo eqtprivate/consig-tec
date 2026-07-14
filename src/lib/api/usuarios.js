@@ -31,8 +31,8 @@ export const usuariosApi = {
   },
   // Cria um usuário via função backend (usa service_role no servidor).
   // Retorna { id, email, role, senha, emailEnviado }.
-  async criar({ nome, email, password, role, gerarSenha, enviarEmail }) {
-    return this._callFunction('criarUsuario', { nome, email, password, role, gerarSenha, enviarEmail });
+  async criar({ nome, email, password, role, gerarSenha, enviarEmail, empresa_id }) {
+    return this._callFunction('criarUsuario', { nome, email, password, role, gerarSenha, enviarEmail, empresa_id });
   },
   // Ações administrativas: reset_senha | ativar | desativar | excluir
   async adminAction(action, usuarioId, opts = {}) {

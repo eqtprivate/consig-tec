@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import PlanoUsoBanner from '@/components/PlanoUsoBanner';
 import { Panel } from '@/components/kit';
-import { Users, Link2, Settings, Bell, TrendingUp, Plug, ScrollText, ArrowRight, Building2 } from 'lucide-react';
+import { Users, Link2, Settings, Bell, TrendingUp, Plug, ScrollText, ArrowRight, Building2, UserPlus } from 'lucide-react';
 
 const CARDS = [
+  { to: '/admin/onboarding', icon: UserPlus, nome: 'Novo cliente (onboarding)', desc: 'Empresa + plano + unidade + admin em um passo', superadmin: true },
   { to: '/admin/empresas', icon: Building2, nome: 'Empresas & Planos', desc: 'Clientes (tenants) e planos de acesso', superadmin: true },
   { to: '/admin/usuarios', icon: Users, nome: 'Usuários', desc: 'Cadastro, papéis, senha temporária e ativação' },
   { to: '/admin/vinculos', icon: Link2, nome: 'Vínculos', desc: 'Usuário × unidade × papel (escopo de acesso)' },

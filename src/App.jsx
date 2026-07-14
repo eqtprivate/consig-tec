@@ -25,6 +25,7 @@ import Notificacoes from '@/pages/admin/Notificacoes';
 import Expansao from '@/pages/admin/Expansao';
 import Integracoes from '@/pages/admin/Integracoes';
 import EmpresasPlanos from '@/pages/admin/EmpresasPlanos';
+import OnboardingEmpresa from '@/pages/admin/OnboardingEmpresa';
 import Auditoria from '@/pages/Auditoria';
 
 const AuthenticatedApp = () => {
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/expansao" element={<Expansao />} />
             <Route path="/admin/integracoes" element={<Integracoes />} />
             <Route path="/admin/empresas" element={<EmpresasPlanos />} />
+            <Route path="/admin/onboarding" element={<OnboardingEmpresa />} />
             <Route path="/admin/auditoria" element={<Auditoria />} />
           </Route>
         </Route>
