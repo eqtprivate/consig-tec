@@ -4,65 +4,13 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { buildLabel, BUILD_TIME } from '@/lib/version';
-import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette } from 'lucide-react';
+import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette, PanelLeft } from 'lucide-react';
 
-// Subitens (abas) por área — abrem via ?tab= no módulo.
-const AREA_SUBITEMS = {
-  convenios: [
-    { key: 'convenios', label: 'Convênios & Produtos' },
-    { key: 'capacidade', label: 'Capacidade por Município' },
-  ],
-  crm: [
-    { key: 'leads', label: 'Leads & Discagem' },
-    { key: 'agenda', label: 'Agenda' },
-    { key: 'oportunidades', label: 'Oportunidades' },
-    { key: 'clientes', label: 'Tomadores' },
-    { key: 'propostas', label: 'Propostas' },
-    { key: 'campanhas', label: 'Campanhas' },
-    { key: 'comercial', label: 'Comercial' },
-    { key: 'painel', label: 'Painel' },
-    { key: 'config', label: 'Config' },
-  ],
-  averbacao: [
-    { key: 'consulta', label: 'Consulta de Margem' },
-    { key: 'averbacoes', label: 'Averbações' },
-    { key: 'reconciliacao', label: 'Reconciliação' },
-  ],
-  formalizacao: [
-    { key: 'form', label: 'Formalização & Antifraude' },
-    { key: 'ccb', label: 'CCB' },
-    { key: 'contratos', label: 'Contratos' },
-  ],
-  financeiro: [
-    { key: 'receb', label: 'Recebíveis' },
-    { key: 'carteira', label: 'Carteira' },
-    { key: 'concil', label: 'Conciliação (repasse)' },
-  ],
-  comissoes: [
-    { key: 'comissoes', label: 'Comissões' },
-    { key: 'regras', label: 'Regras de rateio' },
-  ],
-  cessao_fidc: [
-    { key: 'termos', label: 'Termos de cessão' },
-    { key: 'fundos', label: 'Fundos & Partes' },
-    { key: 'pdd', label: 'PDD' },
-  ],
-  juridico: [
-    { key: 'lgpd', label: 'LGPD — Titular' },
-    { key: 'chamados', label: 'Chamados jurídicos' },
-  ],
-  suporte: [
-    { key: 'internos', label: 'Chamados Internos' },
-    { key: 'suporte', label: 'Chamados (suporte)' },
-  ],
-};
+// Modelo do menu (grupos/páginas) e aplicação da config por empresa.
+import { buildCanonical, applyMenuConfig } from '@/lib/menuModel';
 
-// Símbolo por área (mesma linguagem visual do Dashboard).
-const AREA_ICONS = {
-  convenios: '🏛️', crm: '💬', averbacao: '📋', formalizacao: '📝',
-  financeiro: '💰', comissoes: '💸', cobranca: '📞', cessao_fidc: '🔄',
-  juridico: '⚖️', suporte: '🛟', admin: '⚙️',
-};
+// Ícones (lucide) das páginas fixas, por nome referenciado no menuModel.
+const FIXO_ICON = { LayoutDashboard, AlertCircle };
 
 function Badge({ value, tone = 'default' }) {
   if (!value) return null;
@@ -88,7 +36,7 @@ function initials(nome) {
 }
 
 export default function Sidebar({ collapsed = false }) {
-  const { perfil, isAdmin, isSuperadmin, activeUnidade, vinculos, hasAreaAccess, brand } = useAuth();
+  const { perfil, isAdmin, isSuperadmin, activeUnidade, vinculos, hasAreaAccess, brand, menuConfig } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [allAreas, setAllAreas] = useState([]);
@@ -149,6 +97,74 @@ export default function Sidebar({ collapsed = false }) {
     );
   };
 
+  // Menu montado a partir do modelo canônico + config da empresa (ordem/oculto).
+  // Só entram grupos que o usuário pode acessar (áreas via hasAreaAccess).
+  const gruposMenu = applyMenuConfig(buildCanonical(visibleAreas), menuConfig).filter((g) => !g.oculto);
+
+  const renderGrupo = (g) => {
+    if (g.tipo === 'fixo') {
+      const Icon = FIXO_ICON[g.icon] || LayoutDashboard;
+      const badge = g.key === 'pendencias' ? n('pendencias_abertas') : 0;
+      const tone = g.key === 'pendencias' && n('pendencias_criticas') ? 'danger' : 'default';
+      return navItem(g.to, g.nome, Icon, badge, tone);
+    }
+    // Área (com páginas configuráveis)
+    const codigo = g.areaCodigo;
+    const to = `/area/${codigo}`;
+    const active = isOnArea(codigo);
+    const emoji = g.emoji;
+    const aBadge = areaBadge(codigo);
+    const danger = codigo === 'cobranca';
+    const subitens = (g.paginas || []).filter((p) => !p.oculto);
+    const open = isOpen(codigo);
+    const defaultTab = subitens[0]?.key;
+
+    if (collapsed) {
+      return (
+        <Link key={g.key} to={to} className={itemClass(active)} title={g.nome}>
+          <span className="snav-ico relative" aria-hidden>{emoji}<Dot value={aBadge} tone={danger ? 'danger' : 'default'} /></span>
+        </Link>
+      );
+    }
+    if (subitens.length === 0) {
+      return (
+        <Link key={g.key} to={to} className={itemClass(active)}>
+          <span className="snav-ico" aria-hidden>{emoji}</span>
+          <span className="flex-1 truncate">{g.nome}</span>
+          <Badge value={aBadge} tone={danger ? 'danger' : 'default'} />
+        </Link>
+      );
+    }
+    return (
+      <div key={g.key}>
+        <div className={`${itemClass(active)} !pr-1`}>
+          <Link to={to} className="flex items-center gap-2.5 flex-1 min-w-0" style={{ color: 'inherit' }}>
+            <span className="snav-ico" aria-hidden>{emoji}</span>
+            <span className="truncate flex-1">{g.nome}</span>
+            {!open && <Badge value={aBadge} />}
+          </Link>
+          <button type="button" onClick={() => toggle(codigo)} aria-label={open ? 'Recolher' : 'Expandir'} className="p-1.5 shrink-0 rounded-md opacity-70 hover:opacity-100" style={{ color: 'inherit' }}>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+        {open && (
+          <div className="ml-5 mt-0.5 mb-1 pl-3 space-y-0.5" style={{ borderLeft: '1px solid hsl(var(--sidebar-border))' }}>
+            {subitens.map((s) => {
+              const subActive = active && (currentTab || defaultTab) === s.key;
+              const b = subBadge(codigo, s.key);
+              return (
+                <Link key={s.key} to={`${to}?tab=${s.key}`} className={`flex items-center px-3 py-1.5 rounded-lg text-xs ${subActive ? 'snav-sub-active' : 'snav-sub'}`}>
+                  <span className="flex-1 truncate">{s.label}</span>
+                  <Badge value={b} tone={s.key === 'carteira' ? 'danger' : 'default'} />
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const papeisUnidade = activeUnidade
     ? vinculos.filter((v) => v.franquia_id === activeUnidade.id).map((v) => v.papel?.nome).filter(Boolean)
     : [];
@@ -178,87 +194,8 @@ export default function Sidebar({ collapsed = false }) {
 
       <nav className={`flex-1 overflow-y-auto overflow-x-hidden ${collapsed ? 'px-2' : 'px-3'} py-4 space-y-6`}>
         <div className="space-y-1">
-          {!collapsed && <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Principal</p>}
-          {navItem('/', 'Dashboard', LayoutDashboard)}
-          {navItem('/pendencias', 'Central de Pendências', AlertCircle, n('pendencias_abertas'), n('pendencias_criticas') ? 'danger' : 'default')}
+          {gruposMenu.map((g) => renderGrupo(g))}
         </div>
-
-        {visibleAreas.length > 0 && (
-          <div className="space-y-1">
-            {!collapsed && <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Áreas</p>}
-            {visibleAreas.map((area) => {
-              const to = `/area/${area.codigo}`;
-              const active = isOnArea(area.codigo);
-              const subitens = AREA_SUBITEMS[area.codigo];
-              const open = isOpen(area.codigo);
-              const defaultTab = subitens?.[0]?.key;
-              const emoji = AREA_ICONS[area.codigo] || '📁';
-              const aBadge = areaBadge(area.codigo);
-              const danger = area.codigo === 'cobranca';
-
-              // Colapsado: um único ícone por área que leva à página (as abas
-              // ficam disponíveis dentro do módulo).
-              if (collapsed) {
-                return (
-                  <Link key={area.id} to={to} className={itemClass(active)} title={area.nome}>
-                    <span className="snav-ico relative" aria-hidden>
-                      {emoji}
-                      <Dot value={aBadge} tone={danger ? 'danger' : 'default'} />
-                    </span>
-                  </Link>
-                );
-              }
-
-              if (!subitens) {
-                return (
-                  <Link key={area.id} to={to} className={itemClass(active)}>
-                    <span className="snav-ico" aria-hidden>{emoji}</span>
-                    <span className="flex-1 truncate">{area.nome}</span>
-                    <Badge value={aBadge} tone={danger ? 'danger' : 'default'} />
-                  </Link>
-                );
-              }
-              return (
-                <div key={area.id}>
-                  <div className={`${itemClass(active)} !pr-1`}>
-                    <Link to={to} className="flex items-center gap-2.5 flex-1 min-w-0" style={{ color: 'inherit' }}>
-                      <span className="snav-ico" aria-hidden>{emoji}</span>
-                      <span className="truncate flex-1">{area.nome}</span>
-                      {!open && <Badge value={aBadge} />}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => toggle(area.codigo)}
-                      aria-label={open ? 'Recolher' : 'Expandir'}
-                      className="p-1.5 shrink-0 rounded-md opacity-70 hover:opacity-100"
-                      style={{ color: 'inherit' }}
-                    >
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
-                    </button>
-                  </div>
-                  {open && (
-                    <div className="ml-5 mt-0.5 mb-1 pl-3 space-y-0.5" style={{ borderLeft: '1px solid hsl(var(--sidebar-border))' }}>
-                      {subitens.map((s) => {
-                        const subActive = active && (currentTab || defaultTab) === s.key;
-                        const b = subBadge(area.codigo, s.key);
-                        return (
-                          <Link
-                            key={s.key}
-                            to={`${to}?tab=${s.key}`}
-                            className={`flex items-center px-3 py-1.5 rounded-lg text-xs ${subActive ? 'snav-sub-active' : 'snav-sub'}`}
-                          >
-                            <span className="flex-1 truncate">{s.label}</span>
-                            <Badge value={b} tone={s.key === 'carteira' ? 'danger' : 'default'} />
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         {isSuperadmin && (
           <div className="space-y-1">
@@ -276,6 +213,7 @@ export default function Sidebar({ collapsed = false }) {
             {navItem('/admin/vinculos', 'Vínculos', Link2)}
             {navItem('/admin/areas', 'Áreas & Papéis', Settings)}
             {navItem('/admin/personalizacao', 'Personalização', Palette)}
+            {navItem('/admin/menu', 'Menu lateral', PanelLeft)}
             {navItem('/admin/notificacoes', 'Notificações', Bell)}
             {navItem('/admin/expansao', 'Expansão', TrendingUp)}
             {navItem('/admin/integracoes', 'Integrações', Plug)}

@@ -71,6 +71,17 @@ export const brandingApi = {
   },
 };
 
+// Menu lateral configurável por empresa (admin edita a própria; superadmin qualquer).
+export const menuApi = {
+  async salvar({ empresa_id, config }) {
+    const { data, error } = await supabase.rpc('atualizar_menu_empresa', {
+      p_empresa: empresa_id ?? null, p_config: config ?? null,
+    });
+    if (error) throw error;
+    return data;
+  },
+};
+
 // Credenciais PixConsig por empresa (superadmin). A api_key é sensível —
 // gravamos, mas a listagem usa a RPC de status (não devolve a key).
 export const pixCredApi = {

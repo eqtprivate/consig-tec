@@ -177,6 +177,7 @@ export const ConsigtecAuthProvider = ({ children }) => {
         logo_url_dark: brandEmpresa.logo_url_dark || null,
       }
     : null;
+  const menuConfig = brandEmpresa?.menu_config || null; // config do menu da empresa efetiva
   useEffect(() => {
     applyBranding({ tema: brand?.tema, cor_primaria: brand?.cor_primaria });
   }, [brand?.tema, brand?.cor_primaria]);
@@ -188,6 +189,7 @@ export const ConsigtecAuthProvider = ({ children }) => {
       vinculos,
       empresa,
       brand,
+      menuConfig,
       plano: empresa?.plano || null,
       planoUso,
       modulos,
