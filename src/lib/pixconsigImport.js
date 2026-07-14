@@ -1,6 +1,7 @@
 import { conveniosApi } from '@/lib/api/convenios';
 import { entidadesApi } from '@/lib/api/entidades';
 import { overlayApi } from '@/lib/api/overlay';
+import { resolveEmpresaId } from '@/lib/tenantView';
 
 // Parser CSV simples com suporte a campos entre aspas.
 export function parseCSV(text) {
@@ -29,12 +30,13 @@ export function parseCSV(text) {
 
 // Importa o espelho de convênios da PixConsig a partir de um CSV
 // (mesmo schema da API). Upsert por `pixconsig_convenio_id`.
-export async function importarConveniosCSV(texto, nowIso) {
+export async function importarConveniosCSV(texto, nowIso, empresaIdArg) {
   const linhas = parseCSV(texto);
   if (linhas.length < 2) throw new Error('CSV vazio ou sem linhas de dados.');
   const header = linhas[0].map((h) => h.trim());
   const idx = (name) => header.indexOf(name);
   const now = nowIso || new Date().toISOString();
+  const empresaId = await resolveEmpresaId(empresaIdArg); // tenant alvo do import
   const res = { total: 0, ok: 0, erros: [] };
 
   for (let r = 1; r < linhas.length; r++) {
@@ -69,6 +71,7 @@ export async function importarConveniosCSV(texto, nowIso) {
       else entidadeId = (await entidadesApi.create(entPayload)).id;
 
       const convenio = {
+        empresa_id: empresaId,
         pixconsig_convenio_id: pix,
         nome: nome || cidade || pix,
         orgao: cidade,

@@ -1,13 +1,18 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getEmpresaView } from '@/lib/tenantView';
 
 // Dispara o full sync da API PixConsig (função backend syncPixconsig).
+// Multi-tenant: superadmin "ver como" empresa X sincroniza só a empresa X;
+// admin comum sincroniza a própria; sem foco → todas as ativas (superadmin).
 export const pixconsigApi = {
   async sync(opts = {}) {
     const { data: { session } } = await supabase.auth.getSession();
+    const ev = getEmpresaView();
+    const body = ev && opts.empresa_id == null ? { ...opts, empresa_id: ev } : opts;
     const res = await fetch('/api/functions/syncPixconsig', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
-      body: JSON.stringify(opts),
+      body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Falha ao sincronizar');
@@ -16,21 +21,21 @@ export const pixconsigApi = {
 
   // Painel de status: config + estado do cron + espelho + últimas execuções.
   async status() {
-    const { data, error } = await supabase.rpc('status_sync_pixconsig');
+    const { data, error } = await supabase.rpc('status_sync_pixconsig', { p_empresa: getEmpresaView() });
     if (error) throw error;
     return data; // { config, cron, espelho, execucoes, reconciliacao }
   },
 
   // Progresso ao vivo do sync em andamento (para a barra do painel).
   async progresso() {
-    const { data, error } = await supabase.rpc('progresso_sync_pixconsig');
+    const { data, error } = await supabase.rpc('progresso_sync_pixconsig', { p_empresa: getEmpresaView() });
     if (error) throw error;
     return data; // { total, processados, pagina, rodando, mensagem, ... } | null
   },
 
   // Feed de novidades da sincronização (novas prefeituras, mudanças de status…).
   async novidades(limit = 100) {
-    const { data, error } = await supabase.rpc('novidades_sync_pixconsig', { p_limit: limit });
+    const { data, error } = await supabase.rpc('novidades_sync_pixconsig', { p_limit: limit, p_empresa: getEmpresaView() });
     if (error) throw error;
     return data; // { ultima, resumo_24h, itens: [...] }
   },

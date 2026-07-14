@@ -30,10 +30,12 @@ export const conveniosApi = {
     if (error) throw error;
   },
   // Upsert por chave externa da PixConsig — usado no import CSV/espelho.
+  // Multi-tenant: unicidade é (empresa_id, pixconsig_convenio_id); o convênio
+  // já deve chegar com empresa_id carimbado pelo importador.
   async upsertByPixconsig(convenio) {
     const { data, error } = await supabase
       .from('convenios')
-      .upsert(convenio, { onConflict: 'pixconsig_convenio_id' })
+      .upsert(convenio, { onConflict: 'empresa_id,pixconsig_convenio_id' })
       .select()
       .single();
     if (error) throw error;

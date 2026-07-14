@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 import { conveniosApi } from '@/lib/api/convenios';
 import { entidadesApi } from '@/lib/api/entidades';
+import { resolveEmpresaId } from '@/lib/tenantView';
 
 // Consome o payload v1 da API de Convênios PixConsig (produção) e sincroniza o
 // espelho local. Idempotente. NÃO sobrescreve taxa/spread/comissão/prazos
@@ -40,6 +41,7 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
 
   const now = nowIso || new Date().toISOString();
   const incluirReprovadas = !!opts.incluirReprovadas;
+  const empresaId = await resolveEmpresaId(opts.empresaId); // tenant alvo do import
   const res = { total: 0, ok: 0, ignorados: 0, produtos: 0, erros: [] };
 
   for (const item of lista) {
@@ -82,6 +84,7 @@ export async function importarConveniosPixconsigJSON(texto, nowIso, opts = {}) {
 
       const pctApartada = numOrNull(margens.decreto_cartao) ?? numOrNull(primary.percentual_margem);
       const convenio = {
+        empresa_id: empresaId,
         pixconsig_convenio_id: item.id,
         nome, orgao: cidade, tipo: 'publico', entidade_id: entidadeId,
         tipo_margem: mapMargem(primary.tipo_margem),
