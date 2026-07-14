@@ -44,9 +44,13 @@ export const planosApi = {
 // Personalização (white-label) por empresa: cor primária + logomarca.
 // Admin edita a própria empresa; superadmin edita a empresa em foco.
 export const brandingApi = {
-  async salvar({ empresa_id, cor_primaria, logo_url }) {
+  async salvar({ empresa_id, tema, cor_primaria, logo_url, logo_url_dark }) {
     const { data, error } = await supabase.rpc('atualizar_branding_empresa', {
-      p_empresa: empresa_id ?? null, p_cor: cor_primaria ?? null, p_logo: logo_url ?? null,
+      p_empresa: empresa_id ?? null,
+      p_tema: tema ?? null,
+      p_cor: cor_primaria ?? null,
+      p_logo: logo_url ?? null,
+      p_logo_dark: logo_url_dark ?? null,
     });
     if (error) throw error;
     return data; // linha da empresa atualizada

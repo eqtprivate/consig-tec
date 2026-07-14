@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { supabase, initSupabase } from '@/lib/supabaseClient';
 import { empresasApi } from '@/lib/api/tenant';
 import { getEmpresaView, setEmpresaViewStore, setFranquiasViewStore } from '@/lib/tenantView';
-import { applyBrandColor } from '@/lib/branding';
+import { applyBranding } from '@/lib/branding';
 
 const ConsigtecAuthContext = createContext();
 
@@ -175,11 +175,17 @@ export const ConsigtecAuthProvider = ({ children }) => {
     ? (empresasSuperadmin.find((e) => e.id === empresaView) || null)
     : empresa;
   const brand = brandEmpresa
-    ? { empresa_id: brandEmpresa.id, nome: brandEmpresa.nome, cor_primaria: brandEmpresa.cor_primaria || null, logo_url: brandEmpresa.logo_url || null }
+    ? {
+        empresa_id: brandEmpresa.id, nome: brandEmpresa.nome,
+        tema: brandEmpresa.tema || null,
+        cor_primaria: brandEmpresa.cor_primaria || null,
+        logo_url: brandEmpresa.logo_url || null,
+        logo_url_dark: brandEmpresa.logo_url_dark || null,
+      }
     : null;
   useEffect(() => {
-    applyBrandColor(brand?.cor_primaria || null);
-  }, [brand?.cor_primaria]);
+    applyBranding({ tema: brand?.tema, cor_primaria: brand?.cor_primaria });
+  }, [brand?.tema, brand?.cor_primaria]);
 
   return (
     <ConsigtecAuthContext.Provider value={{
