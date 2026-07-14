@@ -5,10 +5,12 @@ import { getTheme, toggleTheme } from '@/lib/theme';
 import NotificationBell from '@/components/NotificationBell';
 
 export default function TopBar({ onToggleSidebar }) {
-  const { perfil, uniqueUnidades, activeUnidade, switchUnidade, logout } = useAuth();
+  const { perfil, uniqueUnidades, activeUnidade, switchUnidade, logout,
+          isSuperadmin, empresasSuperadmin, empresaView, setEmpresaView } = useAuth();
   const [open, setOpen] = useState(false);
   const [theme, setThemeState] = useState(getTheme());
   const ref = useRef(null);
+  const empresaViewNome = empresaView ? (empresasSuperadmin.find((e) => e.id === empresaView)?.nome || 'empresa') : null;
 
   useEffect(() => {
     const handler = (e) => {
@@ -66,6 +68,20 @@ export default function TopBar({ onToggleSidebar }) {
       )}
 
       <div className="flex items-center gap-2">
+        {isSuperadmin && empresasSuperadmin.length > 0 && (
+          <select
+            value={empresaView || ''}
+            onChange={(e) => setEmpresaView(e.target.value || null)}
+            title="Ver como empresa (superadmin)"
+            className={`text-xs rounded-md border px-2 py-1.5 bg-muted text-foreground max-w-[180px] ${empresaView ? 'border-primary' : 'border-border'}`}
+          >
+            <option value="">Todas as empresas</option>
+            {empresasSuperadmin.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+          </select>
+        )}
+        {empresaViewNome && (
+          <span className="hidden md:inline text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary">vendo: {empresaViewNome}</span>
+        )}
         <NotificationBell />
         <button
           onClick={onToggleTheme}

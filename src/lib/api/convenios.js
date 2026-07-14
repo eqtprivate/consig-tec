@@ -1,11 +1,15 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getEmpresaView } from '@/lib/tenantView';
 
 export const conveniosApi = {
   async list() {
-    const { data, error } = await supabase
+    let q = supabase
       .from('convenios')
       .select('*, empresa:empresas(*), entidade:entidades_cadastro(*), overlay:overlay_comercial_convenio(*)')
       .order('nome');
+    const ev = getEmpresaView();          // superadmin "ver como" empresa X
+    if (ev) q = q.eq('empresa_id', ev);
+    const { data, error } = await q;
     if (error) throw error;
     return data;
   },

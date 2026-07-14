@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { supabase, initSupabase } from '@/lib/supabaseClient';
+import { empresasApi } from '@/lib/api/tenant';
+import { getEmpresaView, setEmpresaViewStore } from '@/lib/tenantView';
 
 const ConsigtecAuthContext = createContext();
 
@@ -9,6 +11,8 @@ export const ConsigtecAuthProvider = ({ children }) => {
   const [vinculos, setVinculos] = useState([]);
   const [empresa, setEmpresa] = useState(null);
   const [planoUso, setPlanoUso] = useState(null);
+  const [empresasSuperadmin, setEmpresasSuperadmin] = useState([]);
+  const [empresaView, setEmpresaViewState] = useState(getEmpresaView());
   const [activeUnidade, setActiveUnidade] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,6 +43,11 @@ export const ConsigtecAuthProvider = ({ children }) => {
         setEmpresa(null);
       }
       supabase.rpc('plano_uso_empresa').then(({ data }) => setPlanoUso(data || null)).catch(() => setPlanoUso(null));
+
+      // Superadmin: lista de empresas para o switcher "ver como".
+      if (perfilData.role === 'superadmin') {
+        empresasApi.list().then(setEmpresasSuperadmin).catch(() => setEmpresasSuperadmin([]));
+      }
 
       const franquiasMap = new Map();
       (vinculosData || []).forEach((v) => {
@@ -101,6 +110,14 @@ export const ConsigtecAuthProvider = ({ children }) => {
     localStorage.setItem('consigtec_active_unidade', unidade.id);
   };
 
+  // "Ver como" empresa (superadmin). Persiste e recarrega para as listas
+  // reaplicarem o filtro de empresa de forma consistente em todas as telas.
+  const setEmpresaView = (id) => {
+    setEmpresaViewStore(id || null);
+    setEmpresaViewState(id || null);
+    window.location.reload();
+  };
+
   const logout = async () => {
     localStorage.removeItem('consigtec_active_unidade');
     await supabase.auth.signOut();
@@ -151,6 +168,9 @@ export const ConsigtecAuthProvider = ({ children }) => {
       plano: empresa?.plano || null,
       planoUso,
       modulos,
+      empresasSuperadmin,
+      empresaView,
+      setEmpresaView,
       activeUnidade,
       uniqueUnidades,
       availableAreas,

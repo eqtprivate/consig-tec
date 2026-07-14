@@ -25,7 +25,7 @@ const ROLE_CORES = {
 };
 
 export default function Users() {
-  const { perfil: currentUser, isSuperadmin } = useAuth();
+  const { perfil: currentUser, isSuperadmin, planoUso, empresaView } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState(null);
@@ -47,6 +47,12 @@ export default function Users() {
   const [savingVinc, setSavingVinc] = useState(false);
 
   const rolesDisponiveis = isSuperadmin ? ['usuario', 'admin', 'superadmin'] : ['usuario'];
+
+  // Superadmin "ver como" empresa: filtra a lista pela empresa em foco.
+  const usuariosView = empresaView ? usuarios.filter((u) => u.empresa_id === empresaView) : usuarios;
+  // Limite de usuários do plano (só avisa).
+  const limiteUsuarios = planoUso?.plano?.limite_usuarios ?? null;
+  const usadosUsuarios = planoUso?.uso?.usuarios ?? usuarios.length;
 
   const load = async () => {
     setLoading(true);
@@ -94,9 +100,15 @@ export default function Users() {
       const problema = validarSenha(createForm.password);
       if (problema) return setErro(problema);
     }
+    // Aviso de limite de plano (não bloqueia).
+    if (limiteUsuarios != null && usadosUsuarios + 1 > limiteUsuarios) {
+      toast.warning(`Plano ${planoUso?.plano?.nome || ''} permite ${limiteUsuarios} usuário(s); este será o ${usadosUsuarios + 1}º. Considere fazer upgrade.`);
+    }
     setSaving(true);
     try {
-      const res = await usuariosApi.criar(createForm);
+      const payload = { ...createForm };
+      if (isSuperadmin && empresaView) payload.empresa_id = empresaView; // cria na empresa em foco
+      const res = await usuariosApi.criar(payload);
       await auditoriaApi.log('criar_usuario', 'usuarios', null, { email: createForm.email, role: createForm.role });
       setCreateOpen(false);
       if (res?.senha) setSenhaGerada({ email: res.email, senha: res.senha, emailEnviado: res.emailEnviado });
@@ -202,7 +214,14 @@ export default function Users() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Usuários</h1>
-          <p className="text-sm text-slate-500 mt-1">Gestão de usuários, papéis e acessos</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Gestão de usuários, papéis e acessos
+            {limiteUsuarios != null && (
+              <span className={`ml-2 text-xs ${usadosUsuarios >= limiteUsuarios ? 'text-amber-600 font-medium' : 'text-slate-400'}`}>
+                · {usadosUsuarios}/{limiteUsuarios} do plano{usadosUsuarios >= limiteUsuarios ? ' (no limite)' : ''}
+              </span>
+            )}
+          </p>
         </div>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo usuário</Button>
       </div>
@@ -222,7 +241,7 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u) => {
+              {usuariosView.map((u) => {
                 const isSelf = u.id === currentUser?.id;
                 return (
                   <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
