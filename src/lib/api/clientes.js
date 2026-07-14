@@ -23,7 +23,9 @@ export const clientesApi = {
     return data;
   },
   async create(cliente) {
-    const { data, error } = await supabase.from('clientes').insert(cliente).select().single();
+    const ev = getEmpresaView();  // superadmin em foco: cadastra na empresa selecionada
+    const payload = ev && cliente.empresa_id == null ? { ...cliente, empresa_id: ev } : cliente;
+    const { data, error } = await supabase.from('clientes').insert(payload).select().single();
     if (error) throw error;
     return data;
   },

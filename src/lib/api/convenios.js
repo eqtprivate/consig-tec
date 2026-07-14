@@ -14,7 +14,9 @@ export const conveniosApi = {
     return data;
   },
   async create(convenio) {
-    const { data, error } = await supabase.from('convenios').insert(convenio).select().single();
+    const ev = getEmpresaView();  // superadmin em foco: cadastra na empresa selecionada
+    const payload = ev && convenio.empresa_id == null ? { ...convenio, empresa_id: ev } : convenio;
+    const { data, error } = await supabase.from('convenios').insert(payload).select().single();
     if (error) throw error;
     return data;
   },
