@@ -9,11 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { StatusBadge, EmptyState } from '@/components/kit';
 import { Plus, Pencil } from 'lucide-react';
 
 const TIPO = { chamado: 'Chamado', inconsistencia: 'Inconsistência', lgpd: 'LGPD' };
 const STATUS = { aberto: 'Aberto', em_andamento: 'Em andamento', resolvido: 'Resolvido', fechado: 'Fechado' };
-const CORES = { aberto: 'bg-amber-50 text-amber-700', em_andamento: 'bg-blue-50 text-blue-700', resolvido: 'bg-green-50 text-green-700', fechado: 'bg-slate-100 text-slate-500' };
+const CORES = { aberto: 'bg-amber-50 text-amber-700', em_andamento: 'bg-blue-50 text-blue-700', resolvido: 'bg-green-50 text-green-700', fechado: 'bg-muted text-muted-foreground' };
 const PRIOR = { baixa: 'Baixa', media: 'Média', alta: 'Alta', critica: 'Crítica' };
 
 // tiposPermitidos: restringe os tipos oferecidos (ex.: suporte usa chamado/inconsistencia)
@@ -50,31 +51,31 @@ export default function Chamados({ tiposPermitidos = ['chamado', 'inconsistencia
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Chamados e inconsistências</p>
+        <p className="text-sm text-muted-foreground">Chamados e inconsistências</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : visiveis.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum chamado.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : visiveis.length === 0 ? <EmptyState title="Nenhum chamado." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Assunto</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Tipo</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Prioridade</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Aberto</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Assunto</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Tipo</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Prioridade</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Aberto</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {visiveis.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{c.assunto}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">{TIPO[c.tipo]}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{PRIOR[c.prioridade] || c.prioridade}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{dataBR(c.created_at)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[c.status]}`}>{STATUS[c.status]}</span></td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{c.assunto}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{TIPO[c.tipo]}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{PRIOR[c.prioridade] || c.prioridade}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{dataBR(c.created_at)}</td>
+                  <td className="px-4 py-3"><StatusBadge className={CORES[c.status]}>{STATUS[c.status]}</StatusBadge></td>
+                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button></td>
                 </tr>
               ))}
             </tbody>

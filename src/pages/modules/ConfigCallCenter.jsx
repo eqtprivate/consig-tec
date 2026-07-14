@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Panel } from '@/components/kit';
 
 const CATEGORIAS = ['abordagem', 'sondagem', 'oferta', 'objecoes', 'fechamento'];
 
@@ -34,18 +35,14 @@ function MotivosSection() {
   const remove = async (m) => { if (!confirm(`Remover "${m.nome}"?`)) return; try { await motivosPerdaApi.remove(m.id); load(); } catch (err) { alert(err.message); } };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-800">Motivos de perda</h3>
-        <Button size="sm" onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo</Button>
-      </div>
+    <Panel title="Motivos de perda" action={<Button size="sm" onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo</Button>}>
       <div className="space-y-1">
         {itens.map((m) => (
-          <div key={m.id} className="flex items-center justify-between border border-slate-100 rounded px-3 py-1.5">
-            <span className="text-sm text-slate-700">{m.nome} {!m.ativo && <span className="text-xs text-slate-400">(inativo)</span>}</span>
+          <div key={m.id} className="flex items-center justify-between border border-border rounded px-3 py-1.5">
+            <span className="text-sm text-muted-foreground">{m.nome} {!m.ativo && <span className="text-xs text-muted-foreground">(inativo)</span>}</span>
             <div className="flex gap-1">
-              <button onClick={() => openEdit(m)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-3.5 h-3.5" /></button>
-              <button onClick={() => remove(m)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+              <button onClick={() => openEdit(m)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-3.5 h-3.5" /></button>
+              <button onClick={() => remove(m)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         ))}
@@ -67,7 +64,7 @@ function MotivosSection() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </Panel>
   );
 }
 
@@ -92,21 +89,17 @@ function RoteiroSection() {
   const remove = async (r) => { if (!confirm('Remover este passo?')) return; try { await roteiroApi.remove(r.id); load(); } catch (err) { alert(err.message); } };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-800">Roteiro de atendimento</h3>
-        <Button size="sm" onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo passo</Button>
-      </div>
+    <Panel title="Roteiro de atendimento" action={<Button size="sm" onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo passo</Button>}>
       <div className="space-y-1">
         {itens.map((r) => (
-          <div key={r.id} className="flex items-start justify-between border border-slate-100 rounded px-3 py-1.5">
+          <div key={r.id} className="flex items-start justify-between border border-border rounded px-3 py-1.5">
             <div className="min-w-0">
-              <p className="text-sm text-slate-700"><span className="text-[10px] uppercase text-slate-400 mr-2">{r.categoria}</span>{r.titulo}</p>
-              <p className="text-xs text-slate-400 truncate">{r.conteudo}</p>
+              <p className="text-sm text-muted-foreground"><span className="text-[10px] uppercase text-muted-foreground mr-2">{r.categoria}</span>{r.titulo}</p>
+              <p className="text-xs text-muted-foreground truncate">{r.conteudo}</p>
             </div>
             <div className="flex gap-1 shrink-0">
-              <button onClick={() => openEdit(r)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-3.5 h-3.5" /></button>
-              <button onClick={() => remove(r)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+              <button onClick={() => openEdit(r)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-3.5 h-3.5" /></button>
+              <button onClick={() => remove(r)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         ))}
@@ -135,16 +128,16 @@ function RoteiroSection() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </Panel>
   );
 }
 
 export default function ConfigCallCenter() {
   const { isAdmin } = useAuth();
-  if (!isAdmin) return <p className="text-sm text-slate-500">Configuração restrita a administradores do grupo.</p>;
+  if (!isAdmin) return <p className="text-sm text-muted-foreground">Configuração restrita a administradores do grupo.</p>;
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-500">Configuração do call center — roteiro de atendimento e motivos de perda</p>
+      <p className="text-sm text-muted-foreground">Configuração do call center — roteiro de atendimento e motivos de perda</p>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <RoteiroSection />
         <MotivosSection />

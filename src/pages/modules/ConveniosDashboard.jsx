@@ -3,10 +3,11 @@ import { conveniosApi } from '@/lib/api/convenios';
 import { produtosConvenioApi } from '@/lib/api/produtosConvenio';
 import { capacidadeApi } from '@/lib/api/capacidade';
 import CountUp from '@/components/CountUp';
+import { Panel, EmptyState } from '@/components/kit';
 import { brl } from '@/lib/format';
 import {
   Building2, Package, Wallet, Users, Star, CheckCircle2, AlertTriangle, RefreshCw, MapPin,
-  TrendingUp, Percent, Landmark, FileText, CalendarClock, Gauge, Target, ScrollText,
+  TrendingUp, Percent, Landmark, Gauge, Target, ScrollText,
 } from 'lucide-react';
 
 const TIPOS = { publico: 'Público', privado: 'Privado', inss: 'INSS', militar: 'Militar' };
@@ -20,8 +21,8 @@ const STATUS_DET = {
 const PRIO = {
   alta: { label: 'Alta', cls: 'bg-green-500' },
   media: { label: 'Média', cls: 'bg-amber-500' },
-  baixa: { label: 'Baixa', cls: 'bg-slate-400' },
-  sem_prioridade: { label: 'Sem prioridade', cls: 'bg-slate-300' },
+  baixa: { label: 'Baixa', cls: 'bg-muted-foreground' },
+  sem_prioridade: { label: 'Sem prioridade', cls: 'bg-muted-foreground' },
 };
 const CAPAG_CLS = { A: 'bg-emerald-500', B: 'bg-green-500', C: 'bg-amber-500', D: 'bg-red-500' };
 const ov1 = (c) => (Array.isArray(c.overlay) ? c.overlay[0] : c.overlay) || null;
@@ -35,12 +36,12 @@ const sumF = (arr, f) => arr.reduce((s, r) => s + (Number(f(r)) || 0), 0);
 
 function Kpi({ icon: Icon, label, value, sub, money, accent = 'text-primary', render }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-2 text-slate-400 mb-1"><Icon className={`w-4 h-4 ${accent}`} /><span className="text-[11px] uppercase tracking-wide">{label}</span></div>
-      <p className="text-2xl font-bold text-slate-900">
+    <div className="bg-card rounded-xl border border-border shadow-sm p-4">
+      <div className="flex items-center gap-2 text-muted-foreground mb-1"><Icon className={`w-4 h-4 ${accent}`} /><span className="text-[11px] uppercase tracking-wide">{label}</span></div>
+      <p className="text-2xl font-bold text-foreground">
         {render != null ? render : money ? brl(value) : <CountUp value={value} />}
       </p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -48,20 +49,19 @@ function Kpi({ icon: Icon, label, value, sub, money, accent = 'text-primary', re
 function Dist({ title, rows, colorFor, right }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <p className="text-sm font-semibold text-slate-700 mb-3">{title}</p>
+    <Panel title={title}>
       <div className="space-y-2.5">
-        {rows.length === 0 ? <p className="text-xs text-slate-400">Sem dados.</p> : rows.map((r) => (
+        {rows.length === 0 ? <p className="text-xs text-muted-foreground">Sem dados.</p> : rows.map((r) => (
           <div key={r.key} className="flex items-center gap-3">
-            <span className="w-28 shrink-0 text-xs text-slate-600 truncate" title={r.label}>{r.label}</span>
-            <div className="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
+            <span className="w-28 shrink-0 text-xs text-muted-foreground truncate" title={r.label}>{r.label}</span>
+            <div className="flex-1 h-2 bg-muted rounded overflow-hidden">
               <div className={`h-full rounded ${colorFor ? colorFor(r.key) : 'bar-brand'}`} style={{ width: `${(r.value / max) * 100}%` }} />
             </div>
-            <span className="w-20 shrink-0 text-right text-xs font-medium text-slate-700">{right ? right(r) : r.value}</span>
+            <span className="w-20 shrink-0 text-right text-xs font-medium text-muted-foreground">{right ? right(r) : r.value}</span>
           </div>
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -196,7 +196,7 @@ export default function ConveniosDashboard() {
     };
   }, [convenios, produtos, cap]);
 
-  if (loading) return <div className="p-12 text-center text-sm text-slate-400">Carregando indicadores…</div>;
+  if (loading) return <EmptyState title="Carregando indicadores…" />;
 
   const pctPix = m.total > 0 ? Math.round((m.pix / m.total) * 100) : 0;
 
@@ -204,7 +204,7 @@ export default function ConveniosDashboard() {
     <div className="space-y-6">
       {/* ===== CONVÊNIOS & PRODUTOS ===== */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2"><Building2 className="w-4 h-4 text-primary" /> Convênios & Produtos</h2>
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Building2 className="w-4 h-4 text-primary" /> Convênios & Produtos</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Kpi icon={Building2} label="Convênios" value={m.total} sub={`${m.ativos} ativo(s) · ${m.total - m.ativos} inativo(s)`} />
           <Kpi icon={Package} label="Produtos" value={m.produtosTotal} sub={`${m.prodAtivos} ativo(s) · ${m.prodComTaxa} com taxa`} accent="text-indigo-500" />
@@ -228,22 +228,22 @@ export default function ConveniosDashboard() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <Dist title="Por origem do dado" rows={m.porOrigem} colorFor={(k) => k === 'pixconsig' ? 'bg-blue-500' : k === 'csv' ? 'bg-amber-500' : 'bg-slate-400'} />
+          <Dist title="Por origem do dado" rows={m.porOrigem} colorFor={(k) => k === 'pixconsig' ? 'bg-blue-500' : k === 'csv' ? 'bg-amber-500' : 'bg-muted-foreground'} />
           <Dist title="Por tipo de convênio" rows={m.porTipo} />
           <Dist title="Por tipo de margem" rows={m.porMargem} colorFor={(k) => k === 'apartada' ? 'bg-emerald-500' : k === 'principal' ? 'bg-indigo-500' : 'bg-violet-500'} />
           <Dist title="Produtos por tipo" rows={m.prodPorTipo} colorFor={() => 'bg-indigo-500'} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <Dist title="Por CAPAG" rows={m.porCapag} colorFor={(k) => CAPAG_CLS[k] || 'bg-slate-300'} />
+          <Dist title="Por CAPAG" rows={m.porCapag} colorFor={(k) => CAPAG_CLS[k] || 'bg-muted-foreground'} />
           <Dist title="Por status (credenciamento)" rows={m.porStatus} colorFor={(k) => k === 'ATIVA' ? 'bg-green-500' : k === 'REPROVADA' ? 'bg-red-500' : 'bg-amber-500'} />
-          <Dist title="Norma autorizadora" rows={m.porNorma} colorFor={() => 'bg-slate-500'} />
+          <Dist title="Norma autorizadora" rows={m.porNorma} colorFor={() => 'bg-muted-foreground'} />
           <Dist title="Sistema de averbação" rows={m.porSistema} colorFor={() => 'bg-cyan-600'} />
         </div>
       </section>
 
       {/* ===== CAPACIDADE POR MUNICÍPIO ===== */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> Capacidade por Município</h2>
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" /> Capacidade por Município</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Kpi icon={Wallet} label="Margem elegível total" value={m.margemTotal} money accent="text-emerald-500" />
           <Kpi icon={Star} label="Margem em prioritários" value={m.margemPrio} money sub={`${m.prioritarios} município(s) alta/média`} accent="text-amber-500" />
@@ -252,10 +252,10 @@ export default function ConveniosDashboard() {
           <Kpi icon={Gauge} label="Margem já utilizada" value={m.margemUtil} money accent="text-violet-500" />
           <Kpi icon={Percent} label="Utilização da margem" render={pct(m.utilizacao)} sub="utilizada / (disp. + utilizada)" accent="text-rose-500" />
           <Kpi icon={Target} label="Potencial de vendas" value={m.potencial} sub="estimativa (vendas/mês)" accent="text-indigo-500" />
-          <Kpi icon={ScrollText} label="Prazo máximo médio" render={m.prazoMedio != null ? `${Math.round(m.prazoMedio)}x` : '—'} accent="text-slate-500" />
+          <Kpi icon={ScrollText} label="Prazo máximo médio" render={m.prazoMedio != null ? `${Math.round(m.prazoMedio)}x` : '—'} accent="text-muted-foreground" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          <Dist title="Municípios por prioridade" rows={m.capPorPrio} colorFor={(k) => PRIO[k]?.cls || 'bg-slate-300'} right={(r) => `${r.value} · ${brl(r.margem)}`} />
+          <Dist title="Municípios por prioridade" rows={m.capPorPrio} colorFor={(k) => PRIO[k]?.cls || 'bg-muted-foreground'} right={(r) => `${r.value} · ${brl(r.margem)}`} />
           <Dist title="Top municípios por margem" rows={m.topMargem} colorFor={() => 'bg-emerald-500'} right={(r) => brl(r.value)} />
           <Dist title="Top municípios por tomadores" rows={m.topTomadores} colorFor={() => 'bg-sky-500'} />
           <Dist title="Convênios por UF" rows={m.topUF} />

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import PlanoUsoBanner from '@/components/PlanoUsoBanner';
+import { Panel } from '@/components/kit';
 import { Users, Link2, Settings, Bell, TrendingUp, Plug, ScrollText, ArrowRight, Building2 } from 'lucide-react';
 
 const CARDS = [
@@ -21,22 +22,22 @@ export default function AdminHub() {
 
   if (!isAdmin) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-        <p className="text-sm text-slate-500">Acesso restrito a administradores.</p>
-      </div>
+      <Panel className="text-center">
+        <p className="text-sm text-muted-foreground">Acesso restrito a administradores.</p>
+      </Panel>
     );
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-500">Central de administração — acessos, configuração e integrações do CONSIGTEC.</p>
+      <p className="text-sm text-muted-foreground">Central de administração — acessos, configuração e integrações do CONSIGTEC.</p>
       <PlanoUsoBanner />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {cards.map(({ to, icon: Icon, nome, desc }) => (
           <Link
             key={to}
             to={to}
-            className="group bg-white rounded-xl border border-slate-200 p-4 hover:border-slate-300 hover-lift"
+            className="group bg-card rounded-xl border border-border shadow-sm p-4 hover:border-primary/40 hover-lift"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3 min-w-0">
@@ -44,11 +45,11 @@ export default function AdminHub() {
                   <Icon className="w-4 h-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">{nome}</p>
-                  <p className="text-xs text-slate-500">{desc}</p>
+                  <p className="text-sm font-semibold text-foreground">{nome}</p>
+                  <p className="text-xs text-muted-foreground">{desc}</p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors shrink-0" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-foreground transition-colors shrink-0" />
             </div>
           </Link>
         ))}
