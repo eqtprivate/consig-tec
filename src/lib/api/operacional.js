@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
-import { getFranquiasView } from '@/lib/tenantView';
+import { getEmpresaView } from '@/lib/tenantView';
 
 export const cobrancasApi = {
   async list(filters = {}) {
@@ -7,7 +7,7 @@ export const cobrancasApi = {
       .select('*, contrato:contratos(numero_contrato, cliente:clientes(nome))')
       .order('created_at', { ascending: false });
     if (filters.franquia_id) q = q.eq('franquia_id', filters.franquia_id);
-    const __fv = getFranquiasView(); if (__fv) q = q.in('franquia_id', __fv);
+    const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
     if (filters.status) q = q.eq('status', filters.status);
     const { data, error } = await q;
     if (error) throw error;

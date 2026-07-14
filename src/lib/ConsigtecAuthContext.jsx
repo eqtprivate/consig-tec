@@ -113,18 +113,12 @@ export const ConsigtecAuthProvider = ({ children }) => {
 
   // "Ver como" empresa (superadmin). Persiste e recarrega para as listas
   // reaplicarem o filtro de empresa de forma consistente em todas as telas.
-  const setEmpresaView = async (id) => {
+  // (Todas as tabelas operacionais já filtram por empresa_id — não há mais
+  // filtro por franquia a resolver.)
+  const setEmpresaView = (id) => {
     setEmpresaViewStore(id || null);
     setEmpresaViewState(id || null);
-    // resolve as franquias da empresa em foco (p/ filtrar tabelas só-franquia)
-    if (id) {
-      try {
-        const { data } = await supabase.from('franquias').select('id').eq('empresa_id', id);
-        setFranquiasViewStore((data || []).map((f) => f.id));
-      } catch { setFranquiasViewStore(null); }
-    } else {
-      setFranquiasViewStore(null);
-    }
+    setFranquiasViewStore(null);
     window.location.reload();
   };
 
