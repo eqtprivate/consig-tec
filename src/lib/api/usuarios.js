@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabaseClient';
 
 export const usuariosApi = {
   async list() {
-    const { data, error } = await supabase.from('usuarios').select('*').order('nome');
+    const { data, error } = await supabase.from('usuarios').select('*, empresa:empresas(id, nome)').order('nome');
     if (error) throw error;
     return data;
   },

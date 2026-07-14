@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { empresasApi } from '@/lib/api/tenant';
 import { vinculosApi } from '@/lib/api/vinculos';
-import { franquiasApi } from '@/lib/api/franquias';
 import { areasApi } from '@/lib/api/areas';
 import { papeisApi } from '@/lib/api/papeis';
 import { auditoriaApi } from '@/lib/api/auditoria';
@@ -16,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Trash2, Pencil, ShieldCheck, ShieldAlert, Plus, KeyRound, Power, Copy, Link2, Mail } from 'lucide-react';
+import { Trash2, Pencil, ShieldCheck, ShieldAlert, Plus, KeyRound, Power, Copy, Link2, Mail, Search, Building2 } from 'lucide-react';
 import { PageHeader, StatusBadge, EmptyState } from '@/components/kit';
 
 const ROLE_LABELS = { usuario: 'Usuário', admin: 'Admin', superadmin: 'Superadmin' };
@@ -43,16 +42,33 @@ export default function Users() {
   // Gestão de acessos (vínculos) por usuário
   const [acessosUser, setAcessosUser] = useState(null);
   const [acessos, setAcessos] = useState([]);
-  const [franquias, setFranquias] = useState([]);
   const [areas, setAreas] = useState([]);
   const [papeis, setPapeis] = useState([]);
-  const [vincForm, setVincForm] = useState({ franquia_id: '', area_id: '', papel_id: '' });
+  const [vincForm, setVincForm] = useState({ area_id: '', papel_id: '' });
   const [savingVinc, setSavingVinc] = useState(false);
+
+  // Filtro/ordenação da lista
+  const [busca, setBusca] = useState('');
+  const [filtroEmpresa, setFiltroEmpresa] = useState('');
+  const [ordenar, setOrdenar] = useState('nome');
 
   const rolesDisponiveis = isSuperadmin ? ['usuario', 'admin', 'superadmin'] : ['usuario'];
 
-  // Superadmin "ver como" empresa: filtra a lista pela empresa em foco.
-  const usuariosView = empresaView ? usuarios.filter((u) => u.empresa_id === empresaView) : usuarios;
+  // Lista visível: RLS já limita o admin à própria empresa; aqui aplicamos o
+  // filtro de empresa (superadmin), a busca por nome/e-mail e a ordenação.
+  const usuariosView = useMemo(() => {
+    const empFiltro = filtroEmpresa || empresaView;
+    let arr = usuarios;
+    if (empFiltro) arr = arr.filter((u) => u.empresa_id === empFiltro);
+    const q = busca.trim().toLowerCase();
+    if (q) arr = arr.filter((u) => `${u.nome || ''} ${u.email || ''}`.toLowerCase().includes(q));
+    const cmp = {
+      nome: (a, b) => (a.nome || '').localeCompare(b.nome || ''),
+      empresa: (a, b) => (a.empresa?.nome || '').localeCompare(b.empresa?.nome || '') || (a.nome || '').localeCompare(b.nome || ''),
+      papel: (a, b) => (a.role || '').localeCompare(b.role || '') || (a.nome || '').localeCompare(b.nome || ''),
+    }[ordenar] || (() => 0);
+    return [...arr].sort(cmp);
+  }, [usuarios, filtroEmpresa, empresaView, busca, ordenar]);
   // Limite de usuários do plano (só avisa).
   const limiteUsuarios = planoUso?.plano?.limite_usuarios ?? null;
   const usadosUsuarios = planoUso?.uso?.usuarios ?? usuarios.length;
@@ -145,14 +161,13 @@ export default function Users() {
   // ---- Acessos (vínculos) por usuário ----
   const openAcessos = async (u) => {
     setAcessosUser(u);
-    setVincForm({ franquia_id: '', area_id: '', papel_id: '' });
-    const [v, f, a, p] = await Promise.all([
+    setVincForm({ area_id: '', papel_id: '' });
+    const [v, a, p] = await Promise.all([
       vinculosApi.list().catch(() => []),
-      franquias.length ? Promise.resolve(franquias) : franquiasApi.list().catch(() => []),
       areas.length ? Promise.resolve(areas) : areasApi.list().catch(() => []),
       papeis.length ? Promise.resolve(papeis) : papeisApi.list().catch(() => []),
     ]);
-    setFranquias(f); setAreas(a); setPapeis(p);
+    setAreas(a); setPapeis(p);
     setAcessos(v.filter((x) => x.usuario_id === u.id));
   };
   const reloadAcessos = async () => {
@@ -160,16 +175,16 @@ export default function Users() {
     const v = await vinculosApi.list().catch(() => []);
     setAcessos(v.filter((x) => x.usuario_id === acessosUser.id));
   };
-  const [tipoForm, setTipoForm] = useState({ franquia_id: '', papel_id: '' });
+  const [tipoForm, setTipoForm] = useState({ papel_id: '' });
   const [aplicandoTipo, setAplicandoTipo] = useState(false);
   const aplicarTipo = async () => {
-    if (!tipoForm.franquia_id || !tipoForm.papel_id) return toast.error('Selecione a franquia e o tipo.');
+    if (!tipoForm.papel_id) return toast.error('Selecione o tipo.');
     setAplicandoTipo(true);
     try {
-      const n = await vinculosApi.aplicarTipo(acessosUser.id, tipoForm.franquia_id, tipoForm.papel_id);
+      const n = await vinculosApi.aplicarTipo(acessosUser.id, null, tipoForm.papel_id); // sem franquia
       await auditoriaApi.log('aplicar_tipo_usuario', 'vinculos', acessosUser.id, { papel_id: tipoForm.papel_id, criados: n });
       toast.success(n > 0 ? `${n} acesso(s) concedido(s) pelo tipo.` : 'Nenhum acesso novo — o usuário já tinha as áreas do tipo.');
-      setTipoForm({ franquia_id: '', papel_id: '' });
+      setTipoForm({ papel_id: '' });
       reloadAcessos();
     } catch (err) { toast.error(err.message || 'Falha ao aplicar tipo.'); }
     finally { setAplicandoTipo(false); }
@@ -184,11 +199,11 @@ export default function Users() {
     try {
       await vinculosApi.create({
         usuario_id: acessosUser.id,
-        franquia_id: vincForm.franquia_id || null,
+        franquia_id: null,
         area_id: vincForm.area_id, papel_id: vincForm.papel_id, ativo: true,
       });
       await auditoriaApi.log('criar_vinculo', 'vinculos', null, { usuario_id: acessosUser.id });
-      setVincForm({ franquia_id: '', area_id: '', papel_id: '' });
+      setVincForm({ area_id: '', papel_id: '' });
       reloadAcessos();
     } catch (err) { toast.error(err.message || 'Falha ao adicionar acesso.'); }
     finally { setSavingVinc(false); }
@@ -239,6 +254,32 @@ export default function Users() {
         actions={<Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo usuário</Button>}
       />
 
+      {/* Filtros e ordenação */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail…" className="pl-9" />
+        </div>
+        {isSuperadmin && (
+          <Select value={filtroEmpresa || 'all'} onValueChange={(v) => setFiltroEmpresa(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-[200px] gap-2"><Building2 className="w-4 h-4 text-muted-foreground" /><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as empresas</SelectItem>
+              {empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        <Select value={ordenar} onValueChange={setOrdenar}>
+          <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nome">Ordenar: Nome</SelectItem>
+            {isSuperadmin && <SelectItem value="empresa">Ordenar: Empresa</SelectItem>}
+            <SelectItem value="papel">Ordenar: Papel</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground ml-auto">{usuariosView.length} usuário(s)</span>
+      </div>
+
       <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
           <EmptyState title="Carregando…" />
@@ -248,6 +289,7 @@ export default function Users() {
               <tr className="border-b border-border bg-muted/50">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Nome</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">E-mail</th>
+                {isSuperadmin && <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Empresa</th>}
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Papel</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
@@ -260,6 +302,7 @@ export default function Users() {
                   <tr key={u.id} className="border-b border-border hover:bg-muted/50">
                     <td className="px-4 py-3 font-medium text-foreground">{u.nome}</td>
                     <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{u.email}</td>
+                    {isSuperadmin && <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{u.empresa?.nome || <span className="text-amber-600">—</span>}</td>}
                     <td className="px-4 py-3">
                       <StatusBadge className={ROLE_CORES[u.role] || ROLE_CORES.usuario}>
                         {ROLE_LABELS[u.role] || 'Usuário'}
@@ -420,7 +463,7 @@ export default function Users() {
             <DialogTitle>Acessos — {acessosUser?.nome}</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground -mt-2">
-            Papel global: <span className="font-medium">{ROLE_LABELS[acessosUser?.role] || 'Usuário'}</span>. Abaixo, os vínculos (franquia × área × papel) que definem o acesso operacional por área.
+            Papel global: <span className="font-medium">{ROLE_LABELS[acessosUser?.role] || 'Usuário'}</span>. Abaixo, os vínculos (área × papel) que definem o acesso operacional por área.
           </p>
 
           <div className="space-y-2 max-h-56 overflow-y-auto">
@@ -432,7 +475,6 @@ export default function Users() {
                   <p className="text-sm font-medium text-foreground">
                     {v.area?.nome || '—'} <span className="text-xs text-muted-foreground">· {v.papel?.nome || '—'}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground">{v.franquia?.nome || 'Sem franquia'}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-xs ${v.ativo ? 'text-green-700' : 'text-muted-foreground'}`}>{v.ativo ? 'Ativo' : 'Inativo'}</span>
@@ -445,14 +487,7 @@ export default function Users() {
 
           <div className="border-t border-border pt-3 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Aplicar tipo (papel padrão)</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label>Franquia</Label>
-                <Select value={tipoForm.franquia_id} onValueChange={(v) => setTipoForm({ ...tipoForm, franquia_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                  <SelectContent>{franquias.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Tipo de usuário</Label>
                 <Select value={tipoForm.papel_id} onValueChange={(v) => setTipoForm({ ...tipoForm, papel_id: v })}>
@@ -471,14 +506,7 @@ export default function Users() {
 
           <form onSubmit={addVinculo} className="border-t border-border pt-3 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conceder acesso avulso</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label>Franquia</Label>
-                <Select value={vincForm.franquia_id} onValueChange={(v) => setVincForm({ ...vincForm, franquia_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="(opcional)" /></SelectTrigger>
-                  <SelectContent>{franquias.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Área</Label>
                 <Select value={vincForm.area_id} onValueChange={(v) => setVincForm({ ...vincForm, area_id: v })}>
