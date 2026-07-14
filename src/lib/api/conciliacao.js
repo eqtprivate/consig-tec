@@ -76,6 +76,58 @@ export const conciliacaoApi = {
   },
 };
 
+// BPOPrévia (cartão): prévia mensal de descontos, envio, resultado e críticas.
+export const previaApi = {
+  async list() {
+    let q = supabase.from('previas').select('*, convenio:convenios(nome)').order('created_at', { ascending: false });
+    const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async criar({ convenio_id, competencia, arquivo_nome, itens }) {
+    const ev = getEmpresaView();
+    const header = { convenio_id, competencia, arquivo_nome: arquivo_nome || null, total_itens: itens.length,
+      total_valor: itens.reduce((s, i) => s + Number(i.valor_a_descontar || 0), 0), status: 'rascunho' };
+    if (ev) header.empresa_id = ev;
+    const { data: p, error } = await supabase.from('previas').insert(header).select().single();
+    if (error) throw error;
+    const rows = itens.map((i) => ({ previa_id: p.id, empresa_id: p.empresa_id, cpf: i.cpf || null,
+      matricula: i.matricula || null, valor_a_descontar: Number(i.valor_a_descontar || 0), status: 'pendente' }));
+    for (let k = 0; k < rows.length; k += 500) {
+      const { error: e2 } = await supabase.from('previa_itens').insert(rows.slice(k, k + 500));
+      if (e2) throw e2;
+    }
+    return p;
+  },
+  async enviar(id) {
+    const { data, error } = await supabase.from('previas').update({ status: 'enviada', enviada_em: new Date().toISOString() }).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async importarResultado(previaId, itens) {
+    const { data, error } = await supabase.rpc('importar_resultado_previa', { p_previa: previaId, p_itens: itens });
+    if (error) throw error;
+    return data;
+  },
+  async tratarCriticas(previaId, valorMinimo) {
+    const { data, error } = await supabase.rpc('tratar_criticas_previa', { p_previa: previaId, p_valor_minimo: valorMinimo || 0 });
+    if (error) throw error;
+    return data;
+  },
+  async itens(previaId, status) {
+    let q = supabase.from('previa_itens').select('*').eq('previa_id', previaId).order('status');
+    if (status && status !== 'todos') q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async remover(id) {
+    const { error } = await supabase.from('previas').delete().eq('id', id);
+    if (error) throw error;
+  },
+};
+
 // Expectativa de recebimento (gerada das parcelas ou importada do banco).
 export const expectativaApi = {
   async list(convenioId, competencia) {
