@@ -180,3 +180,38 @@ export const campanhasApi = {
     return data;
   },
 };
+
+// Tarefas / follow-ups da Agenda (ligáveis a lead/oportunidade/cliente).
+export const tarefasApi = {
+  async list(filters = {}) {
+    let q = supabase.from('tarefas')
+      .select('*, responsavel:usuarios!tarefas_responsavel_id_fkey(nome), lead:leads(nome, telefone), oportunidade:oportunidades(id), cliente:clientes(nome, telefone)')
+      .order('vencimento', { ascending: true, nullsFirst: false });
+    if (filters.status) q = q.eq('status', filters.status);
+    if (filters.responsavel_id) q = q.eq('responsavel_id', filters.responsavel_id);
+    const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async create(item) {
+    const { data, error } = await supabase.from('tarefas').insert(item).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async update(id, updates) {
+    const { data, error } = await supabase.from('tarefas').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async concluir(id) {
+    const { data, error } = await supabase.from('tarefas')
+      .update({ status: 'concluida', concluida_em: new Date().toISOString() }).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async remove(id) {
+    const { error } = await supabase.from('tarefas').delete().eq('id', id);
+    if (error) throw error;
+  },
+};
