@@ -341,6 +341,11 @@
 /* Scrollbar interna do sidenav (mais discreta sobre o navy) */
 .snav nav::-webkit-scrollbar-thumb { background: hsl(var(--sidebar-foreground) / .16); background-clip: padding-box; }
 
+/* Elevação padrão dos cards de conteúdo (padrão `bg-white rounded-xl`).
+   :where() = especificidade ZERO, então qualquer utilitário de sombra
+   explícito na tela (shadow-sm, shadow-2xl, shadow-none) continua vencendo. */
+:where(.bg-white.rounded-xl) { box-shadow: var(--shadow-sm); }
+
 /* ============ Polish Pack: micro-interações e transições ============ */
 /* Elevação suave em cards clicáveis */
 .hover-lift { transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease; will-change: transform; }
