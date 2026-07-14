@@ -61,28 +61,11 @@ async function uploadPdf(tok: string, nome: string, parent: string, bytes: Uint8
   return (await r.json()).id;
 }
 
-Deno.serve(async (req) => {
-  if (req.method !== 'POST') return Response.json({ error: 'Método não permitido' }, { status: 405 });
-  const url = Deno.env.get('SUPABASE_URL');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !serviceKey) return Response.json({ error: 'Configuração ausente.' }, { status: 500 });
-  const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-
-  const body = await req.json().catch(() => ({}));
-  const ingestaoId: string = body.ingestao_id || '';
-  if (!ingestaoId) return Response.json({ error: 'ingestao_id obrigatório.' }, { status: 400 });
-
-  const { data: ing } = await admin.from('ingestoes_documento').select('*, empresa:empresas(nome)').eq('id', ingestaoId).single();
-  if (!ing) return Response.json({ error: 'Ingestão não encontrada.' }, { status: 404 });
-  if (ing.drive_file_id) return Response.json({ mirrored: true, drive_file_id: ing.drive_file_id, already: true });
-
-  const saRaw = Deno.env.get('GOOGLE_SA_JSON');
-  const root = Deno.env.get('GOOGLE_DRIVE_ROOT_FOLDER_ID');
-  if (!saRaw || !root) return Response.json({ mirrored: false, motivo: 'Google Drive não configurado (GOOGLE_SA_JSON / ROOT_FOLDER).' });
-
-  // Baixa o PDF do Storage.
+// Espelha UMA ingestão. Retorna { mirrored, ... }. Nunca lança.
+async function espelharIngestao(admin: any, ing: any, saRaw: string, root: string) {
+  if (!ing.storage_path) return { id: ing.id, mirrored: false, motivo: 'sem storage_path' };
   const { data: file, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
-  if (dlErr || !file) return Response.json({ mirrored: false, motivo: 'PDF não encontrado no Storage.' });
+  if (dlErr || !file) return { id: ing.id, mirrored: false, motivo: 'PDF não encontrado no Storage.' };
   const bytes = new Uint8Array(await file.arrayBuffer());
 
   const dados = ing.dados_extraidos || {};
@@ -93,7 +76,6 @@ Deno.serve(async (req) => {
   const ano = new Date().getFullYear().toString();
   const empNome = (ing.empresa?.nome || ing.empresa_id).toString().replace(/[\\/:*?"<>|]/g, '_');
 
-  // Retry best-effort (3 tentativas). Falha NUNCA afeta a CCB.
   let lastErr = '';
   for (let tent = 0; tent < 3; tent++) {
     try {
@@ -102,13 +84,59 @@ Deno.serve(async (req) => {
       const fEmp = await ensureFolder(tok, empNome, root);
       const fAno = await ensureFolder(tok, ano, fEmp);
       const fileId = await uploadPdf(tok, nome, fAno, bytes);
-      await admin.from('ingestoes_documento').update({ drive_file_id: fileId, drive_sincronizado_em: new Date().toISOString() }).eq('id', ingestaoId);
-      return Response.json({ mirrored: true, drive_file_id: fileId, nome });
+      await admin.from('ingestoes_documento').update({ drive_file_id: fileId, drive_sincronizado_em: new Date().toISOString() }).eq('id', ing.id);
+      return { id: ing.id, mirrored: true, drive_file_id: fileId, nome };
     } catch (e) {
       lastErr = (e as Error).message;
       await new Promise((s) => setTimeout(s, 600 * (tent + 1)));
     }
   }
-  // Persistiu falha — não grava drive_file_id (permite reprocessar depois).
-  return Response.json({ mirrored: false, erro: lastErr });
+  return { id: ing.id, mirrored: false, erro: lastErr };
+}
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') return Response.json({ error: 'Método não permitido' }, { status: 405 });
+  const url = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !serviceKey) return Response.json({ error: 'Configuração ausente.' }, { status: 500 });
+  const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+  const body = await req.json().catch(() => ({}));
+
+  // Autorização: token do cron (header) OU sessão de admin/superadmin.
+  const syncToken = Deno.env.get('INGESTAO_SYNC_TOKEN');
+  const hdrToken = req.headers.get('x-sync-token');
+  let autorizado = !!(syncToken && hdrToken && hdrToken === syncToken);
+  if (!autorizado) {
+    const token = (req.headers.get('Authorization') || '').replace('Bearer ', '').trim();
+    if (!token) return Response.json({ error: 'Não autenticado' }, { status: 401 });
+    const { data: caller } = await admin.auth.getUser(token);
+    if (!caller?.user) return Response.json({ error: 'Sessão inválida' }, { status: 401 });
+    const { data: perfil } = await admin.from('usuarios').select('role').eq('id', caller.user.id).single();
+    if (!perfil || !['admin', 'superadmin'].includes(perfil.role)) return Response.json({ error: 'Sem permissão' }, { status: 403 });
+    autorizado = true;
+  }
+
+  const saRaw = Deno.env.get('GOOGLE_SA_JSON');
+  const root = Deno.env.get('GOOGLE_DRIVE_ROOT_FOLDER_ID');
+  if (!saRaw || !root) return Response.json({ mirrored: false, motivo: 'Google Drive não configurado (GOOGLE_SA_JSON / ROOT_FOLDER).' });
+
+  // Modo RETRY em lote (cron): reprocessa ingestões aprovadas sem drive_file_id.
+  if (body.reprocessar) {
+    const { data: pend } = await admin.from('ingestoes_documento')
+      .select('*, empresa:empresas(nome)')
+      .eq('status', 'aprovado').is('drive_file_id', null).not('storage_path', 'is', null)
+      .order('aprovado_em', { ascending: true }).limit(25);
+    const resultados = [];
+    for (const ing of pend || []) resultados.push(await espelharIngestao(admin, ing, saRaw, root));
+    return Response.json({ reprocessados: resultados.length, ok: resultados.filter((r) => r.mirrored).length, resultados });
+  }
+
+  // Modo unitário (chamado pelo aprovar_ingestao).
+  const ingestaoId: string = body.ingestao_id || '';
+  if (!ingestaoId) return Response.json({ error: 'ingestao_id obrigatório.' }, { status: 400 });
+  const { data: ing } = await admin.from('ingestoes_documento').select('*, empresa:empresas(nome)').eq('id', ingestaoId).single();
+  if (!ing) return Response.json({ error: 'Ingestão não encontrada.' }, { status: 404 });
+  if (ing.drive_file_id) return Response.json({ mirrored: true, drive_file_id: ing.drive_file_id, already: true });
+  return Response.json(await espelharIngestao(admin, ing, saRaw, root));
 });
