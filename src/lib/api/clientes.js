@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getEmpresaView } from '@/lib/tenantView';
 
 export const clientesApi = {
   async list(filters = {}) {
@@ -8,6 +9,8 @@ export const clientesApi = {
       .order('nome');
     if (filters.franquia_id) query = query.eq('franquia_id', filters.franquia_id);
     if (filters.convenio_id) query = query.eq('convenio_id', filters.convenio_id);
+    const ev = getEmpresaView();          // superadmin "ver como" empresa X
+    if (ev) query = query.eq('empresa_id', ev);
     const { data, error } = await query;
     if (error) throw error;
     return data;
