@@ -28,6 +28,7 @@ import EmpresasPlanos from '@/pages/admin/EmpresasPlanos';
 import OnboardingEmpresa from '@/pages/admin/OnboardingEmpresa';
 import Auditoria from '@/pages/Auditoria';
 import Perfil from '@/pages/Perfil';
+import Personalizacao from '@/pages/admin/Personalizacao';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -64,6 +65,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/integracoes" element={<Integracoes />} />
             <Route path="/admin/empresas" element={<EmpresasPlanos />} />
             <Route path="/admin/onboarding" element={<OnboardingEmpresa />} />
+            <Route path="/admin/personalizacao" element={<Personalizacao />} />
             <Route path="/admin/auditoria" element={<Auditoria />} />
           </Route>
         </Route>

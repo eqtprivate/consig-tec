@@ -88,7 +88,7 @@ function initials(nome) {
 }
 
 export default function Sidebar({ collapsed = false }) {
-  const { perfil, isAdmin, activeUnidade, vinculos, hasAreaAccess } = useAuth();
+  const { perfil, isAdmin, activeUnidade, vinculos, hasAreaAccess, brand } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [allAreas, setAllAreas] = useState([]);
@@ -155,11 +155,14 @@ export default function Sidebar({ collapsed = false }) {
 
   return (
     <aside className={`snav ${collapsed ? 'w-[76px]' : 'w-64'} flex flex-col h-full transition-[width] duration-200`}>
-      {/* Header — logomarca (símbolo quando colapsado) + divisor em fade */}
+      {/* Header — logomarca da empresa (white-label) com fallback CONSIGTEC.
+          Quando colapsado, o logo próprio (se houver) vira símbolo quadrado. */}
       <div className={`${collapsed ? 'px-0 justify-center' : 'px-5'} pt-6 pb-4 flex items-center`}>
-        {collapsed
-          ? <img src="/brand/consigtec_logo_icon.png" alt="CONSIGTEC" className="h-8 w-8" />
-          : <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-9 w-auto block" />}
+        {brand?.logo_url
+          ? <img src={brand.logo_url} alt={brand.nome || 'Logo'} className={collapsed ? 'h-8 w-8 object-contain' : 'h-9 w-auto max-w-[170px] object-contain block'} />
+          : (collapsed
+            ? <img src="/brand/consigtec_logo_icon.png" alt="CONSIGTEC" className="h-8 w-8" />
+            : <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-9 w-auto block" />)}
       </div>
       <div className={`snav-divider ${collapsed ? 'mx-3' : 'mx-4'}`} />
 

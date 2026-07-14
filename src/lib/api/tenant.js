@@ -41,6 +41,18 @@ export const planosApi = {
   },
 };
 
+// Personalização (white-label) por empresa: cor primária + logomarca.
+// Admin edita a própria empresa; superadmin edita a empresa em foco.
+export const brandingApi = {
+  async salvar({ empresa_id, cor_primaria, logo_url }) {
+    const { data, error } = await supabase.rpc('atualizar_branding_empresa', {
+      p_empresa: empresa_id ?? null, p_cor: cor_primaria ?? null, p_logo: logo_url ?? null,
+    });
+    if (error) throw error;
+    return data; // linha da empresa atualizada
+  },
+};
+
 // Credenciais PixConsig por empresa (superadmin). A api_key é sensível —
 // gravamos, mas a listagem usa a RPC de status (não devolve a key).
 export const pixCredApi = {

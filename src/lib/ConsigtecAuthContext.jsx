@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { supabase, initSupabase } from '@/lib/supabaseClient';
 import { empresasApi } from '@/lib/api/tenant';
 import { getEmpresaView, setEmpresaViewStore, setFranquiasViewStore } from '@/lib/tenantView';
+import { applyBrandColor } from '@/lib/branding';
 
 const ConsigtecAuthContext = createContext();
 
@@ -168,12 +169,25 @@ export const ConsigtecAuthProvider = ({ children }) => {
     return [...map.values()];
   })();
 
+  // Branding efetivo (white-label): superadmin "ver como" usa a empresa em foco;
+  // demais usuários usam a própria empresa. Aplica a cor primária no <html>.
+  const brandEmpresa = (isSuperadmin && empresaView)
+    ? (empresasSuperadmin.find((e) => e.id === empresaView) || null)
+    : empresa;
+  const brand = brandEmpresa
+    ? { empresa_id: brandEmpresa.id, nome: brandEmpresa.nome, cor_primaria: brandEmpresa.cor_primaria || null, logo_url: brandEmpresa.logo_url || null }
+    : null;
+  useEffect(() => {
+    applyBrandColor(brand?.cor_primaria || null);
+  }, [brand?.cor_primaria]);
+
   return (
     <ConsigtecAuthContext.Provider value={{
       session,
       perfil,
       vinculos,
       empresa,
+      brand,
       plano: empresa?.plano || null,
       planoUso,
       modulos,
