@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { buildLabel, BUILD_TIME } from '@/lib/version';
-import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug } from 'lucide-react';
+import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette } from 'lucide-react';
 
 // Subitens (abas) por área — abrem via ?tab= no módulo.
 const AREA_SUBITEMS = {
@@ -88,7 +88,7 @@ function initials(nome) {
 }
 
 export default function Sidebar({ collapsed = false }) {
-  const { perfil, isAdmin, activeUnidade, vinculos, hasAreaAccess, brand } = useAuth();
+  const { perfil, isAdmin, isSuperadmin, activeUnidade, vinculos, hasAreaAccess, brand } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [allAreas, setAllAreas] = useState([]);
@@ -260,12 +260,22 @@ export default function Sidebar({ collapsed = false }) {
           </div>
         )}
 
+        {isSuperadmin && (
+          <div className="space-y-1">
+            {!collapsed && <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Clientes (CONSIGTEC)</p>}
+            {navItem('/admin/empresas', 'Empresas & Planos', Building2)}
+            {navItem('/admin/onboarding', 'Novo cliente', UserPlus)}
+            {navItem('/admin/pixconsig', 'Credenciais PixConsig', KeyRound)}
+          </div>
+        )}
+
         {isAdmin && (
           <div className="space-y-1">
             {!collapsed && <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Administração</p>}
             {navItem('/admin/usuarios', 'Usuários', Users)}
             {navItem('/admin/vinculos', 'Vínculos', Link2)}
             {navItem('/admin/areas', 'Áreas & Papéis', Settings)}
+            {navItem('/admin/personalizacao', 'Personalização', Palette)}
             {navItem('/admin/notificacoes', 'Notificações', Bell)}
             {navItem('/admin/expansao', 'Expansão', TrendingUp)}
             {navItem('/admin/integracoes', 'Integrações', Plug)}
