@@ -76,6 +76,15 @@ export const conciliacaoApi = {
   },
 };
 
+// Monitor de captura: esperado × capturado por competência.
+export const monitorApi = {
+  async captura(competencia) {
+    const { data, error } = await supabase.rpc('monitor_captura', { p_competencia: competencia, p_empresa: getEmpresaView() });
+    if (error) throw error;
+    return data;
+  },
+};
+
 // BPOPrévia (cartão): prévia mensal de descontos, envio, resultado e críticas.
 export const previaApi = {
   async list() {

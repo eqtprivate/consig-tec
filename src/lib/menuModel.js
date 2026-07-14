@@ -36,6 +36,7 @@ export const AREA_SUBITEMS = {
     { key: 'expectativa', label: 'Expectativa' },
     { key: 'previa', label: 'Prévia (cartão)' },
     { key: 'folha', label: 'Conciliação (folha)' },
+    { key: 'monitor', label: 'Monitor' },
     { key: 'averbadoras', label: 'Averbadoras' },
   ],
   comissoes: [
