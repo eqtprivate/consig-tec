@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getEmpresaView } from '@/lib/tenantView';
 
 // Visão executiva consolidada da esteira (grupo) — função dashboard_executivo.
 export const dashboardApi = {
@@ -8,7 +9,7 @@ export const dashboardApi = {
     return Array.isArray(data) ? data[0] : data;
   },
   async contadores() {
-    const { data, error } = await supabase.rpc('contadores_operacionais');
+    const { data, error } = await supabase.rpc('contadores_operacionais', { p_empresa: getEmpresaView() });
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
   },
