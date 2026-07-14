@@ -12,7 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Calculator, FileUp, Loader2, Inbox } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { toast } from 'sonner';
+import { Plus, Pencil, Calculator, FileUp, Loader2, Inbox, LayoutGrid, List } from 'lucide-react';
 import { PageHeader, StatCard, StatusBadge, EmptyState } from '@/components/kit';
 
 const ETAPA = { qualificacao: 'Qualificação', simulacao: 'Simulação', proposta_enviada: 'Proposta enviada', em_formalizacao: 'Em formalização', ganha: 'Ganha', perdida: 'Perdida' };
@@ -21,6 +23,7 @@ const ETAPA_COR = {
   qualificacao: 'bg-muted text-muted-foreground', simulacao: 'bg-blue-50 text-blue-700', proposta_enviada: 'bg-amber-50 text-amber-700',
   em_formalizacao: 'bg-violet-50 text-violet-700', ganha: 'bg-green-50 text-green-700', perdida: 'bg-red-50 text-red-700',
 };
+const ETAPA_DOT = { qualificacao: 'bg-slate-400', simulacao: 'bg-blue-400', proposta_enviada: 'bg-amber-400', em_formalizacao: 'bg-violet-400', ganha: 'bg-green-400', perdida: 'bg-red-400' };
 const PRODUTO = { cartao_beneficio: 'Cartão benefício', consignado: 'Consignado', cartao_credito: 'Cartão de crédito', saque_complementar: 'Saque complementar' };
 const emptyForm = {
   cliente_id: '', convenio_id: '', produto: 'cartao_beneficio', valor_estimado: '', taxa_estimada: '',
@@ -38,6 +41,7 @@ export default function Oportunidades() {
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState('funil'); // funil (kanban) | lista
 
   const load = async () => {
     setLoading(true);
@@ -117,22 +121,108 @@ export default function Oportunidades() {
     const l = itens.filter((o) => o.etapa === et);
     return { etapa: et, n: l.length, valor: l.reduce((s, o) => s + Number(o.valor_estimado || 0), 0) };
   });
+  // Pipeline ponderado (valor × probabilidade) das etapas em aberto.
+  const ponderado = itens
+    .filter((o) => !['ganha', 'perdida'].includes(o.etapa))
+    .reduce((s, o) => s + Number(o.valor_estimado || 0) * (Number(o.probabilidade || 0) / 100), 0);
+
+  // Arrastar cartão entre colunas → muda a etapa (otimista + persiste).
+  const onDragEnd = async (r) => {
+    if (!r.destination) return;
+    const novaEtapa = r.destination.droppableId;
+    const id = r.draggableId;
+    const o = itens.find((x) => x.id === id);
+    if (!o || o.etapa === novaEtapa) return;
+    const prev = itens;
+    setItens(itens.map((x) => (x.id === id ? { ...x, etapa: novaEtapa } : x)));
+    try {
+      await oportunidadesApi.update(id, { etapa: novaEtapa });
+      await auditoriaApi.log('mover_oportunidade', 'oportunidades', id, { de: o.etapa, para: novaEtapa });
+    } catch (e) { toast.error('Não foi possível mover a oportunidade.'); setItens(prev); }
+  };
+
+  const ViewToggle = () => (
+    <div className="flex rounded-lg border border-border overflow-hidden">
+      <button onClick={() => setView('funil')} className={`px-2.5 py-1.5 flex items-center gap-1.5 text-xs ${view === 'funil' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}><LayoutGrid className="w-3.5 h-3.5" /> Funil</button>
+      <button onClick={() => setView('lista')} className={`px-2.5 py-1.5 flex items-center gap-1.5 text-xs ${view === 'lista' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}><List className="w-3.5 h-3.5" /> Lista</button>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Oportunidades"
         subtitle="Pipeline de vendas — oportunidades qualificadas"
-        actions={<Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova oportunidade</Button>}
+        actions={<div className="flex items-center gap-2"><ViewToggle /><Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova oportunidade</Button></div>}
       />
 
-      {/* Pipeline resumo */}
+      {/* Funil visual (Kanban) — arraste os cartões entre as etapas */}
+      {view === 'funil' && (
+        loading ? <div className="bg-card rounded-xl border border-border p-8"><EmptyState icon={Loader2} title="Carregando…" /></div>
+        : (
+        <>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <span>Pipeline ponderado (em aberto): <b className="text-foreground num">{brl(ponderado)}</b></span>
+            <span>· {itens.filter((o) => !['ganha', 'perdida'].includes(o.etapa)).length} oportunidade(s) ativa(s)</span>
+          </div>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {ETAPA_ORDER.map((et) => {
+                const col = itens.filter((o) => o.etapa === et);
+                const val = col.reduce((s, o) => s + Number(o.valor_estimado || 0), 0);
+                return (
+                  <Droppable droppableId={et} key={et}>
+                    {(prov, snap) => (
+                      <div ref={prov.innerRef} {...prov.droppableProps}
+                        className={`w-60 shrink-0 rounded-xl border p-2 transition-colors ${snap.isDraggingOver ? 'border-primary bg-primary/5' : 'border-border bg-muted/30'}`}>
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${ETAPA_DOT[et] || 'bg-muted-foreground'}`} />{ETAPA[et]}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">{col.length}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground px-1 mt-0.5 mb-2 num">{brl(val)}</p>
+                        <div className="space-y-2 min-h-[48px]">
+                          {col.map((o, idx) => (
+                            <Draggable draggableId={o.id} index={idx} key={o.id}>
+                              {(dp, ds) => (
+                                <div ref={dp.innerRef} {...dp.draggableProps} {...dp.dragHandleProps}
+                                  onClick={() => openEdit(o)}
+                                  className={`rounded-lg border bg-card p-2.5 cursor-grab active:cursor-grabbing ${ds.isDragging ? 'shadow-lg border-primary' : 'border-border hover:border-primary/40'}`}>
+                                  <p className="text-xs font-medium text-foreground truncate">{o.cliente?.nome || o.lead?.nome || '—'}</p>
+                                  <p className="text-[11px] text-muted-foreground truncate">{PRODUTO[o.produto] || '—'}</p>
+                                  <div className="flex items-center justify-between mt-1.5">
+                                    <span className="text-xs font-semibold text-foreground num">{brl(o.valor_estimado)}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground num">{o.probabilidade ?? '—'}%</span>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                          {prov.placeholder}
+                          {col.length === 0 && <p className="text-[11px] text-muted-foreground/60 text-center py-2">—</p>}
+                        </div>
+                      </div>
+                    )}
+                  </Droppable>
+                );
+              })}
+            </div>
+          </DragDropContext>
+        </>
+        )
+      )}
+
+      {/* Pipeline resumo (lista) */}
+      {view === 'lista' && (
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
         {resumo.map((r) => (
           <StatCard key={r.etapa} label={ETAPA[r.etapa]} value={r.n} hint={brl(r.valor)} />
         ))}
       </div>
+      )}
 
+      {view === 'lista' && (
       <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? <EmptyState icon={Loader2} title="Carregando…" />
         : itens.length === 0 ? <EmptyState icon={Inbox} title="Nenhuma oportunidade" description="Qualifique um lead na aba Leads." />
@@ -168,6 +258,7 @@ export default function Oportunidades() {
           </table>
         )}
       </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
