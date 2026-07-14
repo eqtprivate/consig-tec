@@ -274,6 +274,73 @@
   background: linear-gradient(hsl(var(--brand-green)), hsl(var(--brand-green) / .25));
 }
 
+/* ============================================================
+   SIDENAV — inspirado no Material Dashboard Pro, na marca CONSIGTEC.
+   Painel navy escuro nos DOIS temas (sidenav dark + conteúdo claro).
+   Item ativo = pill com gradiente verde e glow suave; ícones em
+   caixinhas arredondadas; divisor com fade. Tokens próprios para não
+   depender do tema de conteúdo (--foreground etc.).
+   ============================================================ */
+:root {
+  --sidebar-background: 213 43% 12%;
+  --sidebar-foreground: 210 34% 93%;
+  --sidebar-muted: 213 16% 62%;
+  --sidebar-primary: 89 47% 54%;
+  --sidebar-primary-foreground: 213 45% 12%;
+  --sidebar-border: 213 28% 21%;
+}
+.dark {
+  --sidebar-background: 214 46% 8%;
+  --sidebar-foreground: 210 34% 93%;
+  --sidebar-muted: 213 16% 58%;
+  --sidebar-border: 213 30% 16%;
+}
+
+.snav {
+  background:
+    radial-gradient(130% 240px at 22% -60px, hsl(var(--sidebar-primary) / .12), transparent 70%),
+    hsl(var(--sidebar-background));
+  color: hsl(var(--sidebar-foreground));
+  border-right: 1px solid hsl(var(--sidebar-border));
+}
+.snav-label { color: hsl(var(--sidebar-muted)); }
+.snav-divider { height: 1px; background: linear-gradient(to right, transparent, hsl(var(--sidebar-border)) 18%, hsl(var(--sidebar-border)) 82%, transparent); }
+
+.snav-item {
+  display: flex; align-items: center; gap: .625rem;
+  padding: .5rem .625rem; border-radius: .75rem;
+  font-size: .875rem; font-weight: 500; line-height: 1.25rem;
+  color: hsl(var(--sidebar-foreground) / .74);
+  transition: background-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.snav-item:hover { background: hsl(var(--sidebar-foreground) / .08); color: hsl(var(--sidebar-foreground)); }
+.snav-item-active, .snav-item-active:hover {
+  background: linear-gradient(135deg, hsl(var(--sidebar-primary)), hsl(96 48% 41%));
+  color: hsl(var(--sidebar-primary-foreground));
+  box-shadow: 0 10px 22px -10px hsl(var(--sidebar-primary) / .55);
+}
+.snav-ico {
+  width: 1.75rem; height: 1.75rem; border-radius: .5rem; font-size: .8rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: hsl(var(--sidebar-foreground) / .09);
+  transition: background-color .18s ease;
+}
+.snav-item-active .snav-ico { background: hsl(var(--sidebar-primary-foreground) / .2); }
+
+/* Subitem (aba) — tratamento mais leve que o pill */
+.snav-sub { color: hsl(var(--sidebar-foreground) / .6); transition: background-color .15s ease, color .15s ease; }
+.snav-sub:hover { background: hsl(var(--sidebar-foreground) / .06); color: hsl(var(--sidebar-foreground)); }
+.snav-sub-active { background: hsl(var(--sidebar-primary) / .16); color: hsl(var(--sidebar-primary)); font-weight: 500; }
+
+/* Badges do sidenav (adaptam dentro do pill ativo) */
+.snav-badge { background: hsl(var(--sidebar-primary) / .2); color: hsl(var(--sidebar-primary)); }
+.snav-badge-danger { background: hsl(0 72% 55% / .24); color: hsl(0 85% 80%); }
+.snav-item-active .snav-badge { background: hsl(var(--sidebar-primary-foreground) / .22); color: hsl(var(--sidebar-primary-foreground)); }
+.snav-item-active .snav-badge-danger { background: hsl(0 0% 100% / .3); color: #fff; }
+
+/* Scrollbar interna do sidenav (mais discreta sobre o navy) */
+.snav nav::-webkit-scrollbar-thumb { background: hsl(var(--sidebar-foreground) / .16); background-clip: padding-box; }
+
 /* ============ Polish Pack: micro-interações e transições ============ */
 /* Elevação suave em cards clicáveis */
 .hover-lift { transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease; will-change: transform; }
