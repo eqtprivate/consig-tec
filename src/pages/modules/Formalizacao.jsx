@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, ShieldCheck, ShieldAlert, ShieldQuestion, FileCheck2 } from 'lucide-react';
+import { EmptyState, StatusBadge } from '@/components/kit';
+import { Plus, Pencil, ShieldCheck, ShieldAlert, ShieldQuestion, FileCheck2, FileText, Loader2 } from 'lucide-react';
 
 const TABS = [
   { key: 'form', label: 'Formalização & Antifraude' },
@@ -27,8 +27,8 @@ const TABS = [
 /* ------------------------------ Formalização ------------------------------ */
 const F_STATUS = { iniciada: 'Iniciada', em_analise: 'Em análise', aprovada: 'Aprovada', reprovada: 'Reprovada', concluida: 'Concluída', cancelada: 'Cancelada' };
 const F_CORES = {
-  iniciada: 'bg-slate-100 text-slate-600', em_analise: 'bg-amber-50 text-amber-700', aprovada: 'bg-green-50 text-green-700',
-  reprovada: 'bg-red-50 text-red-700', concluida: 'bg-green-50 text-green-700', cancelada: 'bg-slate-100 text-slate-400',
+  iniciada: 'bg-muted text-muted-foreground', em_analise: 'bg-amber-50 text-amber-700', aprovada: 'bg-green-50 text-green-700',
+  reprovada: 'bg-red-50 text-red-700', concluida: 'bg-green-50 text-green-700', cancelada: 'bg-muted text-muted-foreground/70',
 };
 const AF_ICON = { aprovado: ShieldCheck, reprovado: ShieldAlert, revisao: ShieldQuestion };
 const AF_COR = { aprovado: 'text-green-600', reprovado: 'text-red-600', revisao: 'text-amber-600' };
@@ -103,20 +103,20 @@ function FormalizacaoTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Selfie / prova de vida / aceite e resultado antifraude (registro UY3)</p>
+        <p className="text-sm text-muted-foreground">Selfie / prova de vida / aceite e resultado antifraude (registro UY3)</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova formalização</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma formalização.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState icon={Loader2} title="Carregando…" />
+        : itens.length === 0 ? <EmptyState icon={FileCheck2} title="Nenhuma formalização." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Cliente</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Checklist</th>
-              <th className="text-center px-4 py-3 font-medium text-slate-500 uppercase text-xs">Antifraude</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Cliente</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Checklist</th>
+              <th className="text-center px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Antifraude</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((a) => {
@@ -124,14 +124,14 @@ function FormalizacaoTab() {
                 const AfIcon = af ? AF_ICON[af.resultado] : null;
                 const ck = [a.selfie_ok, a.prova_vida_ok, a.documentos_ok, a.aceite_termo].filter(Boolean).length;
                 return (
-                  <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{a.proposta?.cliente?.nome || '—'}</td>
-                    <td className="px-4 py-3 text-slate-500 hidden md:table-cell text-xs">{ck}/4 itens</td>
+                  <tr key={a.id} className="border-b border-border hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{a.proposta?.cliente?.nome || '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell text-xs">{ck}/4 itens</td>
                     <td className="px-4 py-3 text-center">
-                      {AfIcon ? <span className={`inline-flex items-center gap-1 text-xs ${AF_COR[af.resultado]}`}><AfIcon className="w-3.5 h-3.5" /> {af.resultado}</span> : <span className="text-xs text-slate-300">—</span>}
+                      {AfIcon ? <span className={`inline-flex items-center gap-1 text-xs ${AF_COR[af.resultado]}`}><AfIcon className="w-3.5 h-3.5" /> {af.resultado}</span> : <span className="text-xs text-muted-foreground/60">—</span>}
                     </td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${F_CORES[a.status]}`}>{F_STATUS[a.status]}</span></td>
-                    <td className="px-4 py-3 text-right"><button onClick={() => openEdit(a)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>
+                    <td className="px-4 py-3"><StatusBadge className={F_CORES[a.status]}>{F_STATUS[a.status]}</StatusBadge></td>
+                    <td className="px-4 py-3 text-right"><button onClick={() => openEdit(a)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button></td>
                   </tr>
                 );
               })}
@@ -153,7 +153,7 @@ function FormalizacaoTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[['selfie_ok', 'Selfie'], ['prova_vida_ok', 'Prova de vida'], ['documentos_ok', 'Documentos'], ['aceite_termo', 'Aceite do termo']].map(([k, lbl]) => (
-                <div key={k} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+                <div key={k} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
                   <Label htmlFor={k} className="cursor-pointer text-sm">{lbl}</Label>
                   <Switch id={k} checked={form[k]} onCheckedChange={(v) => setForm({ ...form, [k]: v })} />
                 </div>
@@ -171,8 +171,8 @@ function FormalizacaoTab() {
             </div>
             <div className="space-y-2"><Label>Link de formalização</Label><Input value={form.link_formalizacao} onChange={(e) => setForm({ ...form, link_formalizacao: e.target.value })} placeholder="link enviado ao cliente" /></div>
 
-            <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-3">
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Registrar antifraude (UY3) — opcional</p>
+            <div className="rounded-lg bg-muted border border-border p-3 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registrar antifraude (UY3) — opcional</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Resultado</Label>
@@ -205,7 +205,7 @@ function FormalizacaoTab() {
 const C_STATUS = { emitida: 'Emitida', enviada_assinatura: 'Enviada p/ assinatura', assinada: 'Assinada', cancelada: 'Cancelada', liquidada: 'Liquidada' };
 const C_CORES = {
   emitida: 'bg-blue-50 text-blue-700', enviada_assinatura: 'bg-amber-50 text-amber-700', assinada: 'bg-green-50 text-green-700',
-  cancelada: 'bg-slate-100 text-slate-400', liquidada: 'bg-violet-50 text-violet-700',
+  cancelada: 'bg-muted text-muted-foreground/70', liquidada: 'bg-violet-50 text-violet-700',
 };
 const emptyC = {
   proposta_id: '', numero: '', valor_principal: '', valor_total: '', taxa_mensal: '', prazo: '',
@@ -305,39 +305,39 @@ function CcbTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Cédulas de Crédito Bancário (emissão UY3, assinatura Clicksign)</p>
+        <p className="text-sm text-muted-foreground">Cédulas de Crédito Bancário (emissão UY3, assinatura Clicksign)</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova CCB</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma CCB.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState icon={Loader2} title="Carregando…" />
+        : itens.length === 0 ? <EmptyState icon={FileText} title="Nenhuma CCB." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Número</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Cliente</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Principal</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Emissão</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Número</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Cliente</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Principal</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Emissão</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-600">{a.numero || a.id.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-slate-700 hidden md:table-cell">{a.proposta?.cliente?.nome || a.contrato?.cliente?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 num">{brl(a.valor_principal)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{dataBR(a.emitida_em)}</td>
+                <tr key={a.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{a.numero || a.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{a.proposta?.cliente?.nome || a.contrato?.cliente?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground num">{brl(a.valor_principal)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{dataBR(a.emitida_em)}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${C_CORES[a.status]}`}>{C_STATUS[a.status]}</span>
+                    <StatusBadge className={C_CORES[a.status]}>{C_STATUS[a.status]}</StatusBadge>
                     {a.contrato?.numero_contrato && <span className="block text-[10px] text-green-700 mt-0.5">→ {a.contrato.numero_contrato}</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
                       {a.status === 'assinada' && !a.contrato_id && (
-                        <button onClick={() => gerarContrato(a)} disabled={gerando === a.id} title="Gerar contrato" className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded"><FileCheck2 className="w-4 h-4" /></button>
+                        <button onClick={() => gerarContrato(a)} disabled={gerando === a.id} title="Gerar contrato" className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded"><FileCheck2 className="w-4 h-4" /></button>
                       )}
-                      <button onClick={() => openEdit(a)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(a)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -412,10 +412,10 @@ export default function Formalizacao() {
   const [tab, setTab] = useTabParam('form');
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}

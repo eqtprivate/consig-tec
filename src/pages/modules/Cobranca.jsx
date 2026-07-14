@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { EmptyState, StatusBadge } from '@/components/kit';
 import { Plus, Pencil, Zap } from 'lucide-react';
 
 const GATILHO = { falha_repasse: 'Falha de repasse', inadimplencia: 'Inadimplência', glosa: 'Glosa', divergencia: 'Divergência' };
@@ -66,34 +67,34 @@ export default function Cobranca() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Cobrança, default e renegociação — gatilhos incl. falha de repasse/folha</p>
+        <p className="text-sm text-muted-foreground">Cobrança, default e renegociação — gatilhos incl. falha de repasse/folha</p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={gerarInadimplencia} disabled={gerando} className="gap-2"><Zap className="w-4 h-4" /> {gerando ? 'Gerando…' : 'Gerar de inadimplência'}</Button>
           <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova cobrança</Button>
         </div>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma cobrança.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : itens.length === 0 ? <EmptyState title="Nenhuma cobrança." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Contrato</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Gatilho</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Valor</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Data</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Contrato</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Gatilho</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Valor</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Data</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-700">{c.contrato?.cliente?.nome || c.contrato?.numero_contrato || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{GATILHO[c.gatilho]}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 num">{brl(c.valor)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{dataBR(c.data_gatilho)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[c.status]}`}>{STATUS[c.status]}</span></td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 text-foreground">{c.contrato?.cliente?.nome || c.contrato?.numero_contrato || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{GATILHO[c.gatilho]}</td>
+                  <td className="px-4 py-3 text-right text-foreground num">{brl(c.valor)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{dataBR(c.data_gatilho)}</td>
+                  <td className="px-4 py-3"><StatusBadge className={CORES[c.status]}>{STATUS[c.status]}</StatusBadge></td>
+                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button></td>
                 </tr>
               ))}
             </tbody>
