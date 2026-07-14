@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getFranquiasView } from '@/lib/tenantView';
 
 export const comissoesApi = {
   async list(filters = {}) {
@@ -9,6 +10,7 @@ export const comissoesApi = {
     if (filters.status) query = query.eq('status', filters.status);
     if (filters.usuario_id) query = query.eq('usuario_id', filters.usuario_id);
     if (filters.franquia_id) query = query.eq('franquia_id', filters.franquia_id);
+    const __fv = getFranquiasView(); if (__fv) query = query.in('franquia_id', __fv);
     const { data, error } = await query;
     if (error) throw error;
     return data;

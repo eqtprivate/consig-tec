@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getFranquiasView } from '@/lib/tenantView';
 
 export const leadsApi = {
   async list(filters = {}) {
@@ -6,6 +7,7 @@ export const leadsApi = {
       .select('*, campanha:campanhas(id, nome), responsavel:usuarios(nome), convenio:convenios(id, nome, prioridade_comercial)')
       .order('created_at', { ascending: false });
     if (filters.franquia_id) query = query.eq('franquia_id', filters.franquia_id);
+    const __fv = getFranquiasView(); if (__fv) query = query.in('franquia_id', __fv);
     if (filters.status) query = query.eq('status', filters.status);
     const { data, error } = await query;
     if (error) throw error;
@@ -122,6 +124,7 @@ export const oportunidadesApi = {
       .select('*, lead:leads(nome, telefone, cpf), cliente:clientes(nome, cpf), convenio:convenios(nome, taxa_mensal, tipo_margem), operador:usuarios(nome)')
       .order('created_at', { ascending: false });
     if (filters.franquia_id) q = q.eq('franquia_id', filters.franquia_id);
+    const __fv = getFranquiasView(); if (__fv) q = q.in('franquia_id', __fv);
     if (filters.etapa) q = q.eq('etapa', filters.etapa);
     if (filters.cliente_id) q = q.eq('cliente_id', filters.cliente_id);
     const { data, error } = await q;
@@ -161,6 +164,7 @@ export const campanhasApi = {
   async list(filters = {}) {
     let query = supabase.from('campanhas').select('*').order('created_at', { ascending: false });
     if (filters.franquia_id) query = query.eq('franquia_id', filters.franquia_id);
+    const __fv = getFranquiasView(); if (__fv) query = query.in('franquia_id', __fv);
     const { data, error } = await query;
     if (error) throw error;
     return data;
