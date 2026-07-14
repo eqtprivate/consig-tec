@@ -13,7 +13,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState, StatusBadge } from '@/components/kit';
-import { Upload, Loader2, FileCheck2, Trash2, CheckCircle2, XCircle, ChevronRight, Coins, ArrowRightLeft, Plus } from 'lucide-react';
+import { Upload, Loader2, FileCheck2, Trash2, CheckCircle2, XCircle, ChevronRight, Coins, ArrowRightLeft, Plus, Download } from 'lucide-react';
+
+// Gera e baixa um CSV (com BOM p/ Excel).
+const csvCell = (v) => { const s = String(v ?? ''); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+function baixarCSV(nome, linhas) {
+  const blob = new Blob(['﻿' + linhas.map((l) => l.map(csvCell).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
 
 const CUSTO_TIPO = { por_linha: 'Por linha (R$/item)', percentual: 'Percentual (% do conciliado)', ted: 'TED do repasse (R$)', fixo: 'Fixo (R$)' };
 
@@ -113,6 +121,20 @@ export default function ConciliacaoFolha() {
     setBusy(true);
     try { await conciliacaoApi.recalcular(sel.id); await refreshSel(sel.id); setCustosOpen(false); toast.success('Custos aplicados ao líquido.'); }
     catch (err) { toast.error(err.message); }
+    finally { setBusy(false); }
+  };
+
+  // Extração padrão-banco: CSV consolidado das ocorrências conciliadas.
+  const exportar = async () => {
+    if (!sel) return;
+    setBusy(true);
+    try {
+      const todas = await conciliacaoApi.ocorrencias(sel.id, 'todos');
+      const linhas = [['cpf', 'cliente', 'tipo', 'valor_esperado', 'valor_descontado', 'diferenca', 'status', 'motivo']];
+      todas.forEach((o) => linhas.push([o.cpf || '', o.cliente?.nome || '', o.tipo, o.valor_esperado, o.valor_descontado, o.diferenca, o.status, o.motivo || '']));
+      baixarCSV(`conciliacao_${sel.competencia}_${(sel.convenio?.nome || 'convenio').replace(/\W+/g, '_')}.csv`, linhas);
+      await auditoriaApi.log('exportar_conciliacao', 'retornos_folha', sel.id, { linhas: todas.length });
+    } catch (err) { toast.error(err.message || 'Falha ao exportar.'); }
     finally { setBusy(false); }
   };
 
@@ -230,6 +252,7 @@ export default function ConciliacaoFolha() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm font-semibold text-foreground">Ocorrências — {sel.competencia} {sel.convenio?.nome ? `· ${sel.convenio.nome}` : ''}</p>
             <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={exportar} disabled={busy} className="gap-1.5"><Download className="w-3.5 h-3.5" /> Exportar</Button>
               <Button size="sm" variant="outline" onClick={abrirCustos} className="gap-1.5"><Coins className="w-3.5 h-3.5" /> Custos</Button>
               <Button size="sm" onClick={gerarRepasse} disabled={busy} className="gap-1.5"><ArrowRightLeft className="w-3.5 h-3.5" /> Gerar repasse</Button>
               <button onClick={() => setSel(null)} className="text-xs text-muted-foreground hover:text-foreground">fechar</button>
