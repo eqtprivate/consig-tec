@@ -64,4 +64,42 @@ export const conciliacaoApi = {
     const { error } = await supabase.from('retornos_folha').delete().eq('id', id);
     if (error) throw error;
   },
+
+  async gerarRepasse(retornoId) {
+    const { data, error } = await supabase.rpc('gerar_repasse_da_conciliacao', { p_retorno: retornoId });
+    if (error) throw error;
+    return data; // uuid do repasse
+  },
+  async recalcular(retornoId) {
+    const { error } = await supabase.rpc('recalcular_financeiro_retorno', { p_retorno: retornoId });
+    if (error) throw error;
+  },
+};
+
+// Custos de processamento por convênio (abatidos no repasse líquido).
+export const custosApi = {
+  async list(convenioId) {
+    let q = supabase.from('custos_processamento').select('*, convenio:convenios(nome)').order('created_at', { ascending: false });
+    if (convenioId) q = q.eq('convenio_id', convenioId);
+    const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async create(item) {
+    const ev = getEmpresaView();
+    const payload = ev && item.empresa_id == null ? { ...item, empresa_id: ev } : item;
+    const { data, error } = await supabase.from('custos_processamento').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async update(id, updates) {
+    const { data, error } = await supabase.from('custos_processamento').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async remove(id) {
+    const { error } = await supabase.from('custos_processamento').delete().eq('id', id);
+    if (error) throw error;
+  },
 };

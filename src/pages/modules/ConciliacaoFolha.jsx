@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { conciliacaoApi } from '@/lib/api/conciliacao';
+import { conciliacaoApi, custosApi } from '@/lib/api/conciliacao';
 import { conveniosApi } from '@/lib/api/convenios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { parseCSV } from '@/lib/pixconsigImport';
-import { brl } from '@/lib/format';
+import { brl, num } from '@/lib/format';
 import { toast } from 'sonner';
 import { confirmar } from '@/lib/confirm';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState, StatusBadge } from '@/components/kit';
-import { Upload, Loader2, FileCheck2, Trash2, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
+import { Upload, Loader2, FileCheck2, Trash2, CheckCircle2, XCircle, ChevronRight, Coins, ArrowRightLeft, Plus } from 'lucide-react';
+
+const CUSTO_TIPO = { por_linha: 'Por linha (R$/item)', percentual: 'Percentual (% do conciliado)', ted: 'TED do repasse (R$)', fixo: 'Fixo (R$)' };
 
 const TIPO = { ok: 'Conciliado', parcial: 'Parcial', sem_desconto: 'Sem desconto', sem_contrato: 'Sem contrato' };
 const TIPO_DESC = { ok: 'desconto = esperado', parcial: 'descontado < esperado', sem_desconto: 'esperado sem desconto (inadimplência)', sem_contrato: 'desconto sem contrato (devolução)' };
@@ -54,13 +57,64 @@ export default function ConciliacaoFolha() {
   const [ocorr, setOcorr] = useState([]);
   const [filtro, setFiltro] = useState('todos');
   const [loadingOcc, setLoadingOcc] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // custos de processamento
+  const [custosOpen, setCustosOpen] = useState(false);
+  const [custos, setCustos] = useState([]);
+  const [custoForm, setCustoForm] = useState({ tipo: 'por_linha', valor: '', descricao: '' });
 
   const load = async () => {
     setLoading(true);
     const [r, cv] = await Promise.all([conciliacaoApi.listRetornos().catch(() => []), conveniosApi.list().catch(() => [])]);
     setRetornos(r); setConvenios(cv); setLoading(false);
+    return r;
   };
   useEffect(() => { load(); }, []);
+
+  // recarrega a lista e re-seleciona o retorno (para refletir o resumo financeiro)
+  const refreshSel = async (retornoId) => {
+    const rs = await load();
+    const r = rs.find((x) => x.id === retornoId);
+    if (r) setSel(r);
+    return r;
+  };
+
+  const gerarRepasse = async () => {
+    if (!sel) return;
+    setBusy(true);
+    try {
+      await conciliacaoApi.gerarRepasse(sel.id);
+      await auditoriaApi.log('gerar_repasse_conciliacao', 'retornos_folha', sel.id, { competencia: sel.competencia });
+      await refreshSel(sel.id);
+      toast.success('Repasse (líquido) gerado/atualizado em Conciliação (repasse).');
+    } catch (err) { toast.error(err.message || 'Falha ao gerar repasse.'); }
+    finally { setBusy(false); }
+  };
+
+  const abrirCustos = async () => {
+    if (!sel?.convenio_id) { toast.error('Retorno sem convênio.'); return; }
+    setCustos(await custosApi.list(sel.convenio_id).catch(() => []));
+    setCustoForm({ tipo: 'por_linha', valor: '', descricao: '' });
+    setCustosOpen(true);
+  };
+  const addCusto = async (e) => {
+    e.preventDefault();
+    if (num(custoForm.valor) == null) { toast.error('Informe o valor.'); return; }
+    try {
+      await custosApi.create({ convenio_id: sel.convenio_id, tipo: custoForm.tipo, valor: num(custoForm.valor), descricao: custoForm.descricao || null });
+      setCustos(await custosApi.list(sel.convenio_id));
+      setCustoForm({ tipo: 'por_linha', valor: '', descricao: '' });
+    } catch (err) { toast.error(err.message); }
+  };
+  const removerCusto = async (c) => {
+    try { await custosApi.remove(c.id); setCustos(await custosApi.list(sel.convenio_id)); } catch (err) { toast.error(err.message); }
+  };
+  const aplicarCustos = async () => {
+    setBusy(true);
+    try { await conciliacaoApi.recalcular(sel.id); await refreshSel(sel.id); setCustosOpen(false); toast.success('Custos aplicados ao líquido.'); }
+    catch (err) { toast.error(err.message); }
+    finally { setBusy(false); }
+  };
 
   const onFile = (file) => {
     if (!file) return;
@@ -81,8 +135,8 @@ export default function ConciliacaoFolha() {
       await auditoriaApi.log('conciliar_folha', 'retornos_folha', r.id, { competencia: form.competencia, itens: itens.length, resumo });
       toast.success(`Retorno conciliado: ${itens.length} linha(s).`);
       setForm({ convenio_id: '', competencia: '', arquivo_nome: '', csv: '' });
-      await load();
-      verOcorrencias(r);
+      const rs = await load();
+      verOcorrencias(rs.find((x) => x.id === r.id) || r);
     } catch (err) { toast.error(err.message || 'Falha ao conciliar.'); }
     finally { setImporting(false); }
   };
@@ -175,7 +229,27 @@ export default function ConciliacaoFolha() {
         <div className="bg-card rounded-xl border border-border shadow-sm p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm font-semibold text-foreground">Ocorrências — {sel.competencia} {sel.convenio?.nome ? `· ${sel.convenio.nome}` : ''}</p>
-            <button onClick={() => setSel(null)} className="text-xs text-muted-foreground hover:text-foreground">fechar</button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={abrirCustos} className="gap-1.5"><Coins className="w-3.5 h-3.5" /> Custos</Button>
+              <Button size="sm" onClick={gerarRepasse} disabled={busy} className="gap-1.5"><ArrowRightLeft className="w-3.5 h-3.5" /> Gerar repasse</Button>
+              <button onClick={() => setSel(null)} className="text-xs text-muted-foreground hover:text-foreground">fechar</button>
+            </div>
+          </div>
+
+          {/* Resumo financeiro: conciliado − custos = líquido a repassar */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border border-border bg-muted/30 p-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Conciliado</p>
+              <p className="text-base font-bold text-foreground num">{brl(sel.valor_conciliado)}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Custos</p>
+              <p className="text-base font-bold text-red-600 num">− {brl(sel.custo_total)}</p>
+            </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Líquido a repassar</p>
+              <p className="text-base font-bold text-primary num">{brl(sel.valor_liquido)}</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => verOcorrencias(sel, 'todos')} className={`px-2.5 py-1 rounded-full text-xs border ${filtro === 'todos' ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}>Todas ({ocorr.length})</button>
@@ -228,6 +302,44 @@ export default function ConciliacaoFolha() {
           )}
         </div>
       )}
+
+      {/* Custos de processamento do convênio */}
+      <Dialog open={custosOpen} onOpenChange={setCustosOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Coins className="w-4 h-4 text-primary" /> Custos de processamento {sel?.convenio?.nome ? `— ${sel.convenio.nome}` : ''}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5 max-h-52 overflow-y-auto">
+              {custos.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum custo cadastrado para este convênio.</p>
+                : custos.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                    <div>
+                      <p className="text-sm text-foreground">{CUSTO_TIPO[c.tipo] || c.tipo}</p>
+                      <p className="text-[11px] text-muted-foreground">{c.tipo === 'percentual' ? `${c.valor}%` : brl(c.valor)}{c.descricao ? ` · ${c.descricao}` : ''}</p>
+                    </div>
+                    <button onClick={() => removerCusto(c)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+            </div>
+            <form onSubmit={addCusto} className="border-t border-border pt-3 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-[11px]">Tipo</Label>
+                <Select value={custoForm.tipo} onValueChange={(v) => setCustoForm({ ...custoForm, tipo: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(CUSTO_TIPO).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label className="text-[11px]">{custoForm.tipo === 'percentual' ? 'Valor (%)' : 'Valor (R$)'}</Label><Input type="number" step="0.0001" value={custoForm.valor} onChange={(e) => setCustoForm({ ...custoForm, valor: e.target.value })} /></div>
+              <Button type="submit" variant="outline" className="gap-1.5"><Plus className="w-4 h-4" /> Add</Button>
+              <div className="space-y-1.5 sm:col-span-4"><Input value={custoForm.descricao} onChange={(e) => setCustoForm({ ...custoForm, descricao: e.target.value })} placeholder="Descrição (opcional)" /></div>
+            </form>
+            <p className="text-[11px] text-muted-foreground">Líquido = conciliado − (por-linha × itens + %·conciliado + TED + fixo).</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustosOpen(false)}>Fechar</Button>
+            <Button onClick={aplicarCustos} disabled={busy} className="gap-2">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Aplicar ao líquido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
