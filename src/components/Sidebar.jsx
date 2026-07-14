@@ -70,13 +70,24 @@ function Badge({ value, tone = 'default' }) {
   return <span className={`ml-auto shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold flex items-center justify-center ${cls}`}>{value > 99 ? '99+' : value}</span>;
 }
 
+// Ponto de notificação no ícone quando o menu está colapsado.
+function Dot({ value, tone = 'default' }) {
+  if (!value) return null;
+  return (
+    <span
+      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+      style={{ background: tone === 'danger' ? '#f4607f' : 'hsl(var(--sidebar-primary))', boxShadow: '0 0 0 2px hsl(var(--sidebar-background))' }}
+    />
+  );
+}
+
 function initials(nome) {
   if (!nome) return 'U';
   const p = nome.trim().split(/\s+/);
   return ((p[0]?.[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
 }
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed = false }) {
   const { perfil, isAdmin, activeUnidade, vinculos, hasAreaAccess } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -121,16 +132,19 @@ export default function Sidebar() {
   // Visibilidade = acesso por área (vínculo/admin) E módulo liberado pelo plano.
   const visibleAreas = allAreas.filter((a) => hasAreaAccess(a.codigo));
 
-  const itemClass = (active) => `snav-item ${active ? 'snav-item-active' : ''}`;
+  const itemClass = (active) => `snav-item ${active ? 'snav-item-active' : ''} ${collapsed ? 'justify-center !px-0' : ''}`;
 
   const navItem = (to, label, icon, badge = 0, tone = 'default') => {
     const active = location.pathname === to;
     const Icon = icon;
     return (
-      <Link key={to} to={to} className={itemClass(active)}>
-        <span className="snav-ico"><Icon className="w-4 h-4" /></span>
-        <span className="flex-1 truncate">{label}</span>
-        <Badge value={badge} tone={tone} />
+      <Link key={to} to={to} className={itemClass(active)} title={collapsed ? label : undefined}>
+        <span className="snav-ico relative">
+          <Icon className="w-4 h-4" />
+          {collapsed && <Dot value={badge} tone={tone} />}
+        </span>
+        {!collapsed && <span className="flex-1 truncate">{label}</span>}
+        {!collapsed && <Badge value={badge} tone={tone} />}
       </Link>
     );
   };
@@ -140,14 +154,16 @@ export default function Sidebar() {
     : [];
 
   return (
-    <aside className="snav w-64 flex flex-col h-full">
-      {/* Header — logomarca sobre glow de marca + divisor em fade */}
-      <div className="px-5 pt-6 pb-4">
-        <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-9 w-auto block" />
+    <aside className={`snav ${collapsed ? 'w-[76px]' : 'w-64'} flex flex-col h-full transition-[width] duration-200`}>
+      {/* Header — logomarca (símbolo quando colapsado) + divisor em fade */}
+      <div className={`${collapsed ? 'px-0 justify-center' : 'px-5'} pt-6 pb-4 flex items-center`}>
+        {collapsed
+          ? <img src="/brand/consigtec_logo_icon.png" alt="CONSIGTEC" className="h-8 w-8" />
+          : <img src="/brand/consigtec_logo_dark.png" alt="CONSIGTEC" className="h-9 w-auto block" />}
       </div>
-      <div className="snav-divider mx-4" />
+      <div className={`snav-divider ${collapsed ? 'mx-3' : 'mx-4'}`} />
 
-      {activeUnidade && (
+      {activeUnidade && !collapsed && (
         <div className="mx-3 mt-3 rounded-xl px-3 py-2.5" style={{ background: 'hsl(var(--sidebar-foreground) / 0.06)' }}>
           <p className="snav-label text-[10px] uppercase tracking-wider mb-1">Unidade ativa</p>
           <p className="text-xs font-medium truncate" style={{ color: 'hsl(var(--sidebar-foreground))' }}>{activeUnidade.nome}</p>
@@ -157,16 +173,16 @@ export default function Sidebar() {
         </div>
       )}
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      <nav className={`flex-1 overflow-y-auto overflow-x-hidden ${collapsed ? 'px-2' : 'px-3'} py-4 space-y-6`}>
         <div className="space-y-1">
-          <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Principal</p>
+          {!collapsed && <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Principal</p>}
           {navItem('/', 'Dashboard', LayoutDashboard)}
           {navItem('/pendencias', 'Central de Pendências', AlertCircle, n('pendencias_abertas'), n('pendencias_criticas') ? 'danger' : 'default')}
         </div>
 
         {visibleAreas.length > 0 && (
           <div className="space-y-1">
-            <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Áreas</p>
+            {!collapsed && <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Áreas</p>}
             {visibleAreas.map((area) => {
               const to = `/area/${area.codigo}`;
               const active = isOnArea(area.codigo);
@@ -174,17 +190,31 @@ export default function Sidebar() {
               const open = isOpen(area.codigo);
               const defaultTab = subitens?.[0]?.key;
               const emoji = AREA_ICONS[area.codigo] || '📁';
+              const aBadge = areaBadge(area.codigo);
+              const danger = area.codigo === 'cobranca';
+
+              // Colapsado: um único ícone por área que leva à página (as abas
+              // ficam disponíveis dentro do módulo).
+              if (collapsed) {
+                return (
+                  <Link key={area.id} to={to} className={itemClass(active)} title={area.nome}>
+                    <span className="snav-ico relative" aria-hidden>
+                      {emoji}
+                      <Dot value={aBadge} tone={danger ? 'danger' : 'default'} />
+                    </span>
+                  </Link>
+                );
+              }
 
               if (!subitens) {
                 return (
                   <Link key={area.id} to={to} className={itemClass(active)}>
                     <span className="snav-ico" aria-hidden>{emoji}</span>
                     <span className="flex-1 truncate">{area.nome}</span>
-                    <Badge value={areaBadge(area.codigo)} tone={area.codigo === 'cobranca' ? 'danger' : 'default'} />
+                    <Badge value={aBadge} tone={danger ? 'danger' : 'default'} />
                   </Link>
                 );
               }
-              const aBadge = areaBadge(area.codigo);
               return (
                 <div key={area.id}>
                   <div className={`${itemClass(active)} !pr-1`}>
@@ -229,7 +259,7 @@ export default function Sidebar() {
 
         {isAdmin && (
           <div className="space-y-1">
-            <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Administração</p>
+            {!collapsed && <p className="snav-label text-[10px] uppercase tracking-wider px-3 mb-2">Administração</p>}
             {navItem('/admin/usuarios', 'Usuários', Users)}
             {navItem('/admin/vinculos', 'Vínculos', Link2)}
             {navItem('/admin/areas', 'Áreas & Papéis', Settings)}
@@ -241,21 +271,34 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Rodapé — usuário com avatar + versão de build */}
-      <div className="px-3 py-3" style={{ borderTop: '1px solid hsl(var(--sidebar-border))' }}>
-        <div className="flex items-center gap-2.5 px-2 py-1">
-          <span
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-            style={{ background: 'hsl(var(--sidebar-primary) / 0.2)', color: 'hsl(var(--sidebar-primary))' }}
-          >
-            {initials(perfil?.nome)}
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-medium truncate" style={{ color: 'hsl(var(--sidebar-foreground))' }}>{perfil?.nome || 'Usuário'}</p>
-            <p className="snav-label text-[10px] truncate">{perfil?.email}</p>
+      {/* Rodapé — usuário com avatar (só o avatar quando colapsado) + versão */}
+      <div className={`${collapsed ? 'px-2' : 'px-3'} py-3`} style={{ borderTop: '1px solid hsl(var(--sidebar-border))' }}>
+        {collapsed ? (
+          <div className="flex justify-center py-1" title={perfil?.nome}>
+            <span
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+              style={{ background: 'hsl(var(--sidebar-primary) / 0.2)', color: 'hsl(var(--sidebar-primary))' }}
+            >
+              {initials(perfil?.nome)}
+            </span>
           </div>
-        </div>
-        <p className="snav-label text-[10px] mt-2 px-2 opacity-70" title={`Build ${BUILD_TIME}`}>CONSIGTEC {buildLabel()}</p>
+        ) : (
+          <>
+            <div className="flex items-center gap-2.5 px-2 py-1">
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                style={{ background: 'hsl(var(--sidebar-primary) / 0.2)', color: 'hsl(var(--sidebar-primary))' }}
+              >
+                {initials(perfil?.nome)}
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium truncate" style={{ color: 'hsl(var(--sidebar-foreground))' }}>{perfil?.nome || 'Usuário'}</p>
+                <p className="snav-label text-[10px] truncate">{perfil?.email}</p>
+              </div>
+            </div>
+            <p className="snav-label text-[10px] mt-2 px-2 opacity-70" title={`Build ${BUILD_TIME}`}>CONSIGTEC {buildLabel()}</p>
+          </>
+        )}
       </div>
     </aside>
   );
