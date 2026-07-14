@@ -12,11 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Target, Pencil, BellRing } from 'lucide-react';
+import { Target, Pencil, BellRing, Loader2, Inbox } from 'lucide-react';
+import { PageHeader, StatusBadge, EmptyState } from '@/components/kit';
 
 const PRIOR = { alta: 'Alta', media: 'Média', baixa: 'Baixa', sem_prioridade: 'Sem prioridade' };
 const PRIOR_ORDER = { alta: 0, media: 1, baixa: 2, sem_prioridade: 3 };
-const PRIOR_COR = { alta: 'bg-green-50 text-green-700', media: 'bg-amber-50 text-amber-700', baixa: 'bg-slate-100 text-slate-600', sem_prioridade: 'bg-slate-100 text-slate-400' };
+const PRIOR_COR = { alta: 'bg-green-50 text-green-700', media: 'bg-amber-50 text-amber-700', baixa: 'bg-muted text-muted-foreground', sem_prioridade: 'bg-muted text-muted-foreground' };
 function competenciaAtual() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
 const pct = (n, d) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
@@ -109,45 +110,47 @@ export default function ComercialPlanejamento() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-slate-500 inline-flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Planejamento comercial — prioridade dos municípios e metas ({competencia})</p>
-        {isAdmin && <Button variant="outline" onClick={enviarAlertas} className="gap-2"><BellRing className="w-4 h-4" /> Enviar alertas de meta</Button>}
-      </div>
+      <PageHeader
+        icon={Target}
+        title="Planejamento comercial"
+        subtitle={`Prioridade dos municípios e metas (${competencia})`}
+        actions={isAdmin && <Button variant="outline" onClick={enviarAlertas} className="gap-2"><BellRing className="w-4 h-4" /> Enviar alertas de meta</Button>}
+      />
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : ordenados.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState icon={Loader2} title="Carregando…" />
+        : ordenados.length === 0 ? <EmptyState icon={Inbox} title="Nenhum convênio" />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Convênio / Município</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Prioridade</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Potencial</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Meta</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Realizado</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Atingimento</th>
-              {isAdmin && <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>}
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Convênio / Município</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Prioridade</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Potencial</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Meta</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Realizado</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Atingimento</th>
+              {isAdmin && <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>}
             </tr></thead>
             <tbody>
               {ordenados.map((c) => {
                 const meta = metaDe(c.id); const real = realDe(c.id);
                 const atg = meta?.meta_vendas ? pct(Number(real.vendas), meta.meta_vendas) : null;
                 return (
-                  <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{c.nome}</td>
+                  <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{c.nome}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${PRIOR_COR[c.prioridade_comercial]}`}>{PRIOR[c.prioridade_comercial]}</span>
+                      <StatusBadge className={PRIOR_COR[c.prioridade_comercial]}>{PRIOR[c.prioridade_comercial]}</StatusBadge>
                       {abaixoRitmo(c) && <span className="ml-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600" title="Abaixo do ritmo da meta"><BellRing className="w-3 h-3" /> ritmo</span>}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-600 num hidden sm:table-cell">{c.potencial_vendas ?? '—'}</td>
-                    <td className="px-4 py-3 text-right text-slate-700 num">{meta?.meta_vendas ?? '—'}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground num hidden sm:table-cell">{c.potencial_vendas ?? '—'}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground num">{meta?.meta_vendas ?? '—'}</td>
                     <td className="px-4 py-3 text-right num font-medium text-green-700">{real.vendas} · {brl(real.valor)}</td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       {atg != null ? (
-                        <div className="w-28"><div className="h-2 bg-slate-100 rounded overflow-hidden"><div className="h-full bar-brand" style={{ width: `${Math.min(atg, 100)}%` }} /></div><p className="text-[10px] text-slate-400 text-right mt-0.5">{atg}%</p></div>
-                      ) : <span className="text-xs text-slate-300">sem meta</span>}
+                        <div className="w-28"><div className="h-2 bg-muted rounded overflow-hidden"><div className="h-full bar-brand" style={{ width: `${Math.min(atg, 100)}%` }} /></div><p className="text-[10px] text-muted-foreground text-right mt-0.5">{atg}%</p></div>
+                      ) : <span className="text-xs text-muted-foreground/60">sem meta</span>}
                     </td>
-                    {isAdmin && <td className="px-4 py-3 text-right"><button onClick={() => abrir(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>}
+                    {isAdmin && <td className="px-4 py-3 text-right"><button onClick={() => abrir(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button></td>}
                   </tr>
                 );
               })}

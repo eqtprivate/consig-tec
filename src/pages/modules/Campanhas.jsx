@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { campanhasApi } from '@/lib/api/crm';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
-import { brl, dataBR } from '@/lib/format';
+import { dataBR } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil } from 'lucide-react';
+import { PageHeader, EmptyState } from '@/components/kit';
+import { Plus, Pencil, Megaphone } from 'lucide-react';
 
 const emptyForm = { nome: '', canal: '', data_inicio: '', data_fim: '', meta_leads: '', meta_valor: '', ativo: true, descricao: '' };
 const num = (v) => (v === '' || v == null ? null : Number(v));
@@ -46,32 +47,33 @@ export default function Campanhas() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Campanhas de originação e metas</p>
-        <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova campanha</Button>
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma campanha.</div>
+      <PageHeader
+        title="Campanhas"
+        subtitle="Campanhas de originação e metas"
+        actions={<Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova campanha</Button>}
+      />
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : itens.length === 0 ? <EmptyState icon={Megaphone} title="Nenhuma campanha." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nome</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Canal</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Meta leads</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Período</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ativa</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Nome</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Canal</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Meta leads</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Período</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ativa</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{c.nome}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">{c.canal || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden md:table-cell num">{c.meta_leads ?? '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell text-xs">{dataBR(c.data_inicio)}{c.data_fim ? ` – ${dataBR(c.data_fim)}` : ''}</td>
-                  <td className="px-4 py-3">{c.ativo ? <span className="text-xs text-green-700">Sim</span> : <span className="text-xs text-slate-400">Não</span>}</td>
-                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{c.nome}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{c.canal || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell num">{c.meta_leads ?? '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell text-xs">{dataBR(c.data_inicio)}{c.data_fim ? ` – ${dataBR(c.data_fim)}` : ''}</td>
+                  <td className="px-4 py-3">{c.ativo ? <span className="text-xs text-green-700">Sim</span> : <span className="text-xs text-muted-foreground">Não</span>}</td>
+                  <td className="px-4 py-3 text-right"><button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button></td>
                 </tr>
               ))}
             </tbody>
