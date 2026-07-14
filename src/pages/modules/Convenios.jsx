@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { confirmar } from '@/lib/confirm';
 import Tip from '@/components/Tip';
 import { useSortable, sortRows, SortTh, norm } from '@/lib/table';
+import { EmptyState } from '@/components/kit';
 
 const TIPOS = { publico: 'Público', privado: 'Privado', inss: 'INSS', militar: 'Militar' };
 const MARGENS = { apartada: 'Apartada', principal: 'Principal', cartao: 'Cartão' };
@@ -32,7 +33,7 @@ const emptyProd = {
   margem_percentual: '', rotativo: true, saque_vinculado: true, ativo: true,
 };
 const ORIGENS = { manual: 'Manual', csv: 'CSV', pixconsig: 'PixConsig' };
-const ORIGEM_CORES = { manual: 'bg-slate-100 text-slate-600', csv: 'bg-amber-50 text-amber-700', pixconsig: 'bg-blue-50 text-blue-700' };
+const ORIGEM_CORES = { manual: 'bg-muted text-muted-foreground', csv: 'bg-amber-50 text-amber-700', pixconsig: 'bg-blue-50 text-blue-700' };
 
 const emptyForm = {
   nome: '', cidade: '', uf: '', cnpj: '', tipo: 'publico', tipo_margem: 'cartao',
@@ -265,7 +266,7 @@ export default function Convenios() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Convênios (espelho PixConsig) + overlay comercial</p>
+        <p className="text-sm text-muted-foreground">Convênios (espelho PixConsig) + overlay comercial</p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { setMargemConv(''); setMargemCsv(''); setMargemRes(null); setMargemOpen(true); }} className="gap-2"><Wallet className="w-4 h-4" /> Base de margem</Button>
           <Button variant="outline" onClick={() => { setCsv(''); setImportRes(null); setImportOpen(true); }} className="gap-2"><Upload className="w-4 h-4" /> Importar CSV</Button>
@@ -276,7 +277,7 @@ export default function Convenios() {
       {/* Busca + filtros */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome, cidade, UF ou CNPJ…" className="pl-9" />
         </div>
         <div className="w-40">
@@ -308,48 +309,48 @@ export default function Convenios() {
           </Select>
         </div>
         {temFiltro && (
-          <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1 text-slate-500"><X className="w-3.5 h-3.5" /> Limpar</Button>
+          <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1 text-muted-foreground"><X className="w-3.5 h-3.5" /> Limpar</Button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState title="Carregando…" />
         ) : convenios.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio cadastrado.</div>
+          <EmptyState icon={Wallet} title="Nenhum convênio cadastrado." />
         ) : view.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio corresponde aos filtros.</div>
+          <EmptyState icon={Search} title="Nenhum convênio corresponde aos filtros." />
         ) : (
           <>
-          <div className="px-4 py-2 text-[11px] text-slate-400 border-b border-slate-100">{view.length} de {convenios.length} convênio(s)</div>
+          <div className="px-4 py-2 text-[11px] text-muted-foreground border-b border-border">{view.length} de {convenios.length} convênio(s)</div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
+              <tr className="border-b border-border bg-muted/50">
                 <SortTh label="Nome" sortKey="nome" sort={sort} onSort={toggle} />
                 <SortTh label="Cidade/UF" sortKey="cidade" sort={sort} onSort={toggle} className="hidden md:table-cell" />
                 <SortTh label="Margem" sortKey="margem" sort={sort} onSort={toggle} />
                 <SortTh label="Apartada" sortKey="apartada" sort={sort} onSort={toggle} align="right" className="hidden lg:table-cell" />
                 <SortTh label="Origem" sortKey="origem" sort={sort} onSort={toggle} className="hidden sm:table-cell" />
                 <SortTh label="Status" sortKey="status" sort={sort} onSort={toggle} />
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
               {view.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{c.nome}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{[c.entidade?.cidade || c.orgao, c.entidade?.uf].filter(Boolean).join('/') || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{MARGENS[c.tipo_margem] || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{c.percentual_margem_apartada != null ? `${c.percentual_margem_apartada}%` : '—'}</td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{c.nome}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{[c.entidade?.cidade || c.orgao, c.entidade?.uf].filter(Boolean).join('/') || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{MARGENS[c.tipo_margem] || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{c.percentual_margem_apartada != null ? `${c.percentual_margem_apartada}%` : '—'}</td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${ORIGEM_CORES[c.origem_dado] || ORIGEM_CORES.manual}`}>{ORIGENS[c.origem_dado] || 'Manual'}</span>
                   </td>
-                  <td className="px-4 py-3"><span className={`text-xs ${c.ativo ? 'text-green-700' : 'text-slate-400'}`}>{c.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                  <td className="px-4 py-3"><span className={`text-xs ${c.ativo ? 'text-green-700' : 'text-muted-foreground'}`}>{c.ativo ? 'Ativo' : 'Inativo'}</span></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Tip label="Produtos do convênio"><button onClick={() => openProdutos(c)} className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/5 rounded"><Package className="w-4 h-4" /></button></Tip>
-                      <Tip label="Editar"><button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button></Tip>
-                      <Tip label="Remover"><button onClick={() => handleDelete(c)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button></Tip>
+                      <Tip label="Produtos do convênio"><button onClick={() => openProdutos(c)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded"><Package className="w-4 h-4" /></button></Tip>
+                      <Tip label="Editar"><button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button></Tip>
+                      <Tip label="Remover"><button onClick={() => handleDelete(c)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button></Tip>
                     </div>
                   </td>
                 </tr>
@@ -365,7 +366,7 @@ export default function Convenios() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editItem ? 'Editar convênio' : 'Novo convênio'}</DialogTitle></DialogHeader>
           <form onSubmit={handleSave} className="space-y-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Entidade / Convênio</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Entidade / Convênio</p>
             <div className="space-y-2">
               <Label>Nome</Label>
               <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
@@ -385,7 +386,7 @@ export default function Convenios() {
               </div>
             </div>
 
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider pt-2">Produto / Margem (cartão benefício)</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">Produto / Margem (cartão benefício)</p>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Tipo margem</Label>
@@ -399,19 +400,19 @@ export default function Convenios() {
             </div>
             <div className="space-y-2"><Label>Taxa a.m. %</Label><Input type="number" step="0.0001" value={form.taxa_mensal} onChange={(e) => setForm({ ...form, taxa_mensal: e.target.value })} /></div>
 
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider pt-2">Overlay comercial (CONSIGTEC)</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">Overlay comercial (CONSIGTEC)</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Comissão prefeitura %</Label><Input type="number" step="0.0001" value={form.comissao_prefeitura} onChange={(e) => setForm({ ...form, comissao_prefeitura: e.target.value })} /></div>
               <div className="space-y-2"><Label>Spread %</Label><Input type="number" step="0.0001" value={form.spread} onChange={(e) => setForm({ ...form, spread: e.target.value })} /></div>
             </div>
             <div>
-              <Label className="text-xs text-slate-500">Rateio da comissão (%)</Label>
+              <Label className="text-xs text-muted-foreground">Rateio da comissão (%)</Label>
               <div className="grid grid-cols-5 gap-2 mt-1">
-                <div><span className="text-[10px] text-slate-400">Canal</span><Input type="number" step="0.01" value={form.rateio_canal} onChange={(e) => setForm({ ...form, rateio_canal: e.target.value })} /></div>
-                <div><span className="text-[10px] text-slate-400">Franquia</span><Input type="number" step="0.01" value={form.rateio_franquia} onChange={(e) => setForm({ ...form, rateio_franquia: e.target.value })} /></div>
-                <div><span className="text-[10px] text-slate-400">Líder</span><Input type="number" step="0.01" value={form.rateio_lider} onChange={(e) => setForm({ ...form, rateio_lider: e.target.value })} /></div>
-                <div><span className="text-[10px] text-slate-400">Corban</span><Input type="number" step="0.01" value={form.rateio_corban} onChange={(e) => setForm({ ...form, rateio_corban: e.target.value })} /></div>
-                <div><span className="text-[10px] text-slate-400">Operador</span><Input type="number" step="0.01" value={form.rateio_operador} onChange={(e) => setForm({ ...form, rateio_operador: e.target.value })} /></div>
+                <div><span className="text-[10px] text-muted-foreground">Canal</span><Input type="number" step="0.01" value={form.rateio_canal} onChange={(e) => setForm({ ...form, rateio_canal: e.target.value })} /></div>
+                <div><span className="text-[10px] text-muted-foreground">Franquia</span><Input type="number" step="0.01" value={form.rateio_franquia} onChange={(e) => setForm({ ...form, rateio_franquia: e.target.value })} /></div>
+                <div><span className="text-[10px] text-muted-foreground">Líder</span><Input type="number" step="0.01" value={form.rateio_lider} onChange={(e) => setForm({ ...form, rateio_lider: e.target.value })} /></div>
+                <div><span className="text-[10px] text-muted-foreground">Corban</span><Input type="number" step="0.01" value={form.rateio_corban} onChange={(e) => setForm({ ...form, rateio_corban: e.target.value })} /></div>
+                <div><span className="text-[10px] text-muted-foreground">Operador</span><Input type="number" step="0.01" value={form.rateio_operador} onChange={(e) => setForm({ ...form, rateio_operador: e.target.value })} /></div>
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -435,7 +436,7 @@ export default function Convenios() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Atualizar base de margem (arquivo da averbadora)</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Sem integração online, a margem é atualizada pelo arquivo periódico da averbadora.
               Casa por <code className="font-mono text-xs">cpf</code> (+ <code className="font-mono text-xs">matricula</code>, se houver) dentro do convênio e carimba a data de atualização.
             </p>
@@ -454,7 +455,7 @@ export default function Convenios() {
               margemRes.erro ? (
                 <p className="text-sm text-red-600">{margemRes.erro}</p>
               ) : (
-                <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm text-slate-700">
+                <div className="rounded-lg bg-muted border border-border p-3 text-sm text-foreground">
                   <b>{margemRes.atualizados}</b> vínculo(s) atualizado(s) de <b>{margemRes.total}</b> ·
                   {' '}{margemRes.nao_encontrados} não encontrado(s) · {margemRes.ignorados} ignorado(s).
                 </div>
@@ -474,35 +475,35 @@ export default function Convenios() {
           <DialogHeader><DialogTitle>Produtos — {prodConv?.nome}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <p className="text-xs text-slate-500">Parâmetros por produto (taxa, prazo, valor, idade e margem). Usados na consulta de margem e na simulação.</p>
+              <p className="text-xs text-muted-foreground">Parâmetros por produto (taxa, prazo, valor, idade e margem). Usados na consulta de margem e na simulação.</p>
               <Button size="sm" onClick={openProdCreate} className="gap-1"><Plus className="w-4 h-4" /> Produto</Button>
             </div>
             {produtos.length === 0 ? (
-              <div className="p-8 text-center text-sm text-slate-400">Nenhum produto parametrizado.</div>
+              <EmptyState icon={Package} title="Nenhum produto parametrizado." />
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="text-left px-3 py-2 font-medium text-slate-500 uppercase text-xs">Produto</th>
-                    <th className="text-left px-3 py-2 font-medium text-slate-500 uppercase text-xs">Margem</th>
-                    <th className="text-right px-3 py-2 font-medium text-slate-500 uppercase text-xs">Taxa</th>
-                    <th className="text-right px-3 py-2 font-medium text-slate-500 uppercase text-xs">Prazo</th>
-                    <th className="text-left px-3 py-2 font-medium text-slate-500 uppercase text-xs">Status</th>
-                    <th className="text-right px-3 py-2 font-medium text-slate-500 uppercase text-xs">Ações</th>
+                  <tr className="border-b border-border bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground uppercase text-xs">Produto</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground uppercase text-xs">Margem</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground uppercase text-xs">Taxa</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground uppercase text-xs">Prazo</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground uppercase text-xs">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {produtos.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
-                      <td className="px-3 py-2 font-medium text-slate-800">{p.nome || PRODUTOS[p.produto] || p.produto}</td>
-                      <td className="px-3 py-2 text-slate-600">{MARGENS[p.tipo_margem] || '—'}{p.margem_percentual != null ? ` · ${p.margem_percentual}%` : ''}</td>
-                      <td className="px-3 py-2 text-right text-slate-600">{p.taxa_mensal != null ? `${p.taxa_mensal}%` : '—'}</td>
-                      <td className="px-3 py-2 text-right text-slate-600">{[p.prazo_min, p.prazo_max].filter((x) => x != null).join('–') || '—'}</td>
-                      <td className="px-3 py-2"><span className={`text-xs ${p.ativo ? 'text-green-700' : 'text-slate-400'}`}>{p.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                    <tr key={p.id} className="border-b border-border hover:bg-muted/50">
+                      <td className="px-3 py-2 font-medium text-foreground">{p.nome || PRODUTOS[p.produto] || p.produto}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{MARGENS[p.tipo_margem] || '—'}{p.margem_percentual != null ? ` · ${p.margem_percentual}%` : ''}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{p.taxa_mensal != null ? `${p.taxa_mensal}%` : '—'}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{[p.prazo_min, p.prazo_max].filter((x) => x != null).join('–') || '—'}</td>
+                      <td className="px-3 py-2"><span className={`text-xs ${p.ativo ? 'text-green-700' : 'text-muted-foreground'}`}>{p.ativo ? 'Ativo' : 'Inativo'}</span></td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex justify-end gap-1">
-                          <button onClick={() => openProdEdit(p)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
-                          <button onClick={() => removeProd(p)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => openProdEdit(p)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => removeProd(p)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
@@ -570,19 +571,19 @@ export default function Convenios() {
           <DialogHeader><DialogTitle>Importar convênios (espelho PixConsig)</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="flex gap-2">
-              <button type="button" onClick={() => setImportFmt('csv')} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${importFmt === 'csv' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-500'}`}>CSV</button>
-              <button type="button" onClick={() => setImportFmt('json')} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${importFmt === 'json' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-500'}`}>JSON (API PixConsig v1)</button>
+              <button type="button" onClick={() => setImportFmt('csv')} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${importFmt === 'csv' ? 'border-primary text-primary bg-primary/5' : 'border-border text-muted-foreground'}`}>CSV</button>
+              <button type="button" onClick={() => setImportFmt('json')} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${importFmt === 'json' ? 'border-primary text-primary bg-primary/5' : 'border-border text-muted-foreground'}`}>JSON (API PixConsig v1)</button>
             </div>
             {importFmt === 'csv' ? (
-              <p className="text-sm text-slate-500">Cole o CSV ou selecione um arquivo — upsert por <code className="font-mono text-xs">pixconsig_convenio_id</code>.</p>
+              <p className="text-sm text-muted-foreground">Cole o CSV ou selecione um arquivo — upsert por <code className="font-mono text-xs">pixconsig_convenio_id</code>.</p>
             ) : (
-              <p className="text-sm text-slate-500">Cole o JSON da API v1 (<code className="font-mono text-xs">{'{ data: [...] }'}</code> ou array). Sincroniza cadastro + margem; taxa/spread/comissão continuam do CONSIGTEC. REPROVADA é ignorada.</p>
+              <p className="text-sm text-muted-foreground">Cole o JSON da API v1 (<code className="font-mono text-xs">{'{ data: [...] }'}</code> ou array). Sincroniza cadastro + margem; taxa/spread/comissão continuam do CONSIGTEC. REPROVADA é ignorada.</p>
             )}
             {importFmt === 'csv' && <Input type="file" accept=".csv,text/csv" onChange={onFile} />}
             <Textarea rows={6} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder={importFmt === 'json' ? '{ "data": [ { "id": "...", "entidade": {...}, "credenciamento": {...}, "produtos": [...] } ] }' : 'pixconsig_convenio_id,cnpj,nome_oficial,cidade,uf,status,...'} className="font-mono text-xs" />
             {importRes && (
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm">
-                <p className="text-slate-700"><b>{importRes.ok}</b> de <b>{importRes.total}</b> convênios importados.</p>
+              <div className="rounded-lg bg-muted border border-border p-3 text-sm">
+                <p className="text-foreground"><b>{importRes.ok}</b> de <b>{importRes.total}</b> convênios importados.</p>
                 {importRes.erros.length > 0 && (
                   <ul className="mt-1 text-xs text-red-600 list-disc list-inside max-h-32 overflow-y-auto">
                     {importRes.erros.map((e, i) => <li key={i}>{e}</li>)}

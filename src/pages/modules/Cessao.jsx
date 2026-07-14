@@ -13,12 +13,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Panel, StatusBadge, EmptyState } from '@/components/kit';
 import { Plus, Pencil, Trash2, FileText, Layers } from 'lucide-react';
 
 const C_STATUS = { rascunho: 'Rascunho', assinada: 'Assinada', integrada: 'Integrada', conciliada: 'Conciliada', cancelada: 'Cancelada' };
 const C_CORES = {
-  rascunho: 'bg-slate-100 text-slate-600', assinada: 'bg-blue-50 text-blue-700', integrada: 'bg-amber-50 text-amber-700',
-  conciliada: 'bg-green-50 text-green-700', cancelada: 'bg-slate-100 text-slate-400',
+  rascunho: 'bg-muted text-muted-foreground', assinada: 'bg-blue-50 text-blue-700', integrada: 'bg-amber-50 text-amber-700',
+  conciliada: 'bg-green-50 text-green-700', cancelada: 'bg-muted text-muted-foreground',
 };
 
 /* ------------------------------ Termos ------------------------------ */
@@ -104,33 +105,33 @@ function TermosTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Termos de cessão de recebíveis ao FIDC (multi-fundo)</p>
+        <p className="text-sm text-muted-foreground">Termos de cessão de recebíveis ao FIDC (multi-fundo)</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo termo</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum termo de cessão.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : itens.length === 0 ? <EmptyState icon={FileText} title="Nenhum termo de cessão." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Referência</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Fundo</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Valor</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Data</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Referência</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Fundo</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Valor</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Data</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((t) => (
-                <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800">{t.referencia || t.id.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{t.fundo?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 num">{brl(t.valor_total)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{dataBR(t.data_cessao)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${C_CORES[t.status]}`}>{C_STATUS[t.status]}</span></td>
+                <tr key={t.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-medium text-foreground">{t.referencia || t.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{t.fundo?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground num">{brl(t.valor_total)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{dataBR(t.data_cessao)}</td>
+                  <td className="px-4 py-3"><StatusBadge className={C_CORES[t.status]}>{C_STATUS[t.status]}</StatusBadge></td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <button onClick={() => abrirItens(t)} title="Títulos" className="p-1.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded"><Layers className="w-4 h-4" /></button>
-                    <button onClick={() => openEdit(t)} title="Editar" className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => abrirItens(t)} title="Títulos" className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded"><Layers className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(t)} title="Editar" className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -191,20 +192,20 @@ function TermosTab() {
             <Button size="sm" variant="outline" onClick={montarLastro} disabled={montando} className="gap-2"><Layers className="w-4 h-4" /> {montando ? 'Montando…' : 'Montar lastro automático'}</Button>
           </div>
           <div className="space-y-2 max-h-56 overflow-y-auto">
-            {detItens.length === 0 ? <p className="text-sm text-slate-400 py-2">Nenhum título neste termo.</p>
+            {detItens.length === 0 ? <p className="text-sm text-muted-foreground py-2">Nenhum título neste termo.</p>
             : detItens.map((i) => (
-              <div key={i.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+              <div key={i.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800">{i.titulo || i.ccb?.numero || '—'} <span className="text-xs text-slate-400">{i.emitente}</span></p>
-                  <p className="text-xs text-slate-400">venc. {dataBR(i.vencimento)} · {brl(i.valor)} · ágio/deságio {brl(i.agio_desagio)}</p>
+                  <p className="text-sm font-medium text-foreground">{i.titulo || i.ccb?.numero || '—'} <span className="text-xs text-muted-foreground">{i.emitente}</span></p>
+                  <p className="text-xs text-muted-foreground">venc. {dataBR(i.vencimento)} · {brl(i.valor)} · ágio/deságio {brl(i.agio_desagio)}</p>
                 </div>
-                <button onClick={() => rmItem(i.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => rmItem(i.id)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             ))}
           </div>
-          <div className="text-xs text-slate-500 border-t border-slate-100 pt-2">Total dos títulos: <span className="font-medium text-slate-700 num">{brl(totalItens)}</span></div>
-          <form onSubmit={addItem} className="space-y-3 border-t border-slate-100 pt-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Adicionar título</p>
+          <div className="text-xs text-muted-foreground border-t border-border pt-2">Total dos títulos: <span className="font-medium text-muted-foreground num">{brl(totalItens)}</span></div>
+          <form onSubmit={addItem} className="space-y-3 border-t border-border pt-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Adicionar título</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label>CCB</Label>
@@ -243,18 +244,17 @@ function MiniCadastro({ titulo, api, extra }) {
     catch (err) { toast.error(err.message); }
   };
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <p className="text-sm font-semibold text-slate-700 mb-2">{titulo}</p>
+    <Panel title={titulo}>
       <div className="space-y-1 mb-3 max-h-32 overflow-y-auto">
-        {itens.length === 0 ? <p className="text-xs text-slate-400">Nenhum.</p>
-        : itens.map((i) => <p key={i.id} className="text-xs text-slate-600">{i.nome} {i.cnpj ? <span className="text-slate-400">· {i.cnpj}</span> : ''}</p>)}
+        {itens.length === 0 ? <p className="text-xs text-muted-foreground">Nenhum.</p>
+        : itens.map((i) => <p key={i.id} className="text-xs text-muted-foreground">{i.nome} {i.cnpj ? <span className="text-muted-foreground">· {i.cnpj}</span> : ''}</p>)}
       </div>
       <form onSubmit={add} className="flex gap-2">
         <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" className="h-8 text-sm" />
         <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="CNPJ" className="h-8 text-sm w-40" />
         <Button type="submit" size="sm" className="h-8">+</Button>
       </form>
-    </div>
+    </Panel>
   );
 }
 
@@ -286,11 +286,10 @@ function FundosTab() {
         <MiniCadastro titulo="Cedentes" api={cedentesApi} />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <p className="text-sm font-semibold text-slate-700 mb-3">Fundos</p>
+      <Panel title="Fundos">
         <div className="space-y-1 mb-3 max-h-40 overflow-y-auto">
-          {fundos.length === 0 ? <p className="text-xs text-slate-400">Nenhum fundo.</p>
-          : fundos.map((f) => <p key={f.id} className="text-sm text-slate-600">{f.nome} <span className="text-xs text-slate-400">· {f.tipo || '—'} · gestora {f.gestora?.nome || '—'} · adm {f.administradora?.nome || '—'}</span></p>)}
+          {fundos.length === 0 ? <p className="text-xs text-muted-foreground">Nenhum fundo.</p>
+          : fundos.map((f) => <p key={f.id} className="text-sm text-muted-foreground">{f.nome} <span className="text-xs text-muted-foreground">· {f.tipo || '—'} · gestora {f.gestora?.nome || '—'} · adm {f.administradora?.nome || '—'}</span></p>)}
         </div>
         <form onSubmit={addFundo} className="grid grid-cols-2 md:grid-cols-5 gap-2">
           <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Nome do fundo" className="h-8 text-sm md:col-span-2" />
@@ -305,7 +304,7 @@ function FundosTab() {
           </Select>
           <Button type="submit" size="sm" className="h-8 md:col-span-5 md:w-32"><Plus className="w-4 h-4 mr-1" /> Fundo</Button>
         </form>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -331,32 +330,32 @@ function PddTab() {
   };
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {itens.length === 0 ? <div className="p-8 text-center text-sm text-slate-400">Nenhum registro de PDD.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {itens.length === 0 ? <EmptyState icon={FileText} title="Nenhum registro de PDD." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Competência</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Fundo</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Saldo carteira</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">PDD</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">%</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Competência</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Fundo</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Saldo carteira</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">PDD</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">%</th>
             </tr></thead>
             <tbody>
               {itens.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100">
-                  <td className="px-4 py-3 font-medium text-slate-800">{r.competencia}</td>
-                  <td className="px-4 py-3 text-slate-600">{r.fundo?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-right num text-slate-700">{brl(r.saldo_carteira)}</td>
-                  <td className="px-4 py-3 text-right num text-slate-700">{brl(r.pdd_valor)}</td>
-                  <td className="px-4 py-3 text-right num text-slate-600">{r.pdd_percentual != null ? `${r.pdd_percentual}%` : '—'}</td>
+                <tr key={r.id} className="border-b border-border">
+                  <td className="px-4 py-3 font-medium text-foreground">{r.competencia}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{r.fundo?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-right num text-muted-foreground">{brl(r.saldo_carteira)}</td>
+                  <td className="px-4 py-3 text-right num text-muted-foreground">{brl(r.pdd_valor)}</td>
+                  <td className="px-4 py-3 text-right num text-muted-foreground">{r.pdd_percentual != null ? `${r.pdd_percentual}%` : '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-      <form onSubmit={add} className="bg-white rounded-xl border border-slate-200 p-4 grid grid-cols-2 md:grid-cols-6 gap-2">
+      <form onSubmit={add} className="bg-card rounded-xl border border-border shadow-sm p-4 grid grid-cols-2 md:grid-cols-6 gap-2">
         <Input value={form.competencia} onChange={(e) => setForm({ ...form, competencia: e.target.value })} placeholder="AAAA-MM" className="h-8 text-sm" />
         <Select value={form.fundo_id} onValueChange={(v) => setForm({ ...form, fundo_id: v })}>
           <SelectTrigger className="h-8 text-sm md:col-span-2"><SelectValue placeholder="Fundo" /></SelectTrigger>
@@ -376,13 +375,13 @@ const TABS = [{ key: 'termos', label: 'Termos de cessão' }, { key: 'fundos', la
 export default function Cessao() {
   const { isAdmin } = useAuth();
   const [tab, setTab] = useTabParam('termos');
-  if (!isAdmin) return <p className="text-sm text-slate-500">A camada de cessão/FIDC é restrita a administradores do grupo.</p>;
+  if (!isAdmin) return <p className="text-sm text-muted-foreground">A camada de cessão/FIDC é restrita a administradores do grupo.</p>;
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}

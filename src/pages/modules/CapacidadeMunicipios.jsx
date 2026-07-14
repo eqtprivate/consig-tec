@@ -5,14 +5,15 @@ import { brl, dataBR } from '@/lib/format';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { StatCard, StatusBadge, EmptyState } from '@/components/kit';
 import { TrendingUp, Users, Wallet, Star, Search, X } from 'lucide-react';
 import { useSortable, sortRows, SortTh, norm } from '@/lib/table';
 
 const PRIO = {
   alta: { label: 'Alta', cls: 'bg-green-100 text-green-800', ord: 0 },
   media: { label: 'Média', cls: 'bg-amber-100 text-amber-800', ord: 1 },
-  baixa: { label: 'Baixa', cls: 'bg-slate-100 text-slate-600', ord: 2 },
-  sem_prioridade: { label: 'Sem prioridade', cls: 'bg-slate-50 text-slate-400', ord: 3 },
+  baixa: { label: 'Baixa', cls: 'bg-muted text-muted-foreground', ord: 2 },
+  sem_prioridade: { label: 'Sem prioridade', cls: 'bg-muted text-muted-foreground', ord: 3 },
 };
 const compAtual = () => new Date().toISOString().slice(0, 7);
 
@@ -70,20 +71,20 @@ export default function CapacidadeMunicipios() {
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-slate-500">Capacidade de geração de vendas por município — margem apartada elegível disponível × prioridade comercial e metas de <b>{comp}</b>.</p>
+      <p className="text-sm text-muted-foreground">Capacidade de geração de vendas por município — margem apartada elegível disponível × prioridade comercial e metas de <b>{comp}</b>.</p>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Kpi icon={Wallet} label="Margem elegível total" value={brl(totalMargem)} />
-        <Kpi icon={Star} label="Margem em prioritários" value={brl(margemPrioritaria)} sub={`${prioritarios.length} município(s) alta/média`} />
-        <Kpi icon={Users} label="Tomadores elegíveis" value={String(totalTomadores)} />
-        <Kpi icon={TrendingUp} label="Municípios com convênio" value={String(rows.length)} />
+        <StatCard icon={Wallet} label="Margem elegível total" value={brl(totalMargem)} tone="green" />
+        <StatCard icon={Star} label="Margem em prioritários" value={brl(margemPrioritaria)} hint={`${prioritarios.length} município(s) alta/média`} tone="amber" />
+        <StatCard icon={Users} label="Tomadores elegíveis" value={String(totalTomadores)} tone="blue" />
+        <StatCard icon={TrendingUp} label="Municípios com convênio" value={String(rows.length)} />
       </div>
 
       {/* Busca + filtros (a ordenação é pelos cabeçalhos) */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar município, convênio ou UF…" className="pl-9" />
         </div>
         <div className="w-44">
@@ -96,26 +97,26 @@ export default function CapacidadeMunicipios() {
           </Select>
         </div>
         {temFiltro && (
-          <Button variant="ghost" size="sm" onClick={() => { setBusca(''); setFiltroPrio('todas'); }} className="gap-1 text-slate-500"><X className="w-3.5 h-3.5" /> Limpar</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setBusca(''); setFiltroPrio('todas'); }} className="gap-1 text-muted-foreground"><X className="w-3.5 h-3.5" /> Limpar</Button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-x-auto">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState title="Carregando..." />
         ) : view.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhum convênio corresponde aos filtros.</div>
+          <EmptyState icon={Search} title="Nenhum convênio corresponde aos filtros." />
         ) : (
           <table className="w-full text-sm min-w-[720px]">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
+              <tr className="border-b border-border bg-muted/50">
                 <SortTh label="Município / Convênio" sortKey="municipio" sort={sort} onSort={toggle} />
                 <SortTh label="Prioridade" sortKey="prioridade" sort={sort} onSort={toggle} />
                 <SortTh label="Tomadores" sortKey="tomadores" sort={sort} onSort={toggle} align="right" />
                 <SortTh label="Vínculos" sortKey="vinculos" sort={sort} onSort={toggle} align="right" />
                 <SortTh label="Margem disponível" sortKey="margem" sort={sort} onSort={toggle} />
                 <SortTh label="Ticket médio" sortKey="ticket" sort={sort} onSort={toggle} align="right" className="hidden lg:table-cell" />
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Meta × Realizado</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Meta × Realizado</th>
               </tr>
             </thead>
             <tbody>
@@ -127,28 +128,28 @@ export default function CapacidadeMunicipios() {
                 const metaV = meta?.meta_vendas || 0;
                 const realV = Number(real?.vendas || 0);
                 return (
-                  <tr key={r.convenio_id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={r.convenio_id} className="border-b border-border hover:bg-muted/50">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-slate-800">{r.cidade || r.nome}{r.uf ? `/${r.uf}` : ''}</p>
-                      <p className="text-xs text-slate-500">{r.nome}{r.ativo ? '' : ' · inativo'}{r.base_atualizada_em ? ` · base ${dataBR(r.base_atualizada_em)}` : ''}</p>
+                      <p className="font-medium text-foreground">{r.cidade || r.nome}{r.uf ? `/${r.uf}` : ''}</p>
+                      <p className="text-xs text-muted-foreground">{r.nome}{r.ativo ? '' : ' · inativo'}{r.base_atualizada_em ? ` · base ${dataBR(r.base_atualizada_em)}` : ''}</p>
                     </td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${prio.cls}`}>{prio.label}</span></td>
-                    <td className="px-4 py-3 text-right text-slate-700">{r.tomadores}</td>
-                    <td className="px-4 py-3 text-right text-slate-600">{r.vinculos_elegiveis}</td>
+                    <td className="px-4 py-3"><StatusBadge className={prio.cls}>{prio.label}</StatusBadge></td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{r.tomadores}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{r.vinculos_elegiveis}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-800 whitespace-nowrap">{brl(r.margem_disponivel)}</span>
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded overflow-hidden min-w-[40px]">
+                        <span className="font-medium text-foreground whitespace-nowrap">{brl(r.margem_disponivel)}</span>
+                        <div className="flex-1 h-1.5 bg-muted rounded overflow-hidden min-w-[40px]">
                           <div className="h-full bar-brand rounded" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{brl(r.ticket_medio_margem)}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{brl(r.ticket_medio_margem)}</td>
                     <td className="px-4 py-3 text-right">
                       {metaV > 0 ? (
-                        <span className={`text-sm font-medium ${realV >= metaV ? 'text-green-700' : 'text-slate-700'}`}>{realV}/{metaV}</span>
+                        <span className={`text-sm font-medium ${realV >= metaV ? 'text-green-700' : 'text-muted-foreground'}`}>{realV}/{metaV}</span>
                       ) : (
-                        <span className="text-xs text-slate-400">{realV > 0 ? `${realV} venda(s)` : '—'}</span>
+                        <span className="text-xs text-muted-foreground">{realV > 0 ? `${realV} venda(s)` : '—'}</span>
                       )}
                     </td>
                   </tr>
@@ -158,16 +159,6 @@ export default function CapacidadeMunicipios() {
           </table>
         )}
       </div>
-    </div>
-  );
-}
-
-function Kpi({ icon: Icon, label, value, sub }) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-2 text-slate-400 mb-1"><Icon className="w-4 h-4" /><span className="text-xs uppercase tracking-wide">{label}</span></div>
-      <p className="text-xl font-bold text-slate-900">{value}</p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
     </div>
   );
 }
