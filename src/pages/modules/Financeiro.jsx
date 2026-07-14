@@ -16,12 +16,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { EmptyState, StatusBadge } from '@/components/kit';
 import ConciliacaoFolha from '@/pages/modules/ConciliacaoFolha';
 import Averbadoras from '@/pages/modules/Averbadoras';
+import Expectativa from '@/pages/modules/Expectativa';
 import { Wallet, CheckCircle2, ListPlus, Plus } from 'lucide-react';
 
 const TABS = [
   { key: 'receb', label: 'Recebíveis' },
   { key: 'carteira', label: 'Carteira' },
   { key: 'concil', label: 'Conciliação (repasse)' },
+  { key: 'expectativa', label: 'Expectativa' },
   { key: 'folha', label: 'Conciliação (folha)' },
   { key: 'averbadoras', label: 'Averbadoras' },
 ];
@@ -407,6 +409,7 @@ export default function Financeiro() {
       </div>
       {tab === 'receb' ? <RecebiveisTab />
         : tab === 'carteira' ? <CarteiraTab />
+        : tab === 'expectativa' ? <Expectativa />
         : tab === 'folha' ? <ConciliacaoFolha />
         : tab === 'averbadoras' ? <Averbadoras />
         : <ConciliacaoTab />}

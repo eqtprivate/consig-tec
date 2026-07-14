@@ -76,6 +76,36 @@ export const conciliacaoApi = {
   },
 };
 
+// Expectativa de recebimento (gerada das parcelas ou importada do banco).
+export const expectativaApi = {
+  async list(convenioId, competencia) {
+    let q = supabase.from('expectativas_recebimento').select('*, cliente:clientes(nome)')
+      .eq('convenio_id', convenioId).eq('competencia', competencia).order('valor_esperado', { ascending: false });
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  async gerar(convenioId, competencia) {
+    const { data, error } = await supabase.rpc('gerar_expectativa', { p_convenio: convenioId, p_competencia: competencia });
+    if (error) throw error;
+    return data; // nº de linhas
+  },
+  async importar(convenioId, competencia, itens) {
+    const ev = getEmpresaView();
+    // substitui a expectativa da chave
+    await supabase.from('expectativas_recebimento').delete().eq('convenio_id', convenioId).eq('competencia', competencia);
+    const rows = itens.map((i) => ({
+      convenio_id: convenioId, competencia, cpf: i.cpf || null,
+      valor_esperado: Number(i.valor_esperado || 0), origem: 'importada', ...(ev ? { empresa_id: ev } : {}),
+    }));
+    for (let k = 0; k < rows.length; k += 500) {
+      const { error } = await supabase.from('expectativas_recebimento').insert(rows.slice(k, k + 500));
+      if (error) throw error;
+    }
+    return rows.length;
+  },
+};
+
 // Averbadoras (empregadores/portais) + vínculo com convênios.
 export const averbadorasApi = {
   async list() {
