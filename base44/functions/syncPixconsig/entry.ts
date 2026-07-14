@@ -373,10 +373,21 @@ Deno.serve(async (req) => {
     alvos = [empresaPedida];
   } else {
     // superadmin/cron sem empresa específica → todas as empresas com credencial ativa.
-    const { data } = await admin.from('pixconsig_credenciais').select('empresa_id, ativo').eq('ativo', true);
-    alvos = (data || []).map((c: any) => c.empresa_id);
+    const { data } = await admin.from('pixconsig_credenciais')
+      .select('empresa_id, ativo, intervalo_horas, hora_inicio, hora_fim').eq('ativo', true);
+    let rows = (data || []) as Array<{ empresa_id: string; intervalo_horas: number; hora_inicio: number; hora_fim: number }>;
+    // No cron, respeita a JANELA por empresa (BRT = UTC-3). No disparo manual do
+    // superadmin ("todas"), não filtra por hora — é uma ação explícita.
+    if (viaCron) {
+      const h = (new Date().getUTCHours() + 24 - 3) % 24;
+      rows = rows.filter((c) => {
+        const ini = c.hora_inicio ?? 9, fim = c.hora_fim ?? 17, iv = c.intervalo_horas ?? 4;
+        return h >= ini && h <= fim && iv >= 1 && ((h - ini) % iv === 0);
+      });
+    }
+    alvos = rows.map((c) => c.empresa_id);
     // Garante a empresa_raiz mesmo sem linha de credencial (usa o fallback global).
-    if (empresaRaizId && !alvos.includes(empresaRaizId) && (envBaseUrl && envApiKey)) alvos.push(empresaRaizId);
+    if (!viaCron && empresaRaizId && !alvos.includes(empresaRaizId) && (envBaseUrl && envApiKey)) alvos.push(empresaRaizId);
   }
   if (alvos.length === 0) return Response.json({ configurado: false, empresas: [], mensagem: 'Nenhuma empresa com credencial PixConsig ativa.' });
 
