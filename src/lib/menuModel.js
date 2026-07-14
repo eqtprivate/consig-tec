@@ -11,6 +11,7 @@ export const AREA_SUBITEMS = {
     { key: 'leads', label: 'Leads & Discagem' },
     { key: 'agenda', label: 'Agenda' },
     { key: 'oportunidades', label: 'Oportunidades' },
+    { key: 'conversao', label: 'Conversão' },
     { key: 'clientes', label: 'Tomadores' },
     { key: 'propostas', label: 'Propostas' },
     { key: 'campanhas', label: 'Campanhas' },
