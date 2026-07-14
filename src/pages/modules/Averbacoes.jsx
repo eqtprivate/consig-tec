@@ -11,12 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { StatusBadge, EmptyState } from '@/components/kit';
 import { Plus, Pencil } from 'lucide-react';
 
 const STATUS = { pendente: 'Pendente', averbada: 'Averbada', recusada: 'Recusada', cancelada: 'Cancelada' };
 const CORES = {
   pendente: 'bg-amber-50 text-amber-700', averbada: 'bg-green-50 text-green-700',
-  recusada: 'bg-red-50 text-red-700', cancelada: 'bg-slate-100 text-slate-400',
+  recusada: 'bg-red-50 text-red-700', cancelada: 'bg-muted text-muted-foreground',
 };
 const emptyForm = {
   origem: 'proposta', proposta_id: '', contrato_id: '', convenio_id: '',
@@ -97,40 +98,40 @@ export default function Averbacoes() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Averbação de margem apartada (proposta) e handoff UY3</p>
+        <p className="text-sm text-muted-foreground">Averbação de margem apartada (proposta) e handoff UY3</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova averbação</Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState title="Carregando…" />
         ) : itens.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhuma averbação.</div>
+          <EmptyState title="Nenhuma averbação." />
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Origem</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Protocolo</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">UY3</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Data</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Origem</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Protocolo</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">UY3</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Data</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
               {itens.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-700">
+                <tr key={a.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 text-foreground">
                     {origemLabel(a)}
-                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{a.proposta_id ? 'Proposta' : 'Contrato'}</span>
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{a.proposta_id ? 'Proposta' : 'Contrato'}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">{a.protocolo || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell font-mono text-xs">{a.protocolo_uy3 || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{dataBR(a.data_averbacao)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[a.status]}`}>{STATUS[a.status]}</span></td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{a.protocolo || '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden md:table-cell font-mono text-xs">{a.protocolo_uy3 || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{dataBR(a.data_averbacao)}</td>
+                  <td className="px-4 py-3"><StatusBadge className={CORES[a.status]}>{STATUS[a.status]}</StatusBadge></td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(a)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(a)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
@@ -170,7 +171,7 @@ export default function Averbacoes() {
                   </SelectContent>
                 </Select>
                 {propostaSel && (
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Vínculo {propostaSel.matricula ? `#${propostaSel.matricula.matricula}` : '—'} · parcela {brl(propostaSel.valor_parcela)}
                   </p>
                 )}

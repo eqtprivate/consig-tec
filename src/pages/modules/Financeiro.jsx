@@ -13,14 +13,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { EmptyState, StatusBadge } from '@/components/kit';
 import { Wallet, CheckCircle2, ListPlus, Plus } from 'lucide-react';
 
 const TABS = [{ key: 'receb', label: 'Recebíveis' }, { key: 'carteira', label: 'Carteira' }, { key: 'concil', label: 'Conciliação (repasse)' }];
-const C_CT = { ativo: 'bg-green-50 text-green-700', quitado: 'bg-slate-100 text-slate-500', inadimplente: 'bg-red-50 text-red-700', cancelado: 'bg-slate-100 text-slate-400' };
+const C_CT = { ativo: 'bg-green-50 text-green-700', quitado: 'bg-muted text-muted-foreground', inadimplente: 'bg-red-50 text-red-700', cancelado: 'bg-muted text-muted-foreground' };
 const C_CT_LBL = { ativo: 'Ativo', quitado: 'Quitado', inadimplente: 'Inadimplente', cancelado: 'Cancelado' };
 const STATUS = { aberta: 'Aberta', paga: 'Paga', atrasada: 'Atrasada', renegociada: 'Renegociada' };
 const CORES = {
-  aberta: 'bg-slate-100 text-slate-600', paga: 'bg-green-50 text-green-700',
+  aberta: 'bg-muted text-muted-foreground', paga: 'bg-green-50 text-green-700',
   atrasada: 'bg-red-50 text-red-700', renegociada: 'bg-amber-50 text-amber-700',
 };
 
@@ -72,29 +73,29 @@ function RecebiveisTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-500">Contratos e parcelas — cronograma pela tabela Price (motor de PMT)</p>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : contratos.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum contrato.</div>
+      <p className="text-sm text-muted-foreground">Contratos e parcelas — cronograma pela tabela Price (motor de PMT)</p>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : contratos.length === 0 ? <EmptyState title="Nenhum contrato." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nº</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Cliente</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Principal</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Taxa a.m.</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Prazo</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Parcelas</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Nº</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Cliente</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Principal</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Taxa a.m.</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Prazo</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Parcelas</th>
             </tr></thead>
             <tbody>
               {contratos.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer" onClick={() => abrir(c)}>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{c.numero_contrato || c.id.slice(0, 8)}</td>
-                  <td className="px-4 py-3 font-medium text-slate-800">{c.cliente?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 hidden sm:table-cell">{brl(c.valor_principal)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden md:table-cell">{c.taxa_mensal != null ? `${c.taxa_mensal}%` : '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden sm:table-cell">{c.prazo ? `${c.prazo}x` : '—'}</td>
-                  <td className="px-4 py-3 text-right"><span className="inline-flex items-center gap-1 text-xs text-slate-500"><Wallet className="w-3.5 h-3.5" /> ver</span></td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50 cursor-pointer" onClick={() => abrir(c)}>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{c.numero_contrato || c.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{c.cliente?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-right text-foreground hidden sm:table-cell">{brl(c.valor_principal)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{c.taxa_mensal != null ? `${c.taxa_mensal}%` : '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell">{c.prazo ? `${c.prazo}x` : '—'}</td>
+                  <td className="px-4 py-3 text-right"><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Wallet className="w-3.5 h-3.5" /> ver</span></td>
                 </tr>
               ))}
             </tbody>
@@ -105,29 +106,29 @@ function RecebiveisTab() {
       <Dialog open={!!sel} onOpenChange={(v) => !v && setSel(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Parcelas — {sel?.cliente?.nome} ({sel?.numero_contrato || sel?.id?.slice(0, 8)})</DialogTitle></DialogHeader>
-          {loadingP ? <div className="p-8 text-center text-sm text-slate-400">Carregando...</div>
+          {loadingP ? <EmptyState title="Carregando…" />
           : parcelas.length === 0 ? (
-            <div className="p-8 text-center space-y-3">
-              <p className="text-sm text-slate-400">Nenhuma parcela gerada.</p>
-              <p className="text-xs text-slate-400">Cronograma pela tabela Price ({sel?.taxa_mensal != null ? `${sel.taxa_mensal}% a.m.` : 'sem juros'} · {sel?.prazo || 0}x)</p>
-              <Button onClick={gerar} disabled={gerando} className="gap-2"><ListPlus className="w-4 h-4" /> {gerando ? 'Gerando…' : `Gerar ${sel?.prazo || 0} parcelas (PMT)`}</Button>
-            </div>
+            <EmptyState
+              title="Nenhuma parcela gerada."
+              description={`Cronograma pela tabela Price (${sel?.taxa_mensal != null ? `${sel.taxa_mensal}% a.m.` : 'sem juros'} · ${sel?.prazo || 0}x)`}
+              action={<Button onClick={gerar} disabled={gerando} className="gap-2"><ListPlus className="w-4 h-4" /> {gerando ? 'Gerando…' : `Gerar ${sel?.prazo || 0} parcelas (PMT)`}</Button>}
+            />
           ) : (
             <div className="max-h-96 overflow-y-auto -mx-2">
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                <thead><tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                   <th className="px-3 py-2">#</th><th className="px-3 py-2">Vencimento</th>
                   <th className="px-3 py-2 text-right">Valor</th><th className="px-3 py-2">Status</th><th className="px-3 py-2"></th>
                 </tr></thead>
                 <tbody>
                   {parcelas.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-100">
-                      <td className="px-3 py-2 text-slate-500">{p.numero}</td>
-                      <td className="px-3 py-2 text-slate-700">{dataBR(p.vencimento)}</td>
-                      <td className="px-3 py-2 text-right text-slate-700 num">{brl(p.valor)}</td>
-                      <td className="px-3 py-2"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[p.status]}`}>{STATUS[p.status]}</span></td>
+                    <tr key={p.id} className="border-b border-border">
+                      <td className="px-3 py-2 text-muted-foreground">{p.numero}</td>
+                      <td className="px-3 py-2 text-foreground">{dataBR(p.vencimento)}</td>
+                      <td className="px-3 py-2 text-right text-foreground num">{brl(p.valor)}</td>
+                      <td className="px-3 py-2"><StatusBadge className={CORES[p.status]}>{STATUS[p.status]}</StatusBadge></td>
                       <td className="px-3 py-2 text-right">
-                        {p.status !== 'paga' && <button title="Marcar paga" onClick={() => pagar(p)} className="p-1 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded"><CheckCircle2 className="w-4 h-4" /></button>}
+                        {p.status !== 'paga' && <button title="Marcar paga" onClick={() => pagar(p)} className="p-1 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded"><CheckCircle2 className="w-4 h-4" /></button>}
                       </td>
                     </tr>
                   ))}
@@ -209,35 +210,35 @@ function ConciliacaoTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Conciliação de repasse/folha — previsto × recebido (CNAB444)</p>
+        <p className="text-sm text-muted-foreground">Conciliação de repasse/folha — previsto × recebido (CNAB444)</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo repasse</Button>
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum repasse registrado.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : itens.length === 0 ? <EmptyState title="Nenhum repasse registrado." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Competência</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Convênio</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Previsto</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Recebido</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Δ</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Competência</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Convênio</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Previsto</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Recebido</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Δ</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((r) => {
                 const d = diff(r);
                 return (
-                  <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{r.competencia}</td>
-                    <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{r.convenio?.nome || '—'}</td>
-                    <td className="px-4 py-3 text-right text-slate-700 num">{brl(r.valor_previsto)}</td>
-                    <td className="px-4 py-3 text-right text-slate-700 num">{brl(r.valor_recebido)}</td>
-                    <td className={`px-4 py-3 text-right num hidden sm:table-cell ${d != null && d < 0 ? 'text-red-600' : 'text-slate-500'}`}>{d != null ? brl(d) : '—'}</td>
-                    <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${R_CORES[r.status]}`}>{R_STATUS[r.status]}</span></td>
-                    <td className="px-4 py-3 text-right"><button onClick={() => openEdit(r)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><CheckCircle2 className="w-4 h-4" /></button></td>
+                  <tr key={r.id} className="border-b border-border hover:bg-muted/50">
+                    <td className="px-4 py-3 font-medium text-foreground">{r.competencia}</td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{r.convenio?.nome || '—'}</td>
+                    <td className="px-4 py-3 text-right text-foreground num">{brl(r.valor_previsto)}</td>
+                    <td className="px-4 py-3 text-right text-foreground num">{brl(r.valor_recebido)}</td>
+                    <td className={`px-4 py-3 text-right num hidden sm:table-cell ${d != null && d < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>{d != null ? brl(d) : '—'}</td>
+                    <td className="px-4 py-3"><StatusBadge className={R_CORES[r.status]}>{R_STATUS[r.status]}</StatusBadge></td>
+                    <td className="px-4 py-3 text-right"><button onClick={() => openEdit(r)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><CheckCircle2 className="w-4 h-4" /></button></td>
                   </tr>
                 );
               })}
@@ -266,7 +267,7 @@ function ConciliacaoTab() {
             </div>
             <div className="space-y-2"><Label>Arquivo CNAB (retorno)</Label><Input value={form.arquivo_cnab} onChange={(e) => setForm({ ...form, arquivo_cnab: e.target.value })} placeholder="referência do CNAB444" /></div>
             <div className="space-y-2"><Label>Observação</Label><Input value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} /></div>
-            <p className="text-xs text-slate-400">Status é calculado automaticamente: recebido = previsto → conciliado; diferente → divergente.</p>
+            <p className="text-xs text-muted-foreground">Status é calculado automaticamente: recebido = previsto → conciliado; diferente → divergente.</p>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit">{edit ? 'Salvar' : 'Criar'}</Button>
@@ -313,7 +314,7 @@ function CarteiraTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <p className="text-sm text-slate-500">Carteira de contratos — saldo devedor, parcelas em aberto e inadimplência</p>
+        <p className="text-sm text-muted-foreground">Carteira de contratos — saldo devedor, parcelas em aberto e inadimplência</p>
         <Button variant="outline" onClick={atualizar} disabled={atualizando} className="gap-2"><CheckCircle2 className="w-4 h-4" /> {atualizando ? 'Atualizando…' : 'Atualizar carteira'}</Button>
       </div>
 
@@ -337,33 +338,33 @@ function CarteiraTab() {
         </Select>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : view.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhum contrato.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-x-auto">
+        {loading ? <EmptyState title="Carregando…" />
+        : view.length === 0 ? <EmptyState title="Nenhum contrato." />
         : (
           <table className="w-full text-sm min-w-[720px]">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Contrato / Cliente</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Pagas/Abertas/Atraso</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Saldo devedor</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">Próx. venc.</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Atraso</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Contrato / Cliente</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Pagas/Abertas/Atraso</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Saldo devedor</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">Próx. venc.</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Atraso</th>
             </tr></thead>
             <tbody>
               {view.map((r) => (
-                <tr key={r.contrato_id} className="border-b border-slate-100 hover:bg-slate-50">
+                <tr key={r.contrato_id} className="border-b border-border hover:bg-muted/50">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{r.cliente || '—'}</p>
-                    <p className="text-xs text-slate-500 font-mono">{r.numero_contrato || r.contrato_id.slice(0, 8)}{r.convenio ? ` · ${r.convenio}` : ''}</p>
+                    <p className="font-medium text-foreground">{r.cliente || '—'}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{r.numero_contrato || r.contrato_id.slice(0, 8)}{r.convenio ? ` · ${r.convenio}` : ''}</p>
                   </td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${C_CT[r.status]}`}>{C_CT_LBL[r.status] || r.status}</span></td>
-                  <td className="px-4 py-3 text-right text-slate-600">
+                  <td className="px-4 py-3"><StatusBadge className={C_CT[r.status]}>{C_CT_LBL[r.status] || r.status}</StatusBadge></td>
+                  <td className="px-4 py-3 text-right text-muted-foreground">
                     <span className="text-green-700">{r.parcelas_pagas}</span> / <span>{r.parcelas_abertas}</span> / <span className={r.parcelas_atrasadas ? 'text-red-600 font-medium' : ''}>{r.parcelas_atrasadas}</span>
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-slate-800">{brl(r.saldo_devedor)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden md:table-cell">{dataBR(r.proximo_vencimento)}</td>
-                  <td className={`px-4 py-3 text-right ${r.dias_atraso > 0 ? 'text-red-600 font-medium' : 'text-slate-300'}`}>{r.dias_atraso > 0 ? `${r.dias_atraso}d` : '—'}</td>
+                  <td className="px-4 py-3 text-right font-medium text-foreground">{brl(r.saldo_devedor)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{dataBR(r.proximo_vencimento)}</td>
+                  <td className={`px-4 py-3 text-right ${r.dias_atraso > 0 ? 'text-red-600 font-medium' : 'text-muted-foreground/60'}`}>{r.dias_atraso > 0 ? `${r.dias_atraso}d` : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -375,10 +376,10 @@ function CarteiraTab() {
 }
 
 function Kpi({ label, value, tone }) {
-  const color = tone === 'warn' ? 'text-red-600' : tone === 'ok' ? 'text-green-700' : 'text-slate-900';
+  const color = tone === 'warn' ? 'text-red-600' : tone === 'ok' ? 'text-green-700' : 'text-foreground';
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-400 mb-1">{label}</p>
+    <div className="bg-card rounded-xl border border-border shadow-sm p-4">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{label}</p>
       <p className={`text-xl font-bold ${color}`}>{value}</p>
     </div>
   );
@@ -388,10 +389,10 @@ export default function Financeiro() {
   const [tab, setTab] = useTabParam('receb');
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}

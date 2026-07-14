@@ -10,12 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil } from 'lucide-react';
+import { EmptyState, StatusBadge } from '@/components/kit';
+import { Plus, Pencil, FileText, Loader2 } from 'lucide-react';
 
 const STATUS = { ativo: 'Ativo', quitado: 'Quitado', cancelado: 'Cancelado', inadimplente: 'Inadimplente' };
 const CORES = {
-  ativo: 'bg-green-50 text-green-700', quitado: 'bg-slate-100 text-slate-600',
-  cancelado: 'bg-slate-100 text-slate-400', inadimplente: 'bg-red-50 text-red-700',
+  ativo: 'bg-green-50 text-green-700', quitado: 'bg-muted text-muted-foreground',
+  cancelado: 'bg-muted text-muted-foreground/70', inadimplente: 'bg-red-50 text-red-700',
 };
 const emptyForm = { numero_contrato: '', cliente_id: '', convenio_id: '', valor_principal: '', valor_total: '', prazo: '', taxa_mensal: '', valor_parcela: '', data_assinatura: '', status: 'ativo' };
 
@@ -74,37 +75,37 @@ export default function Contratos() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Contratos formalizados</p>
+        <p className="text-sm text-muted-foreground">Contratos formalizados</p>
         <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Novo contrato</Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
+          <EmptyState icon={Loader2} title="Carregando…" />
         ) : contratos.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-400">Nenhum contrato.</div>
+          <EmptyState icon={FileText} title="Nenhum contrato." />
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Nº</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Cliente</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Principal</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden lg:table-cell">Assinatura</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-                <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Nº</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Cliente</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Principal</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden lg:table-cell">Assinatura</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
               </tr>
             </thead>
             <tbody>
               {contratos.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{c.numero_contrato || '—'}</td>
-                  <td className="px-4 py-3 font-medium text-slate-800">{c.cliente?.nome || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 hidden sm:table-cell">{brl(c.valor_principal)}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden lg:table-cell">{dataBR(c.data_assinatura)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[c.status]}`}>{STATUS[c.status]}</span></td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{c.numero_contrato || '—'}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{c.cliente?.nome || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell">{brl(c.valor_principal)}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{dataBR(c.data_assinatura)}</td>
+                  <td className="px-4 py-3"><StatusBadge className={CORES[c.status]}>{STATUS[c.status]}</StatusBadge></td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}

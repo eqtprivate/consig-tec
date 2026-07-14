@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, CheckCircle2, XCircle, Calculator, FileUp } from 'lucide-react';
+import { Panel, EmptyState } from '@/components/kit';
 
 const soDigitos = (v) => (v || '').replace(/\D/g, '');
 
@@ -179,10 +180,10 @@ export default function ConsultaMargem() {
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-slate-500">Consulta e simulação de margem apartada por tomador — base para geração de proposta.</p>
+      <p className="text-sm text-muted-foreground">Consulta e simulação de margem apartada por tomador — base para geração de proposta.</p>
 
       {/* Busca por CPF */}
-      <form onSubmit={buscar} className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-end gap-3">
+      <form onSubmit={buscar} className="bg-card rounded-xl border border-border shadow-sm p-4 flex flex-wrap items-end gap-3">
         <div className="space-y-1 flex-1 min-w-[220px]">
           <Label>CPF do tomador</Label>
           <Input value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" inputMode="numeric" />
@@ -192,52 +193,52 @@ export default function ConsultaMargem() {
       {erro && <p className="text-sm text-red-600">{erro}</p>}
 
       {cliente && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <Panel>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-slate-800">{cliente.nome}</p>
-              <p className="text-xs text-slate-500">CPF {cliente.cpf} {cliente.telefone ? `· ${cliente.telefone}` : ''} {idade != null ? `· ${idade} anos` : '· idade não informada'}</p>
+              <p className="font-semibold text-foreground">{cliente.nome}</p>
+              <p className="text-xs text-muted-foreground">CPF {cliente.cpf} {cliente.telefone ? `· ${cliente.telefone}` : ''} {idade != null ? `· ${idade} anos` : '· idade não informada'}</p>
             </div>
-            <span className="text-xs text-slate-400">{matriculas.length} vínculo(s)</span>
+            <span className="text-xs text-muted-foreground">{matriculas.length} vínculo(s)</span>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Vínculos / matrículas */}
       {cliente && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           {matriculas.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-400">Nenhum vínculo (matrícula) cadastrado para este tomador.</div>
+            <EmptyState title="Nenhum vínculo (matrícula) cadastrado para este tomador." />
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Convênio / Matrícula</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Situação</th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Margem apartada</th>
-                  <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Elegível</th>
-                  <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ação</th>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Convênio / Matrícula</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Situação</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Margem apartada</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Elegível</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {matriculas.map((m) => {
                   const ok = elegivelCartaoBeneficio(m);
                   return (
-                    <tr key={m.id} className={`border-b border-slate-100 ${matSel?.id === m.id ? 'bg-primary/5' : 'hover:bg-slate-50'}`}>
+                    <tr key={m.id} className={`border-b border-border ${matSel?.id === m.id ? 'bg-primary/5' : 'hover:bg-muted/50'}`}>
                       <td className="px-4 py-3">
-                        <p className="font-medium text-slate-800">{m.convenio?.nome || '—'}</p>
-                        <p className="text-xs text-slate-500">#{m.matricula}{m.orgao ? ` · ${m.orgao}` : ''}</p>
+                        <p className="font-medium text-foreground">{m.convenio?.nome || '—'}</p>
+                        <p className="text-xs text-muted-foreground">#{m.matricula}{m.orgao ? ` · ${m.orgao}` : ''}</p>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 hidden sm:table-cell capitalize">{m.situacao}</td>
+                      <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell capitalize">{m.situacao}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className="font-medium text-slate-800">{brl(m.margem_disponivel)}</span>
-                        <span className="block text-[10px] text-slate-400">de {brl(m.margem_bruta)}</span>
-                        <span className="block text-[10px] text-slate-400">{m.margem_atualizada_em ? `base ${dataBR(m.margem_atualizada_em)}` : 'base não atualizada'}</span>
+                        <span className="font-medium text-foreground">{brl(m.margem_disponivel)}</span>
+                        <span className="block text-[10px] text-muted-foreground">de {brl(m.margem_bruta)}</span>
+                        <span className="block text-[10px] text-muted-foreground">{m.margem_atualizada_em ? `base ${dataBR(m.margem_atualizada_em)}` : 'base não atualizada'}</span>
                       </td>
                       <td className="px-4 py-3">
                         {ok
                           ? <span className="inline-flex items-center gap-1 text-green-700 text-xs"><CheckCircle2 className="w-3.5 h-3.5" /> Sim</span>
-                          : <span className="inline-flex items-center gap-1 text-slate-400 text-xs"><XCircle className="w-3.5 h-3.5" /> Não</span>}
+                          : <span className="inline-flex items-center gap-1 text-muted-foreground text-xs"><XCircle className="w-3.5 h-3.5" /> Não</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Button size="sm" variant={matSel?.id === m.id ? 'default' : 'outline'} onClick={() => selecionarMatricula(m)}>Simular</Button>
@@ -253,14 +254,14 @@ export default function ConsultaMargem() {
 
       {/* Simulador do produto sobre o vínculo selecionado */}
       {matSel && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
+        <Panel bodyClassName="space-y-4">
           <div className="flex items-center gap-2">
             <Calculator className="w-4 h-4 text-primary" />
-            <p className="font-semibold text-slate-800">Simulação — {matSel.convenio?.nome} · #{matSel.matricula}</p>
+            <p className="font-semibold text-foreground">Simulação — {matSel.convenio?.nome} · #{matSel.matricula}</p>
           </div>
 
           {produtos.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhum produto ativo parametrizado para este convênio. Configure em <b>Convênios → Produtos</b>.</p>
+            <p className="text-sm text-muted-foreground">Nenhum produto ativo parametrizado para este convênio. Configure em <b>Convênios → Produtos</b>.</p>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -279,7 +280,7 @@ export default function ConsultaMargem() {
                     min={prodSel?.prazo_min || undefined} max={prodSel?.prazo_max || undefined}
                     placeholder={prodSel?.prazo_max ? String(prodSel.prazo_max) : ''} disabled={!prodSel} />
                   {prodSel && (prodSel.prazo_min || prodSel.prazo_max) && (
-                    <p className="text-[10px] text-slate-400">Faixa {prodSel.prazo_min || 1}–{prodSel.prazo_max || '—'}x</p>
+                    <p className="text-[10px] text-muted-foreground">Faixa {prodSel.prazo_min || 1}–{prodSel.prazo_max || '—'}x</p>
                   )}
                 </div>
                 <div className="flex items-end">
@@ -288,10 +289,10 @@ export default function ConsultaMargem() {
               </div>
 
               {prodSel && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Taxa {prodSel.taxa_mensal != null ? `${prodSel.taxa_mensal}% a.m.` : '—'} ·
                   {' '}Consome {prodSel.margem_percentual != null ? `${prodSel.margem_percentual}%` : '100%'} da margem ·
-                  {' '}Margem elegível do produto: <b className="text-slate-700">{brl(margemDoProduto(matSel, prodSel))}</b>
+                  {' '}Margem elegível do produto: <b className="text-foreground">{brl(margemDoProduto(matSel, prodSel))}</b>
                   {prodSel.valor_max != null ? <> · Teto {brl(prodSel.valor_max)}</> : null}
                 </p>
               )}
@@ -306,10 +307,10 @@ export default function ConsultaMargem() {
               {sim && (
                 <div className="rounded-lg bg-primary/5 border border-primary/20 p-4 space-y-3">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div><p className="text-[10px] uppercase text-slate-400">Margem usada</p><p className="font-semibold text-slate-800">{brl(sim.margem)}</p></div>
-                    <div><p className="text-[10px] uppercase text-slate-400">Prazo</p><p className="font-semibold text-slate-800">{sim.prazo}x</p></div>
-                    <div><p className="text-[10px] uppercase text-slate-400">Taxa</p><p className="font-semibold text-slate-800">{sim.taxa}% a.m.</p></div>
-                    <div><p className="text-[10px] uppercase text-slate-400">Valor máx. financiável</p><p className="font-bold text-primary text-lg">{brl(sim.valorMaximo)}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted-foreground">Margem usada</p><p className="font-semibold text-foreground">{brl(sim.margem)}</p></div>
+                    <div><p className="text-[10px] uppercase text-muted-foreground">Prazo</p><p className="font-semibold text-foreground">{sim.prazo}x</p></div>
+                    <div><p className="text-[10px] uppercase text-muted-foreground">Taxa</p><p className="font-semibold text-foreground">{sim.taxa}% a.m.</p></div>
+                    <div><p className="text-[10px] uppercase text-muted-foreground">Valor máx. financiável</p><p className="font-bold text-primary text-lg">{brl(sim.valorMaximo)}</p></div>
                   </div>
                   <div className="flex justify-end">
                     <Button size="sm" className="gap-1" disabled={gerando || !eleg?.elegivel || sim.valorMaximo <= 0} onClick={() => gerarProposta(sim.valorMaximo, sim.margem, sim.prazo)}>
@@ -320,8 +321,8 @@ export default function ConsultaMargem() {
               )}
 
               {/* Simulação inversa: valor desejado → parcela */}
-              <div className="pt-2 border-t border-slate-100">
-                <Label className="text-xs text-slate-500">Simular por valor desejado</Label>
+              <div className="pt-2 border-t border-border">
+                <Label className="text-xs text-muted-foreground">Simular por valor desejado</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
                   <div className="space-y-1">
                     <Input type="number" step="0.01" value={valorDesejado} onChange={(e) => setValorDesejado(e.target.value)} placeholder="Valor R$" disabled={!prodSel} />
@@ -331,8 +332,8 @@ export default function ConsultaMargem() {
                   </div>
                   {calc && !calc.erro && (
                     <div className="flex flex-col justify-end text-sm">
-                      <span className="text-slate-500 text-xs">Parcela ({calc.prazo}x)</span>
-                      <span className={`font-semibold ${(calc.acimaMargem || calc.acimaValor) ? 'text-red-600' : 'text-slate-800'}`}>{brl(calc.parcela)}</span>
+                      <span className="text-muted-foreground text-xs">Parcela ({calc.prazo}x)</span>
+                      <span className={`font-semibold ${(calc.acimaMargem || calc.acimaValor) ? 'text-red-600' : 'text-foreground'}`}>{brl(calc.parcela)}</span>
                     </div>
                   )}
                 </div>
@@ -353,7 +354,7 @@ export default function ConsultaMargem() {
               )}
             </>
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );

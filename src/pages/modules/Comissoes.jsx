@@ -5,17 +5,18 @@ import { contratosApi } from '@/lib/api/contratos';
 import { conveniosApi } from '@/lib/api/convenios';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
-import { brl, num, dataBR } from '@/lib/format';
+import { brl, num } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { StatusBadge, EmptyState } from '@/components/kit';
 import { Plus, Pencil, CheckCircle2, Calculator, Trash2 } from 'lucide-react';
 
 const STATUS = { prevista: 'Prevista', paga: 'Paga', cancelada: 'Cancelada' };
-const CORES = { prevista: 'bg-blue-50 text-blue-700', paga: 'bg-green-50 text-green-700', cancelada: 'bg-slate-100 text-slate-400' };
+const CORES = { prevista: 'bg-blue-50 text-blue-700', paga: 'bg-green-50 text-green-700', cancelada: 'bg-muted text-muted-foreground' };
 const BENEF = { franquia: 'Franquia', lider: 'Líder', corban: 'Corban', operador: 'Operador', grupo: 'Grupo' };
 
 /* ------------------------------ Comissões ------------------------------ */
@@ -73,38 +74,38 @@ function ComissoesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Comissões por contrato e beneficiário — provisionadas automaticamente ao gerar o contrato</p>
+        <p className="text-sm text-muted-foreground">Comissões por contrato e beneficiário — provisionadas automaticamente ao gerar o contrato</p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setCalcOpen(true)} className="gap-2"><Calculator className="w-4 h-4" /> Calcular (motor)</Button>
           <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova</Button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : itens.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma comissão.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : itens.length === 0 ? <EmptyState title="Nenhuma comissão." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Contrato</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Beneficiário</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden md:table-cell">%</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Valor</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Status</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Contrato</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Beneficiário</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden md:table-cell">%</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Valor</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Status</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>
             </tr></thead>
             <tbody>
               {itens.map((c) => (
-                <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{c.contrato?.numero_contrato || (c.contrato_id ? c.contrato_id.slice(0, 8) : '—')}</td>
-                  <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">{BENEF[c.beneficiario] || c.tipo || '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-600 hidden md:table-cell">{c.percentual != null ? `${c.percentual}%` : '—'}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 num">{brl(c.valor)}</td>
-                  <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CORES[c.status]}`}>{STATUS[c.status]}</span></td>
+                <tr key={c.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{c.contrato?.numero_contrato || (c.contrato_id ? c.contrato_id.slice(0, 8) : '—')}</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{BENEF[c.beneficiario] || c.tipo || '—'}</td>
+                  <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{c.percentual != null ? `${c.percentual}%` : '—'}</td>
+                  <td className="px-4 py-3 text-right text-foreground num">{brl(c.valor)}</td>
+                  <td className="px-4 py-3"><StatusBadge className={CORES[c.status]}>{STATUS[c.status]}</StatusBadge></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      {c.status !== 'paga' && <button title="Marcar paga" onClick={() => marcarPaga(c)} className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded"><CheckCircle2 className="w-4 h-4" /></button>}
-                      <button title="Editar" onClick={() => openEdit(c)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
+                      {c.status !== 'paga' && <button title="Marcar paga" onClick={() => marcarPaga(c)} className="p-1.5 text-muted-foreground hover:text-green-600 hover:bg-green-50 rounded"><CheckCircle2 className="w-4 h-4" /></button>}
+                      <button title="Editar" onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -119,7 +120,7 @@ function ComissoesTab() {
         <DialogContent>
           <DialogHeader><DialogTitle>Calcular comissões (motor de rateio)</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-slate-500">Aplica as regras ativas (específica do convênio &gt; global) ao contrato selecionado.</p>
+            <p className="text-sm text-muted-foreground">Aplica as regras ativas (específica do convênio &gt; global) ao contrato selecionado.</p>
             <div className="space-y-2">
               <Label>Contrato</Label>
               <Select value={calcContrato} onValueChange={setCalcContrato}>
@@ -216,34 +217,34 @@ function RegrasTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Regras de rateio (específica do convênio tem precedência sobre a global)</p>
+        <p className="text-sm text-muted-foreground">Regras de rateio (específica do convênio tem precedência sobre a global)</p>
         {isAdmin && <Button onClick={openCreate} className="gap-2"><Plus className="w-4 h-4" /> Nova regra</Button>}
       </div>
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-12 text-center text-sm text-slate-400">Carregando...</div>
-        : regras.length === 0 ? <div className="p-12 text-center text-sm text-slate-400">Nenhuma regra.</div>
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        {loading ? <EmptyState title="Carregando…" />
+        : regras.length === 0 ? <EmptyState title="Nenhuma regra." />
         : (
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-slate-200 bg-slate-50">
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Convênio</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Beneficiário</th>
-              <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">%</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs hidden sm:table-cell">Base</th>
-              <th className="text-left px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ativo</th>
-              {isAdmin && <th className="text-right px-4 py-3 font-medium text-slate-500 uppercase text-xs">Ações</th>}
+            <thead><tr className="border-b border-border bg-muted/50">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Convênio</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Beneficiário</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">%</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs hidden sm:table-cell">Base</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ativo</th>
+              {isAdmin && <th className="text-right px-4 py-3 font-medium text-muted-foreground uppercase text-xs">Ações</th>}
             </tr></thead>
             <tbody>
               {regras.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-700">{r.convenio?.nome || <span className="text-slate-400">Global (padrão)</span>}</td>
-                  <td className="px-4 py-3 text-slate-600">{BENEF[r.beneficiario] || r.beneficiario}</td>
-                  <td className="px-4 py-3 text-right text-slate-700 num">{r.percentual}%</td>
-                  <td className="px-4 py-3 text-slate-500 hidden sm:table-cell">{r.base}</td>
-                  <td className="px-4 py-3">{r.ativo ? <span className="text-xs text-green-700">Sim</span> : <span className="text-xs text-slate-400">Não</span>}</td>
+                <tr key={r.id} className="border-b border-border hover:bg-muted/50">
+                  <td className="px-4 py-3 text-foreground">{r.convenio?.nome || <span className="text-muted-foreground">Global (padrão)</span>}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{BENEF[r.beneficiario] || r.beneficiario}</td>
+                  <td className="px-4 py-3 text-right text-foreground num">{r.percentual}%</td>
+                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{r.base}</td>
+                  <td className="px-4 py-3">{r.ativo ? <span className="text-xs text-green-700">Sim</span> : <span className="text-xs text-muted-foreground">Não</span>}</td>
                   {isAdmin && (
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => openEdit(r)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => remover(r)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(r)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => remover(r)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   )}
                 </tr>
@@ -303,10 +304,10 @@ export default function Comissoes() {
   const [tab, setTab] = useTabParam('comissoes');
   return (
     <div className="space-y-5">
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t.label}
           </button>
         ))}
