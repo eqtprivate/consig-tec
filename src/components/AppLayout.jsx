@@ -25,8 +25,17 @@ function ContaInativa({ onLogout }) {
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('consigtec_sidebar_collapsed') === '1'; } catch { return false; }
+  });
   const { perfil, logout } = useAuth();
   const location = useLocation();
+
+  const toggleCollapsed = () => setCollapsed((c) => {
+    const next = !c;
+    try { localStorage.setItem('consigtec_sidebar_collapsed', next ? '1' : '0'); } catch { /* ignore */ }
+    return next;
+  });
 
   // Gates de acesso
   if (perfil && perfil.ativo === false) return <ContaInativa onLogout={logout} />;
@@ -35,7 +44,7 @@ export default function AppLayout() {
   return (
     <div className="bg-background text-foreground h-screen flex overflow-hidden">
       <div className="hidden lg:block shrink-0">
-        <Sidebar />
+        <Sidebar collapsed={collapsed} />
       </div>
 
       {sidebarOpen && (
@@ -48,7 +57,7 @@ export default function AppLayout() {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <TopBar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} onToggleCollapse={toggleCollapsed} collapsed={collapsed} />
         <main className="flex-1 overflow-y-auto p-6">
           <AnimatePresence mode="wait">
             <motion.div

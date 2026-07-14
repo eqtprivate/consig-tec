@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { useLocation, Link } from 'react-router-dom';
-import { Building, ChevronDown, Check, LogOut, Menu, Sun, Moon, Home, ChevronRight } from 'lucide-react';
+import { Building, ChevronDown, Check, LogOut, Menu, Sun, Moon, Home, ChevronRight, PanelLeft } from 'lucide-react';
 import { getTheme, toggleTheme } from '@/lib/theme';
 import NotificationBell from '@/components/NotificationBell';
 
@@ -35,7 +35,7 @@ function initials(nome) {
 
 const iconBtn = 'w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors';
 
-export default function TopBar({ onToggleSidebar }) {
+export default function TopBar({ onToggleSidebar, onToggleCollapse, collapsed }) {
   const { perfil, uniqueUnidades, activeUnidade, switchUnidade, logout,
           isSuperadmin, empresasSuperadmin, empresaView, setEmpresaView } = useAuth();
   const [open, setOpen] = useState(false);
@@ -56,21 +56,33 @@ export default function TopBar({ onToggleSidebar }) {
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-3 sm:px-6 gap-3">
-      {/* Esquerda — menu (mobile) + breadcrumb da rota atual */}
-      <div className="flex items-center gap-2 min-w-0">
-        <button onClick={onToggleSidebar} className={`lg:hidden ${iconBtn}`} aria-label="Menu">
+      {/* Esquerda — menu (mobile) / recolher (desktop) + breadcrumb inline */}
+      <div className="flex items-center gap-1.5 min-w-0">
+        <button onClick={onToggleSidebar} className={`lg:hidden ${iconBtn}`} aria-label="Abrir menu">
           <Menu className="w-5 h-5" />
         </button>
-        <div className="min-w-0">
-          <nav className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Link to="/" className="flex items-center gap-1 hover:text-foreground transition-colors">
-              <Home className="w-3.5 h-3.5" />
-              <span>Início</span>
-            </Link>
-            {section && (<><ChevronRight className="w-3 h-3 opacity-60" /><span>{section}</span></>)}
-          </nav>
-          <h1 className="text-base font-semibold text-foreground truncate leading-tight">{title}</h1>
-        </div>
+        <button
+          onClick={onToggleCollapse}
+          className={`hidden lg:flex ${iconBtn}`}
+          aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+        >
+          <PanelLeft className="w-5 h-5" />
+        </button>
+        <nav className="flex items-center gap-1.5 min-w-0 text-sm">
+          <Link to="/" className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors shrink-0">
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Início</span>
+          </Link>
+          {section && (
+            <>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+              <span className="text-muted-foreground hidden md:inline shrink-0">{section}</span>
+            </>
+          )}
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+          <span className="font-semibold text-foreground truncate">{title}</span>
+        </nav>
       </div>
 
       {/* Direita — contexto (unidade/empresa) + ações + conta */}
