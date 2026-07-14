@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader, Panel, StatusBadge, EmptyState } from '@/components/kit';
-import { Pencil, Plus, Plug, RefreshCw, Clock, CheckCircle2, AlertTriangle, Save } from 'lucide-react';
+import { Pencil, Plus, Plug, RefreshCw, Clock, CheckCircle2, AlertTriangle, Save, Building2 } from 'lucide-react';
 
 const dataHoraBR = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const h2 = (h) => String(h).padStart(2, '0') + ':00';
@@ -34,6 +34,8 @@ const EVENTO_INFO = {
 };
 
 function SyncPixconsig() {
+  const { brand, isSuperadmin } = useAuth();  // empresa ativa (EmpresteiCard por padrão)
+  const empresaAtiva = brand || null;
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState(null);
   const [status, setStatus] = useState(null);
@@ -86,7 +88,8 @@ function SyncPixconsig() {
     setBusy(true); setRes(null); setProg(null);
     iniciarPoll();
     try {
-      const r = await pixconsigApi.sync();
+      // Sempre escopa ao tenant ATIVO (não dispara "todas as empresas" daqui).
+      const r = await pixconsigApi.sync(empresaAtiva?.empresa_id ? { empresa_id: empresaAtiva.empresa_id } : {});
       await auditoriaApi.log('sync_pixconsig_manual', 'convenios', null, { ok: r.ok, total: r.total, ignorados: r.ignorados, erros: r.erros?.length || 0 });
       setRes(r);
       if (r.configurado === false) toast.warning('API PixConsig ainda não configurada (base URL / api key).');
@@ -127,8 +130,15 @@ function SyncPixconsig() {
     <Panel bodyClassName="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <p className="text-sm font-semibold text-foreground">Convênios PixConsig (espelho)</p>
-          <p className="text-[11px] text-muted-foreground">Cadastro e margem vêm da PixConsig; taxa/spread/comissão são do CONSIGTEC.</p>
+          <p className="text-sm font-semibold text-foreground flex items-center flex-wrap gap-1.5">
+            Convênios PixConsig (espelho)
+            {empresaAtiva?.nome && (
+              <Badge variant="outline" className="gap-1 font-medium"><Building2 className="w-3 h-3" /> {empresaAtiva.nome}</Badge>
+            )}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Integração específica da empresa ativa{isSuperadmin ? ' (troque a empresa em foco no topo)' : ''}. Cadastro e margem vêm da PixConsig; taxa/spread/comissão são do CONSIGTEC.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {!loadingStatus && (
