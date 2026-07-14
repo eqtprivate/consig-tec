@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, initSupabase } from '@/lib/supabaseClient';
 import { validarSenha } from '@/lib/validators';
+import PasswordChecklist from '@/components/PasswordChecklist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -84,7 +85,10 @@ export default function ResetPassword() {
                   <Input id="s2" type="password" autoComplete="new-password" value={confirma} onChange={(e) => setConfirma(e.target.value)} className="pl-10 h-11" required />
                 </div>
               </div>
-              <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                <PasswordChecklist senha={senha} confirma={confirma} />
+              </div>
+              <Button type="submit" className="w-full h-11 font-medium" disabled={loading || !!validarSenha(senha) || senha !== confirma}>
                 {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...</> : 'Salvar nova senha'}
               </Button>
             </form>

@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { usuariosApi } from '@/lib/api/usuarios';
 import { supabase } from '@/lib/supabaseClient';
 import { validarSenha } from '@/lib/validators';
+import PasswordChecklist from '@/components/PasswordChecklist';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -136,8 +137,13 @@ export default function Perfil() {
               </div>
             </div>
           </div>
+          {senha && (
+            <div className="rounded-lg bg-muted/50 border border-border p-3">
+              <PasswordChecklist senha={senha} confirma={confirma} />
+            </div>
+          )}
           <div className="flex justify-end">
-            <Button type="submit" variant="outline" disabled={savingSenha || !senha} className="gap-2">
+            <Button type="submit" variant="outline" disabled={savingSenha || !senha || !!validarSenha(senha) || senha !== confirma} className="gap-2">
               {savingSenha ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />} Alterar senha
             </Button>
           </div>

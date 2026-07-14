@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { validarSenha } from '@/lib/validators';
+import PasswordChecklist from '@/components/PasswordChecklist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,7 +56,6 @@ export default function TrocarSenha() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input id="s1" type="password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} className="pl-10 h-11" required />
               </div>
-              <p className="text-xs text-slate-400">Mínimo 8 caracteres, com letra e número.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="s2">Confirmar senha</Label>
@@ -64,7 +64,10 @@ export default function TrocarSenha() {
                 <Input id="s2" type="password" autoComplete="new-password" value={confirma} onChange={(e) => setConfirma(e.target.value)} className="pl-10 h-11" required />
               </div>
             </div>
-            <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+            <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+              <PasswordChecklist senha={senha} confirma={confirma} />
+            </div>
+            <Button type="submit" className="w-full h-11 font-medium" disabled={loading || !!validarSenha(senha) || senha !== confirma}>
               {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...</> : 'Salvar nova senha'}
             </Button>
           </form>
