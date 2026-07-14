@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* CONSIGTEC — Sistema de design
+   Tipografia: Space Grotesk (títulos) · Inter (corpo/UI) · JetBrains Mono (numerais).
+   Os numerais monoespaçados tabulares são a ASSINATURA da marca: um painel de
+   crédito consignado é, antes de tudo, um instrumento de precisão numérica. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -31,10 +35,10 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 199 89% 48%;
@@ -88,6 +92,15 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
+    font-feature-settings: "cv05" 1, "ss01" 1; /* Inter: g de perna única, curvas mais neutras */
+  }
+
+  /* Títulos herdam a display (Space Grotesk) em todas as telas, sem editar cada
+     componente. Utilitários de peso/tracking (font-bold, tracking-wider) vencem
+     por virem na camada utilities. */
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.014em;
   }
 }
 
@@ -109,22 +122,27 @@
   --sidebar-primary: 89 47% 54%;
   --radius: 0.5rem;
 
-  /* Painéis (navy-slate claro) */
-  --background: 214 33% 96%;
-  --foreground: 211 28% 26%;
+  /* Painéis (navy-slate claro) — papel institucional levemente frio */
+  --background: 213 30% 97%;
+  --foreground: 213 38% 17%;     /* tinta navy mais profunda: texto crocante */
   --card: 0 0% 100%;
-  --card-foreground: 211 28% 26%;
+  --card-foreground: 213 38% 17%;
   --popover: 0 0% 100%;
-  --popover-foreground: 211 28% 26%;
+  --popover-foreground: 213 38% 17%;
   --secondary: 214 33% 96%;
-  --secondary-foreground: 211 28% 26%;
+  --secondary-foreground: 213 34% 22%;
   --muted: 214 33% 96%;
-  --muted-foreground: 214 14% 52%;
+  --muted-foreground: 214 15% 48%;
   --accent: 89 40% 94%;          /* tint verde suave */
   --accent-foreground: 211 30% 24%;
-  --border: 214 28% 90%;
-  --input: 214 28% 90%;
+  --border: 214 27% 90%;         /* hairline */
+  --input: 214 27% 90%;
   --ct-faint: 214 14% 62%;
+
+  /* Escala de elevação (sombras navy, não pretas — coerência de marca) */
+  --shadow-sm: 0 1px 2px -1px hsl(213 38% 17% / .08);
+  --shadow-md: 0 6px 20px -10px hsl(213 38% 17% / .16);
+  --shadow-lg: 0 16px 36px -18px hsl(213 38% 17% / .26);
 }
 
 .dark {
@@ -150,6 +168,10 @@
   --border: 213 34% 20%;
   --input: 213 34% 20%;
   --ct-faint: 214 16% 50%;
+
+  --shadow-sm: 0 1px 2px -1px hsl(0 0% 0% / .4);
+  --shadow-md: 0 6px 20px -10px hsl(0 0% 0% / .5);
+  --shadow-lg: 0 16px 36px -16px hsl(0 0% 0% / .6);
 }
 
 /* Remapeamento das classes utilitárias claras usadas pelos
@@ -219,12 +241,43 @@
 .dark .text-rose-500, .dark .text-rose-600 { color: #f4718c; }
 .dark .bg-emerald-50, .dark .bg-sky-50, .dark .bg-indigo-50, .dark .bg-rose-50 { background-color: rgba(120, 140, 170, .14); }
 
-.num, .tabular { font-variant-numeric: tabular-nums; }
+/* ============================================================
+   ASSINATURA — Numerais como herói
+   Todo valor numérico (KPIs, moeda, %, CPF, nº de contrato) fala na
+   voz de uma razão contábil: JetBrains Mono, tabular, tracking justo.
+   `.num`/`.tabular` já estão espalhados pelas telas → propaga sozinho.
+   ============================================================ */
+.num, .tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+  letter-spacing: -0.02em;
+}
+
+/* Realce de foco de marca (verde) — acessibilidade sem esforço por tela */
+:focus-visible {
+  outline: 2px solid hsl(var(--brand-green));
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+::selection { background: hsl(var(--brand-green) / .28); }
+
+/* Trilho da esteira — dispositivo estrutural de assinatura para as etapas
+   (margem → reservada → efetivada → VOP → saldo → atraso). Opcional: aplique
+   `.stage-rail` num container e `.stage-node` nas etapas. */
+.stage-rail { position: relative; }
+.stage-node { position: relative; padding-left: 0.875rem; }
+.stage-node::before {
+  content: "";
+  position: absolute; left: 0; top: 0.15rem; bottom: 0.15rem;
+  width: 2px; border-radius: 2px;
+  background: linear-gradient(hsl(var(--brand-green)), hsl(var(--brand-green) / .25));
+}
+
 /* ============ Polish Pack: micro-interações e transições ============ */
 /* Elevação suave em cards clicáveis */
 .hover-lift { transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease; will-change: transform; }
-.hover-lift:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -14px rgba(2, 6, 23, .22); }
-.dark .hover-lift:hover { box-shadow: 0 12px 28px -12px rgba(0, 0, 0, .55); }
+.hover-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 
 /* Aparição suave de conteúdo */
 @keyframes ct-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -239,6 +292,12 @@ body, aside, header, .bg-card, .bg-white { transition: background-color .25s eas
 
 /* Cabeçalho de tabela fixo em listas longas */
 .sticky-head thead th { position: sticky; top: 0; z-index: 1; background: hsl(var(--muted, 0 0% 96%)); }
+
+/* Barra de rolagem discreta e de marca */
+* { scrollbar-width: thin; scrollbar-color: hsl(var(--muted-foreground) / .35) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / .3); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / .5); background-clip: padding-box; }
 
 /* Respeita quem prefere menos movimento */
 @media (prefers-reduced-motion: reduce) {
