@@ -11,10 +11,14 @@ import { PageHeader, Panel } from '@/components/kit';
 import { Palette, Save, RotateCcw, Loader2, Check, Image as ImageIcon, LayoutDashboard, Upload, X } from 'lucide-react';
 
 // Campo de logo: URL + upload de arquivo (Storage), com prévia e dimensões.
-function LogoField({ valor, onChange, empresaId, variante, fundo, dica }) {
+function LogoField({ valor, onChange, empresaId, variante, fundo, dica, rec }) {
   const [busy, setBusy] = useState(false);
+  const [dims, setDims] = useState(null); // dimensões reais da imagem carregada
   const inputRef = useRef(null);
   const escuro = fundo === 'escuro';
+  const recRatio = rec.w / rec.h;
+
+  useEffect(() => { setDims(null); }, [valor]); // zera ao trocar a imagem
 
   const enviar = async (file) => {
     if (!file) return;
@@ -28,8 +32,19 @@ function LogoField({ valor, onChange, empresaId, variante, fundo, dica }) {
     finally { setBusy(false); if (inputRef.current) inputRef.current.value = ''; }
   };
 
+  // Proporção fora do sugerido? (SVG não expõe pixel → não avisa)
+  const proporcaoRuim = dims && dims.w && dims.h && Math.abs((dims.w / dims.h) / recRatio - 1) > 0.4;
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-muted-foreground">Tamanho sugerido: <b className="text-foreground">{rec.w}×{rec.h} px</b></span>
+        {dims && (
+          <span className={`text-[11px] ${proporcaoRuim ? 'text-amber-600' : 'text-muted-foreground'}`}>
+            Enviada: {dims.w}×{dims.h} px
+          </span>
+        )}
+      </div>
       <div className="flex gap-2">
         <Input value={valor} onChange={(e) => onChange(e.target.value)} placeholder="https://…/logo.png (ou envie um arquivo)" inputMode="url" className="flex-1" />
         <input ref={inputRef} type="file" accept="image/png,image/svg+xml,image/webp,image/jpeg" className="hidden" onChange={(e) => enviar(e.target.files?.[0])} />
@@ -42,10 +57,15 @@ function LogoField({ valor, onChange, empresaId, variante, fundo, dica }) {
       </div>
       <div className="rounded-lg border border-border p-4 flex items-center justify-center h-16" style={{ background: escuro ? '#0F1B2D' : '#ffffff' }}>
         {valor.trim()
-          ? <img src={valor.trim()} alt="Prévia" className="h-9 w-auto max-w-[220px] object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ? <img src={valor.trim()} alt="Prévia" className="h-9 w-auto max-w-[220px] object-contain"
+              onLoad={(e) => setDims({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           : <span className="text-xs text-slate-400 inline-flex items-center gap-1.5"><ImageIcon className="w-4 h-4" /> sem logo</span>}
       </div>
       <p className="text-[11px] text-muted-foreground">{dica}</p>
+      {proporcaoRuim && (
+        <p className="text-[11px] text-amber-600">A proporção difere do sugerido (~{recRatio.toFixed(1)}:1) — a logo pode ficar cortada ou pequena.</p>
+      )}
     </div>
   );
 }
@@ -178,12 +198,12 @@ export default function Personalizacao() {
           <div>
             <Label className="text-xs text-muted-foreground mb-2 block">Fundo claro (login, relatórios)</Label>
             <LogoField valor={logo} onChange={setLogo} empresaId={empresaAtual?.id} variante="claro" fundo="claro"
-              dica="Logo escura, para aparecer bem sobre fundo branco." />
+              rec={{ w: 360, h: 72 }} dica="Logo escura, para aparecer bem sobre fundo branco." />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground mb-2 block">Fundo escuro (barra lateral)</Label>
             <LogoField valor={logoDark} onChange={setLogoDark} empresaId={empresaAtual?.id} variante="escuro" fundo="escuro"
-              dica="Logo clara, para a sidebar escura. Em branco, usa a logo de fundo claro." />
+              rec={{ w: 360, h: 72 }} dica="Logo clara, para a sidebar escura. Em branco, usa a logo de fundo claro." />
           </div>
         </div>
       </Panel>
