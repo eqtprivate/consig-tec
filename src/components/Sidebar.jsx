@@ -7,7 +7,7 @@ import { buildLabel, BUILD_TIME } from '@/lib/version';
 import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette, PanelLeft } from 'lucide-react';
 
 // Modelo do menu (grupos/páginas) e aplicação da config por empresa.
-import { buildCanonical, applyMenuConfig } from '@/lib/menuModel';
+import { AREA_SUBITEMS, buildCanonical, applyMenuConfig } from '@/lib/menuModel';
 
 // Ícones (lucide) das páginas fixas, por nome referenciado no menuModel.
 const FIXO_ICON = { LayoutDashboard, AlertCircle };
