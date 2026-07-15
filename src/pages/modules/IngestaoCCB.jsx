@@ -44,6 +44,7 @@ export default function IngestaoCCB() {
   const [justificativa, setJustificativa] = useState('');
   const [busy, setBusy] = useState(false);
   const [reprocessando, setReprocessando] = useState(false);
+  const [demorou, setDemorou] = useState(false);
 
   const load = async () => { setLoading(true); setLista(await ingestaoApi.list().catch(() => [])); setLoading(false); };
   useEffect(() => { load(); return () => clearInterval(pollRef.current); }, []);
@@ -59,6 +60,7 @@ export default function IngestaoCCB() {
   // Enquanto o status for 'extraindo', consulta a cada 3s até concluir (~2min máx).
   const pollExtracao = (id) => {
     clearInterval(pollRef.current);
+    setDemorou(false);
     let tries = 0;
     pollRef.current = setInterval(async () => {
       tries += 1;
@@ -70,7 +72,7 @@ export default function IngestaoCCB() {
           load();
           if (full.status === 'erro') toast.error(`Extração falhou: ${full.observacao || ''}`);
           else if (full.status === 'aguardando_conferencia') toast.success('CCB lida — pronta para conferência.');
-          else if (tries > 40) toast.warning('A leitura está demorando mais que o esperado. Você pode tentar novamente.');
+          else if (tries > 40 && full.status === 'extraindo') { setDemorou(true); toast.warning('A leitura está demorando mais que o esperado. Você pode tentar novamente.'); }
         } else {
           setSel((s) => (s && s.id === id ? { ...s, status: 'extraindo' } : s));
         }
@@ -100,7 +102,7 @@ export default function IngestaoCCB() {
 
   const abrir = async (row) => {
     try {
-      setJustificativa('');
+      setJustificativa(''); setDemorou(false);
       const full = await ingestaoApi.get(row.id);
       await aplicarSel(full);
       if (full.status === 'extraindo') pollExtracao(row.id);   // ainda lendo → acompanha
@@ -252,7 +254,11 @@ export default function IngestaoCCB() {
                 <ScanLine className="w-9 h-9 text-primary animate-pulse" />
                 <p className="text-sm font-semibold text-foreground">Lendo o PDF com inteligência artificial…</p>
                 <p className="text-xs text-muted-foreground max-w-xs">A IA está extraindo os dados da CCB. Documentos com muitas páginas levam de 10 a 40 segundos. Esta tela <b>atualiza sozinha</b> quando terminar.</p>
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                {demorou ? (
+                  <Button onClick={reprocessarSel} disabled={reprocessando} variant="outline" className="gap-2 mt-1">
+                    {reprocessando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Está demorando — tentar novamente
+                  </Button>
+                ) : <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
               </div>
             ) : emErro ? (
               <div className="rounded-lg border border-red-200 bg-red-50/50 flex flex-col items-center justify-center text-center p-8 gap-3 min-h-[420px]">
