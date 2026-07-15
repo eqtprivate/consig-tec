@@ -19,6 +19,7 @@ import Averbadoras from '@/pages/modules/Averbadoras';
 import Expectativa from '@/pages/modules/Expectativa';
 import PreviaCartao from '@/pages/modules/PreviaCartao';
 import MonitorCaptura from '@/pages/modules/MonitorCaptura';
+import CarteiraHistorica from '@/pages/modules/CarteiraHistorica';
 import { Wallet, CheckCircle2, ListPlus, Plus } from 'lucide-react';
 
 const TABS = [
@@ -30,6 +31,7 @@ const TABS = [
   { key: 'folha', label: 'Conciliação (folha)' },
   { key: 'monitor', label: 'Monitor' },
   { key: 'averbadoras', label: 'Averbadoras' },
+  { key: 'historico', label: 'Carteira histórica' },
 ];
 const C_CT = { ativo: 'bg-green-50 text-green-700', quitado: 'bg-muted text-muted-foreground', inadimplente: 'bg-red-50 text-red-700', cancelado: 'bg-muted text-muted-foreground' };
 const C_CT_LBL = { ativo: 'Ativo', quitado: 'Quitado', inadimplente: 'Inadimplente', cancelado: 'Cancelado' };
@@ -418,6 +420,7 @@ export default function Financeiro() {
         : tab === 'folha' ? <ConciliacaoFolha />
         : tab === 'monitor' ? <MonitorCaptura />
         : tab === 'averbadoras' ? <Averbadoras />
+        : tab === 'historico' ? <CarteiraHistorica />
         : <ConciliacaoTab />}
     </div>
   );
