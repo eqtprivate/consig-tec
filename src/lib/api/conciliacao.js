@@ -74,6 +74,13 @@ export const conciliacaoApi = {
     const { error } = await supabase.rpc('recalcular_financeiro_retorno', { p_retorno: retornoId });
     if (error) throw error;
   },
+  // Item 4 — batimento de 2ª camada: informa o repasse recebido e apura o que
+  // foi descontado mas não repassado (repasse perdido = perda pura).
+  async conciliarRepasse(retornoId, valorRepassado) {
+    const { data, error } = await supabase.rpc('conciliar_repasse', { p_retorno: retornoId, p_valor_repassado: valorRepassado });
+    if (error) throw error;
+    return data; // valor do repasse perdido
+  },
 };
 
 // Monitor de captura: esperado × capturado por competência.
