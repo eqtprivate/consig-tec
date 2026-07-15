@@ -38,6 +38,7 @@ const ORIGEM_CORES = { manual: 'bg-muted text-muted-foreground', csv: 'bg-amber-
 const emptyForm = {
   nome: '', cidade: '', uf: '', cnpj: '', tipo: 'publico', tipo_margem: 'cartao',
   percentual_margem_apartada: '', taxa_mensal: '', prazo_maximo: '', ativo: true,
+  idade_minima: '', idade_maxima_fim: '', teto_parcelas: '', max_contratos_servidor: '', prioridade_desconto: '',
   comissao_prefeitura: '', spread: '', habilitado_canal: false,
   rateio_canal: '', rateio_franquia: '', rateio_lider: '', rateio_corban: '', rateio_operador: '',
 };
@@ -123,6 +124,8 @@ export default function Convenios() {
       tipo: c.tipo, tipo_margem: c.tipo_margem || 'cartao',
       percentual_margem_apartada: c.percentual_margem_apartada ?? '', taxa_mensal: c.taxa_mensal ?? '',
       prazo_maximo: c.prazo_maximo ?? '', ativo: c.ativo,
+      idade_minima: c.idade_minima ?? '', idade_maxima_fim: c.idade_maxima_fim ?? '', teto_parcelas: c.teto_parcelas ?? '',
+      max_contratos_servidor: c.max_contratos_servidor ?? '', prioridade_desconto: c.prioridade_desconto ?? '',
       comissao_prefeitura: ov?.comissao_prefeitura ?? '', spread: ov?.spread ?? '', habilitado_canal: ov?.habilitado_canal || false,
       rateio_canal: rat.canal ?? '', rateio_franquia: rat.franquia ?? '', rateio_lider: rat.lider ?? '',
       rateio_corban: rat.corban ?? '', rateio_operador: rat.operador ?? '',
@@ -146,6 +149,12 @@ export default function Convenios() {
       tipo_margem: form.tipo_margem, percentual_margem_apartada: num(form.percentual_margem_apartada),
       margem_consignavel: num(form.percentual_margem_apartada), taxa_mensal: num(form.taxa_mensal),
       prazo_maximo: num(form.prazo_maximo), ativo: form.ativo,
+      // Item 2 — regras do decreto (lidas pelo motor de travas). Preenchimento
+      // manual carimba regras_manuais/atualizadas_em.
+      idade_minima: num(form.idade_minima), idade_maxima_fim: num(form.idade_maxima_fim),
+      teto_parcelas: num(form.teto_parcelas), max_contratos_servidor: num(form.max_contratos_servidor),
+      prioridade_desconto: num(form.prioridade_desconto),
+      regras_manuais: true, regras_atualizadas_em: new Date().toISOString(),
       origem_dado: editItem?.origem_dado || 'manual',
     };
     const conv = editItem ? await conveniosApi.update(editItem.id, payload) : await conveniosApi.create(payload);
@@ -399,6 +408,15 @@ export default function Convenios() {
               <div className="space-y-2"><Label>Prazo máx.</Label><Input type="number" value={form.prazo_maximo} onChange={(e) => setForm({ ...form, prazo_maximo: e.target.value })} /></div>
             </div>
             <div className="space-y-2"><Label>Taxa a.m. %</Label><Input type="number" step="0.0001" value={form.taxa_mensal} onChange={(e) => setForm({ ...form, taxa_mensal: e.target.value })} /></div>
+
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">Regras do decreto (motor de travas)</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2"><Label>Idade mín.</Label><Input type="number" value={form.idade_minima} onChange={(e) => setForm({ ...form, idade_minima: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Idade máx. ao fim</Label><Input type="number" value={form.idade_maxima_fim} onChange={(e) => setForm({ ...form, idade_maxima_fim: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Teto de parcelas</Label><Input type="number" value={form.teto_parcelas} onChange={(e) => setForm({ ...form, teto_parcelas: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Contratos/servidor</Label><Input type="number" value={form.max_contratos_servidor} onChange={(e) => setForm({ ...form, max_contratos_servidor: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Prioridade desconto</Label><Input type="number" value={form.prioridade_desconto} onChange={(e) => setForm({ ...form, prioridade_desconto: e.target.value })} /></div>
+            </div>
 
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-2">Overlay comercial (CONSIGTEC)</p>
             <div className="grid grid-cols-2 gap-3">
