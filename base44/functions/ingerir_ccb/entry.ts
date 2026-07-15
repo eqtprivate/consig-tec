@@ -4,8 +4,29 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // idempotência por hash, sobe ao Storage privado, extrai os dados com a API do
 // Claude (PDF nativo → OCR quando digitalizado), faz o matching e valida.
 // NADA é gravado no negócio aqui — a saída é uma SUGESTÃO para conferência.
-// Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY,
-// (opcional) CLAUDE_MODEL.
+//
+// O modelo e o limite de confiança vêm de config_ingestao_ccb (POR EMPRESA);
+// fallback: secret CLAUDE_MODEL → claude-sonnet-5. Cada leitura registra uma
+// linha em ingestao_tentativas (modelo, tokens, custo US$, duração, resultado).
+// Reprocessamento: body.reprocessar_ingestao_id (+ opcional body.modelo) relê a
+// mesma ingestão a partir do PDF já no Storage, com outro modelo sob demanda.
+// Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, (opc) CLAUDE_MODEL.
+
+const MODELOS_OK = ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-4-8'];
+// [input, output] US$ por 1M tokens (tabela de referência; intro do Sonnet à parte).
+const PRICES: Record<string, [number, number]> = {
+  'claude-haiku-4-5': [1, 5],
+  'claude-sonnet-5': [3, 15],
+  'claude-sonnet-4-6': [3, 15],
+  'claude-opus-4-8': [5, 25],
+  'claude-opus-4-7': [5, 25],
+};
+function custoUsd(model: string, usage: any): number | null {
+  const p = PRICES[model];
+  if (!p || !usage) return null;
+  const i = Number(usage.input_tokens || 0), o = Number(usage.output_tokens || 0);
+  return Number(((i / 1e6) * p[0] + (o / 1e6) * p[1]).toFixed(6));
+}
 
 const numOrNull = (v: unknown) => {
   if (v === null || v === undefined || v === '') return null;
@@ -23,6 +44,12 @@ function b64ToBytes(b64: string): Uint8Array {
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
+}
+function bytesToB64(bytes: Uint8Array): string {
+  let bin = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  return btoa(bin);
 }
 
 // PMT (tabela Price): PV·i·(1+i)^n / ((1+i)^n − 1). i em fração ao mês.
@@ -87,7 +114,86 @@ async function extrairComClaude(apiKey: string, model: string, base64: string) {
   const j = await res.json();
   const tu = (j.content || []).find((b: any) => b.type === 'tool_use');
   if (!tu) throw new Error('Extração sem tool_use na resposta.');
-  return tu.input as Record<string, unknown>;
+  return { input: tu.input as Record<string, unknown>, usage: j.usage };
+}
+
+// Config por empresa (defensivo: se a tabela ainda não existir, usa fallback).
+async function lerConfig(admin: any, empresaId: string) {
+  try {
+    const { data } = await admin.from('config_ingestao_ccb')
+      .select('modelo, confianca_minima').eq('empresa_id', empresaId).maybeSingle();
+    return data || null;
+  } catch { return null; }
+}
+// Log de tentativa (best-effort — nunca quebra a ingestão).
+async function logTentativa(admin: any, row: Record<string, unknown>) {
+  try { await admin.from('ingestao_tentativas').insert(row); } catch { /* noop */ }
+}
+
+// Matching + validações → { dados, divergencias, confianca, acao, propostaId }.
+async function analisar(admin: any, empresaId: string, ext: Record<string, unknown>, confMin: number) {
+  const numeroCcb = (ext.numero_ccb ? String(ext.numero_ccb).trim() : '') || null;
+  const cpf = soDig(ext.cpf);
+  const vPrinc = numOrNull(ext.valor_principal);
+  const vTotal = numOrNull(ext.valor_total);
+  const vTaxa = numOrNull(ext.taxa_mensal);
+  const vPrazo = ext.prazo ? Math.round(Number(ext.prazo)) : null;
+  const vPmt = numOrNull(ext.valor_parcela);
+  const confianca = numOrNull(ext.confianca);
+
+  let acao: 'duplicata' | 'completar_venda' | 'novo_registro' = 'novo_registro';
+  let propostaId: string | null = null;
+
+  if (numeroCcb) {
+    const { data: ccbDup } = await admin.from('ccbs').select('id').eq('numero', numeroCcb).maybeSingle();
+    if (ccbDup) acao = 'duplicata';
+  }
+  if (acao !== 'duplicata' && numeroCcb) {
+    const { data: pn } = await admin.from('propostas').select('id').eq('numero', numeroCcb).eq('empresa_id', empresaId).maybeSingle();
+    if (pn) { acao = 'completar_venda'; propostaId = pn.id; }
+  }
+  if (acao === 'novo_registro' && cpf && vPrinc != null) {
+    const { data: cli } = await admin.from('clientes').select('id').eq('cpf', cpf).maybeSingle();
+    if (cli) {
+      const { data: props } = await admin.from('propostas')
+        .select('id, valor_solicitado').eq('cliente_id', cli.id).eq('empresa_id', empresaId);
+      const tol = Math.max(vPrinc * 0.02, 1);
+      const hit = (props || []).find((p: any) => Math.abs(Number(p.valor_solicitado || 0) - vPrinc) <= tol);
+      if (hit) { acao = 'completar_venda'; propostaId = hit.id; }
+    }
+  }
+
+  const divergencias: Record<string, unknown>[] = [];
+  const push = (campo: string, tipo: 'critica' | 'aviso', extraido: unknown, sistema: unknown, msg: string) =>
+    divergencias.push({ campo, tipo, extraido, sistema, mensagem: msg });
+
+  if (vPrinc != null && vPrazo && vPmt != null) {
+    const calc = pmt(vPrinc, vTaxa || 0, vPrazo);
+    if (calc != null) {
+      const tol = Math.max(vPmt * 0.02, 0.5);
+      if (Math.abs(calc - vPmt) > tol) push('valor_parcela', 'critica', vPmt, Number(calc.toFixed(2)), `PMT recalculado (${calc.toFixed(2)}) diverge do valor da CCB.`);
+    }
+  }
+  if (propostaId && vPrinc != null) {
+    const { data: p } = await admin.from('propostas').select('valor_solicitado').eq('id', propostaId).maybeSingle();
+    const vs = Number(p?.valor_solicitado || 0);
+    if (vs && Math.abs(vs - vPrinc) > Math.max(vs * 0.02, 1)) push('valor_principal', 'critica', vPrinc, vs, 'Valor da CCB diverge da proposta.');
+  }
+  if (cpf && !cpfValido(cpf)) push('cpf', 'critica', cpf, null, 'CPF inválido.');
+  if (!cpf) push('cpf', 'aviso', null, null, 'CPF não encontrado no documento.');
+  if (vTotal != null && vPmt != null && vPrazo) {
+    const esperado = vPmt * vPrazo;
+    if (Math.abs(esperado - vTotal) > Math.max(vTotal * 0.03, 1)) push('valor_total', 'aviso', vTotal, Number(esperado.toFixed(2)), 'Valor total ≠ parcela × prazo.');
+  }
+  // Trava por confiança (Item ajustes): abaixo do limite → revisão obrigatória.
+  const revisaoForcada = confianca != null && confMin != null && confianca < confMin;
+  if (revisaoForcada) push('confianca', 'critica', confianca, confMin, `Confiança ${Math.round((confianca as number) * 100)}% abaixo do limite (${Math.round(confMin * 100)}%). Revisão obrigatória.`);
+
+  const dados = { numero_ccb: numeroCcb, cpf, nome_cliente: ext.nome_cliente ?? null, convenio: ext.convenio ?? null,
+    valor_principal: vPrinc, valor_total: vTotal, taxa_mensal: vTaxa, prazo: vPrazo, valor_parcela: vPmt,
+    data_emissao: ext.data_emissao ?? null, primeiro_vencimento: ext.primeiro_vencimento ?? null };
+
+  return { dados, divergencias, confianca, acao, propostaId, revisaoForcada };
 }
 
 Deno.serve(async (req) => {
@@ -95,7 +201,7 @@ Deno.serve(async (req) => {
   const url = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const anthKey = Deno.env.get('ANTHROPIC_API_KEY');
-  const model = Deno.env.get('CLAUDE_MODEL') || 'claude-sonnet-5';
+  const modeloFallback = Deno.env.get('CLAUDE_MODEL') || 'claude-sonnet-5';
   if (!url || !serviceKey) return Response.json({ error: 'Configuração ausente (service role).' }, { status: 500 });
 
   const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
@@ -109,6 +215,59 @@ Deno.serve(async (req) => {
   if (!perfil || !['admin', 'superadmin'].includes(perfil.role)) return Response.json({ error: 'Sem permissão' }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
+
+  // Modelo pedido (só superadmin/admin; validado contra a lista). Usado no
+  // reprocessamento e como override manual.
+  const modeloPedido = MODELOS_OK.includes(body.modelo) ? body.modelo : null;
+
+  // ---------------------------------------------------------------
+  // BRANCH A — Reprocessar uma ingestão existente com outro modelo.
+  // ---------------------------------------------------------------
+  if (body.reprocessar_ingestao_id) {
+    const { data: ing } = await admin.from('ingestoes_documento')
+      .select('id, empresa_id, storage_path, arquivo_nome, status').eq('id', body.reprocessar_ingestao_id).maybeSingle();
+    if (!ing) return Response.json({ error: 'Ingestão não encontrada.' }, { status: 404 });
+    if (perfil.role !== 'superadmin' && ing.empresa_id !== perfil.empresa_id) return Response.json({ error: 'Sem permissão nesta ingestão.' }, { status: 403 });
+    if (ing.status === 'aprovado') return Response.json({ error: 'Ingestão já aprovada — não pode ser reprocessada.' }, { status: 409 });
+    if (!anthKey) return Response.json({ error: 'ANTHROPIC_API_KEY não configurada.' }, { status: 200 });
+
+    const cfg = await lerConfig(admin, ing.empresa_id);
+    const model = modeloPedido || cfg?.modelo || modeloFallback;
+    const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
+
+    const t0 = Date.now();
+    try {
+      const { data: blob, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
+      if (dlErr || !blob) throw new Error('PDF original não encontrado no Storage.');
+      const b64 = bytesToB64(new Uint8Array(await blob.arrayBuffer()));
+
+      const { input: ext, usage } = await extrairComClaude(anthKey, model, b64);
+      const a = await analisar(admin, ing.empresa_id, ext, confMin);
+      await admin.from('ingestoes_documento').update({
+        status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
+        dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca, modelo_usado: model,
+      }).eq('id', ing.id);
+
+      await logTentativa(admin, {
+        empresa_id: ing.empresa_id, ingestao_id: ing.id, arquivo_nome: ing.arquivo_nome, modelo: model,
+        status: 'ok', tokens_entrada: usage?.input_tokens ?? null, tokens_saida: usage?.output_tokens ?? null,
+        custo_usd: custoUsd(model, usage), duracao_ms: Date.now() - t0, confianca: a.confianca,
+        revisao_forcada: a.revisaoForcada, reprocessamento: true, criado_por: caller.user.id,
+      });
+      return Response.json({ id: ing.id, status: 'aguardando_conferencia', modelo_usado: model, acao_sugerida: a.acao, proposta_id: a.propostaId, dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca });
+    } catch (e) {
+      await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message, modelo_usado: model }).eq('id', ing.id);
+      await logTentativa(admin, {
+        empresa_id: ing.empresa_id, ingestao_id: ing.id, arquivo_nome: ing.arquivo_nome, modelo: model,
+        status: 'erro', duracao_ms: Date.now() - t0, erro: (e as Error).message, reprocessamento: true, criado_por: caller.user.id,
+      });
+      return Response.json({ id: ing.id, status: 'erro', error: (e as Error).message }, { status: 200 });
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // BRANCH B — Nova ingestão a partir do PDF enviado.
+  // ---------------------------------------------------------------
   const base64: string = body.arquivo_base64 || '';
   const arquivoNome: string = body.arquivo_nome || 'ccb.pdf';
   if (!base64) return Response.json({ error: 'arquivo_base64 é obrigatório.' }, { status: 400 });
@@ -122,7 +281,14 @@ Deno.serve(async (req) => {
   // Idempotência: mesmo arquivo (hash) por empresa → devolve a ingestão existente.
   const { data: existente } = await admin.from('ingestoes_documento')
     .select('id, status, ccb_id, acao_sugerida').eq('empresa_id', empresaId).eq('hash_sha256', hash).maybeSingle();
-  if (existente) return Response.json({ id: existente.id, duplicado: true, ...existente });
+  if (existente) {
+    await logTentativa(admin, { empresa_id: empresaId, ingestao_id: existente.id, arquivo_nome: arquivoNome, status: 'duplicado', criado_por: caller.user.id });
+    return Response.json({ id: existente.id, duplicado: true, ...existente });
+  }
+
+  const cfg = await lerConfig(admin, empresaId);
+  const model = modeloPedido || cfg?.modelo || modeloFallback;
+  const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
 
   // Upload ao Storage privado.
   const storagePath = `${empresaId}/${hash}.pdf`;
@@ -137,83 +303,31 @@ Deno.serve(async (req) => {
   }).select().single();
   if (insErr) return Response.json({ error: insErr.message }, { status: 400 });
 
+  const t0 = Date.now();
   try {
     if (!anthKey) throw new Error('ANTHROPIC_API_KEY não configurada.');
-    const ext = await extrairComClaude(anthKey, model, base64.replace(/^data:.*;base64,/, ''));
-
-    // normaliza
-    const numeroCcb = (ext.numero_ccb ? String(ext.numero_ccb).trim() : '') || null;
-    const cpf = soDig(ext.cpf);
-    const vPrinc = numOrNull(ext.valor_principal);
-    const vTotal = numOrNull(ext.valor_total);
-    const vTaxa = numOrNull(ext.taxa_mensal);
-    const vPrazo = ext.prazo ? Math.round(Number(ext.prazo)) : null;
-    const vPmt = numOrNull(ext.valor_parcela);
-    const confianca = numOrNull(ext.confianca);
-
-    // ---- Matching ----
-    let acao: 'duplicata' | 'completar_venda' | 'novo_registro' = 'novo_registro';
-    let propostaId: string | null = null;
-
-    if (numeroCcb) {
-      const { data: ccbDup } = await admin.from('ccbs').select('id').eq('numero', numeroCcb).maybeSingle();
-      if (ccbDup) acao = 'duplicata';
-    }
-    if (acao !== 'duplicata' && numeroCcb) {
-      const { data: pn } = await admin.from('propostas').select('id').eq('numero', numeroCcb).eq('empresa_id', empresaId).maybeSingle();
-      if (pn) { acao = 'completar_venda'; propostaId = pn.id; }
-    }
-    if (acao === 'novo_registro' && cpf && vPrinc != null) {
-      const { data: cli } = await admin.from('clientes').select('id').eq('cpf', cpf).maybeSingle();
-      if (cli) {
-        const { data: props } = await admin.from('propostas')
-          .select('id, valor_solicitado').eq('cliente_id', cli.id).eq('empresa_id', empresaId);
-        const tol = Math.max(vPrinc * 0.02, 1);
-        const hit = (props || []).find((p: any) => Math.abs(Number(p.valor_solicitado || 0) - vPrinc) <= tol);
-        if (hit) { acao = 'completar_venda'; propostaId = hit.id; }
-      }
-    }
-
-    // ---- Validações → divergências ----
-    const divergencias: Record<string, unknown>[] = [];
-    const push = (campo: string, tipo: 'critica' | 'aviso', extraido: unknown, sistema: unknown, msg: string) =>
-      divergencias.push({ campo, tipo, extraido, sistema, mensagem: msg });
-
-    // PMT recalculado × PMT da CCB
-    if (vPrinc != null && vPrazo && vPmt != null) {
-      const calc = pmt(vPrinc, vTaxa || 0, vPrazo);
-      if (calc != null) {
-        const tol = Math.max(vPmt * 0.02, 0.5);
-        if (Math.abs(calc - vPmt) > tol) push('valor_parcela', 'critica', vPmt, Number(calc.toFixed(2)), `PMT recalculado (${calc.toFixed(2)}) diverge do valor da CCB.`);
-      }
-    }
-    // valor × proposta
-    if (propostaId && vPrinc != null) {
-      const { data: p } = await admin.from('propostas').select('valor_solicitado').eq('id', propostaId).maybeSingle();
-      const vs = Number(p?.valor_solicitado || 0);
-      if (vs && Math.abs(vs - vPrinc) > Math.max(vs * 0.02, 1)) push('valor_principal', 'critica', vPrinc, vs, 'Valor da CCB diverge da proposta.');
-    }
-    // CPF
-    if (cpf && !cpfValido(cpf)) push('cpf', 'critica', cpf, null, 'CPF inválido.');
-    if (!cpf) push('cpf', 'aviso', null, null, 'CPF não encontrado no documento.');
-    // coerência das parcelas
-    if (vTotal != null && vPmt != null && vPrazo) {
-      const esperado = vPmt * vPrazo;
-      if (Math.abs(esperado - vTotal) > Math.max(vTotal * 0.03, 1)) push('valor_total', 'aviso', vTotal, Number(esperado.toFixed(2)), 'Valor total ≠ parcela × prazo.');
-    }
-
-    const dados = { numero_ccb: numeroCcb, cpf, nome_cliente: ext.nome_cliente ?? null, convenio: ext.convenio ?? null,
-      valor_principal: vPrinc, valor_total: vTotal, taxa_mensal: vTaxa, prazo: vPrazo, valor_parcela: vPmt,
-      data_emissao: ext.data_emissao ?? null, primeiro_vencimento: ext.primeiro_vencimento ?? null };
+    const { input: ext, usage } = await extrairComClaude(anthKey, model, base64.replace(/^data:.*;base64,/, ''));
+    const a = await analisar(admin, empresaId, ext, confMin);
 
     await admin.from('ingestoes_documento').update({
-      status: 'aguardando_conferencia', acao_sugerida: acao, proposta_id: propostaId,
-      dados_extraidos: dados, divergencias, confianca,
+      status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
+      dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca, modelo_usado: model,
     }).eq('id', ing.id);
 
-    return Response.json({ id: ing.id, status: 'aguardando_conferencia', acao_sugerida: acao, proposta_id: propostaId, dados_extraidos: dados, divergencias, confianca });
+    await logTentativa(admin, {
+      empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model,
+      status: 'ok', tokens_entrada: usage?.input_tokens ?? null, tokens_saida: usage?.output_tokens ?? null,
+      custo_usd: custoUsd(model, usage), duracao_ms: Date.now() - t0, confianca: a.confianca,
+      revisao_forcada: a.revisaoForcada, reprocessamento: false, criado_por: caller.user.id,
+    });
+
+    return Response.json({ id: ing.id, status: 'aguardando_conferencia', modelo_usado: model, acao_sugerida: a.acao, proposta_id: a.propostaId, dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca });
   } catch (e) {
-    await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message }).eq('id', ing.id);
+    await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message, modelo_usado: model }).eq('id', ing.id);
+    await logTentativa(admin, {
+      empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model,
+      status: 'erro', duracao_ms: Date.now() - t0, erro: (e as Error).message, reprocessamento: false, criado_por: caller.user.id,
+    });
     return Response.json({ id: ing.id, status: 'erro', error: (e as Error).message }, { status: 200 });
   }
 });
