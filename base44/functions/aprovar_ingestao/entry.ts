@@ -67,6 +67,12 @@ Deno.serve(async (req) => {
   });
   if (rpcErr) return Response.json({ error: rpcErr.message }, { status: 400 });
 
+  // Enriquece a CCB/cliente com os campos ricos + guarda o jsonb integral.
+  // Best-effort: nunca reverte a aprovação já concluída.
+  try {
+    await userClient.rpc('enriquecer_ccb_dados', { p_ccb: ccbId, p_dados: dados });
+  } catch { /* colunas/func podem não existir antes da migration 0090 */ }
+
   // Dispara o espelho no Drive — best-effort, NUNCA afeta o status da CCB.
   const base = Deno.env.get('FUNCTIONS_BASE_URL');
   if (base) {
