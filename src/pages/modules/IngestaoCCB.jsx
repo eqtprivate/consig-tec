@@ -15,18 +15,69 @@ const ST = { recebido: 'Recebido', extraindo: 'Extraindo', aguardando_conferenci
 const ST_COR = { recebido: 'bg-muted text-muted-foreground', extraindo: 'bg-blue-50 text-blue-700', aguardando_conferencia: 'bg-amber-50 text-amber-700', aprovado: 'bg-green-50 text-green-700', rejeitado: 'bg-muted text-muted-foreground', erro: 'bg-red-50 text-red-700' };
 const ACAO = { completar_venda: 'Completar venda', novo_registro: 'Novo registro', duplicata: 'Duplicata' };
 
-const CAMPOS = [
-  { k: 'numero_ccb', label: 'Nº da CCB' },
-  { k: 'cpf', label: 'CPF', sis: (p) => p?.cliente?.cpf },
-  { k: 'nome_cliente', label: 'Cliente', sis: (p) => p?.cliente?.nome },
-  { k: 'convenio', label: 'Convênio' },
-  { k: 'valor_principal', label: 'Valor principal', num: true, sis: (p) => p?.valor_solicitado },
-  { k: 'valor_total', label: 'Valor total', num: true },
-  { k: 'taxa_mensal', label: 'Taxa a.m. (%)', num: true, sis: (p) => p?.taxa_mensal },
-  { k: 'prazo', label: 'Prazo', num: true, sis: (p) => p?.prazo },
-  { k: 'valor_parcela', label: 'Parcela (PMT)', num: true, sis: (p) => p?.valor_parcela },
-  { k: 'data_emissao', label: 'Emissão' },
-  { k: 'primeiro_vencimento', label: '1º vencimento' },
+// Conferência agrupada por seção. `moeda` formata o valor do sistema em R$;
+// `sis` traz o valor equivalente já no sistema (para comparar/destacar divergência).
+const SECOES = [
+  { titulo: 'Identificação da CCB', campos: [
+    { k: 'numero_ccb', label: 'Nº da CCB' },
+    { k: 'data_emissao', label: 'Emissão' },
+    { k: 'modalidade', label: 'Modalidade' },
+    { k: 'praca_pagamento', label: 'Praça de pagamento' },
+  ] },
+  { titulo: 'Devedor (emitente)', campos: [
+    { k: 'nome_cliente', label: 'Nome', sis: (p) => p?.cliente?.nome },
+    { k: 'cpf', label: 'CPF', sis: (p) => p?.cliente?.cpf },
+    { k: 'rg', label: 'RG' },
+    { k: 'orgao_expedidor', label: 'Órgão exp./UF' },
+    { k: 'data_nascimento', label: 'Nascimento' },
+    { k: 'estado_civil', label: 'Estado civil' },
+    { k: 'nacionalidade', label: 'Nacionalidade' },
+    { k: 'naturalidade', label: 'Naturalidade' },
+    { k: 'profissao', label: 'Profissão' },
+    { k: 'email', label: 'E-mail' },
+    { k: 'telefone', label: 'Telefone' },
+  ] },
+  { titulo: 'Endereço', campos: [
+    { k: 'endereco', label: 'Logradouro' },
+    { k: 'numero_endereco', label: 'Número' },
+    { k: 'complemento', label: 'Complemento' },
+    { k: 'bairro', label: 'Bairro' },
+    { k: 'cidade', label: 'Cidade' },
+    { k: 'uf', label: 'UF' },
+    { k: 'cep', label: 'CEP' },
+  ] },
+  { titulo: 'Convênio / empregador', campos: [
+    { k: 'convenio', label: 'Convênio' },
+    { k: 'matricula', label: 'Matrícula' },
+    { k: 'orgao_empregador', label: 'Órgão/empregador' },
+  ] },
+  { titulo: 'Credor / correspondente', campos: [
+    { k: 'credor_nome', label: 'Credor' },
+    { k: 'credor_cnpj', label: 'CNPJ credor' },
+    { k: 'correspondente_nome', label: 'Correspondente' },
+    { k: 'correspondente_cnpj', label: 'CNPJ corresp.' },
+  ] },
+  { titulo: 'Condições financeiras', campos: [
+    { k: 'valor_principal', label: 'Valor principal', moeda: true, sis: (p) => p?.valor_solicitado },
+    { k: 'valor_liberado', label: 'Valor liberado', moeda: true },
+    { k: 'valor_total', label: 'Valor total', moeda: true },
+    { k: 'taxa_mensal', label: 'Taxa a.m. (%)', sis: (p) => p?.taxa_mensal },
+    { k: 'taxa_anual', label: 'Taxa a.a. (%)' },
+    { k: 'cet_mensal', label: 'CET a.m. (%)' },
+    { k: 'cet_anual', label: 'CET a.a. (%)' },
+    { k: 'iof', label: 'IOF', moeda: true },
+    { k: 'tarifa_cadastro', label: 'Tarifa cadastro', moeda: true },
+    { k: 'prazo', label: 'Prazo', sis: (p) => p?.prazo },
+    { k: 'valor_parcela', label: 'Parcela (PMT)', moeda: true, sis: (p) => p?.valor_parcela },
+    { k: 'primeiro_vencimento', label: '1º vencimento' },
+    { k: 'ultimo_vencimento', label: 'Último vencimento' },
+  ] },
+  { titulo: 'Crédito ao cliente (banco)', campos: [
+    { k: 'banco_credito', label: 'Banco' },
+    { k: 'agencia_credito', label: 'Agência' },
+    { k: 'conta_credito', label: 'Conta' },
+    { k: 'tipo_conta', label: 'Tipo de conta' },
+  ] },
 ];
 
 const fileToB64 = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
@@ -290,27 +341,32 @@ export default function IngestaoCCB() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
-                <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 text-[10px] uppercase tracking-wide text-muted-foreground px-1">
-                  <span>Campo</span><span>Extraído do PDF (editável)</span><span>No sistema</span>
+              <div className="space-y-3 lg:max-h-[520px] lg:overflow-y-auto pr-1">
+                <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 text-[10px] uppercase tracking-wide text-muted-foreground px-1 sticky top-0 bg-card pb-1 z-10">
+                  <span>Campo</span><span>Extraído (editável)</span><span>No sistema</span>
                 </div>
-                {CAMPOS.map((c) => {
-                  const dv = divMap[c.k];
-                  const sistema = c.sis ? c.sis(sel.proposta) : null;
-                  const borda = dv ? (dv.tipo === 'critica' ? 'border-red-400' : 'border-amber-400') : 'border-border';
-                  return (
-                    <div key={c.k}>
-                      <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 items-center">
-                        <span className="text-xs text-muted-foreground">{c.label}</span>
-                        <Input value={dados[c.k] ?? ''} onChange={(e) => setCampo(c.k, e.target.value)} className={`h-8 text-sm ${borda}`} />
-                        <span className={`text-xs ${dv?.tipo === 'critica' ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                          {sistema != null && sistema !== '' ? (c.num ? brl(sistema) : sistema) : (acao === 'completar_venda' ? '—' : '(novo)')}
-                        </span>
-                      </div>
-                      {dv && <p className={`text-[11px] mt-0.5 ml-[calc(33%)] ${dv.tipo === 'critica' ? 'text-red-600' : 'text-amber-600'}`}>{dv.mensagem}</p>}
-                    </div>
-                  );
-                })}
+                {SECOES.map((sec) => (
+                  <div key={sec.titulo} className="space-y-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80 border-b border-border pb-0.5">{sec.titulo}</p>
+                    {sec.campos.map((c) => {
+                      const dv = divMap[c.k];
+                      const sistema = c.sis ? c.sis(sel.proposta) : null;
+                      const borda = dv ? (dv.tipo === 'critica' ? 'border-red-400' : 'border-amber-400') : 'border-border';
+                      return (
+                        <div key={c.k}>
+                          <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 items-center">
+                            <span className="text-xs text-muted-foreground">{c.label}</span>
+                            <Input value={dados[c.k] ?? ''} onChange={(e) => setCampo(c.k, e.target.value)} className={`h-8 text-sm ${borda}`} />
+                            <span className={`text-xs ${dv?.tipo === 'critica' ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                              {sistema != null && sistema !== '' ? (c.moeda ? brl(sistema) : sistema) : (acao === 'completar_venda' ? '—' : '(novo)')}
+                            </span>
+                          </div>
+                          {dv && <p className={`text-[11px] mt-0.5 ${dv.tipo === 'critica' ? 'text-red-600' : 'text-amber-600'}`}>{dv.mensagem}</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             )}
           </div>
