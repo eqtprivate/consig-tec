@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import { EmptyState, StatusBadge } from '@/components/kit';
 import { Upload, Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw } from 'lucide-react';
 
@@ -45,9 +46,22 @@ export default function IngestaoCCB() {
   const [busy, setBusy] = useState(false);
   const [reprocessando, setReprocessando] = useState(false);
   const [demorou, setDemorou] = useState(false);
+  const [progresso, setProgresso] = useState(0);
 
   const load = async () => { setLoading(true); setLista(await ingestaoApi.list().catch(() => [])); setLoading(false); };
   useEffect(() => { load(); return () => clearInterval(pollRef.current); }, []);
+
+  // Barra de progresso estimada enquanto a IA lê (a API não devolve progresso real):
+  // avança rápido no início e desacelera, saturando em ~96% até concluir.
+  useEffect(() => {
+    if (sel?.status !== 'extraindo') { setProgresso(0); return; }
+    const start = Date.now();
+    const id = setInterval(() => {
+      const el = Date.now() - start;
+      setProgresso(Math.min(96, 100 * (1 - Math.exp(-el / 18000))));
+    }, 400);
+    return () => clearInterval(id);
+  }, [sel?.status, sel?.id]);
 
   // Carrega a ingestão completa na conferência.
   const aplicarSel = async (full) => {
@@ -168,8 +182,8 @@ export default function IngestaoCCB() {
 
       {/* Banner de progresso do envio/leitura */}
       {enviando && (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800 flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+        <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-sm text-foreground flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin shrink-0 text-primary" />
           <span>Enviando e <b>lendo o PDF com inteligência artificial</b>… PDFs longos podem levar até ~40 segundos. Não feche a página.</span>
         </div>
       )}
@@ -250,21 +264,27 @@ export default function IngestaoCCB() {
 
             {/* Coluna direita: leitura / erro / campos */}
             {lendo ? (
-              <div className="rounded-lg border border-blue-200 bg-blue-50/50 flex flex-col items-center justify-center text-center p-8 gap-3 min-h-[420px]">
-                <ScanLine className="w-9 h-9 text-primary animate-pulse" />
-                <p className="text-sm font-semibold text-foreground">Lendo o PDF com inteligência artificial…</p>
-                <p className="text-xs text-muted-foreground max-w-xs">A IA está extraindo os dados da CCB. Documentos com muitas páginas levam de 10 a 40 segundos. Esta tela <b>atualiza sozinha</b> quando terminar.</p>
-                {demorou ? (
-                  <Button onClick={reprocessarSel} disabled={reprocessando} variant="outline" className="gap-2 mt-1">
+              <div className="rounded-lg border border-primary/25 bg-primary/5 flex flex-col items-center justify-center text-center p-8 gap-4 min-h-[420px]">
+                <ScanLine className="w-10 h-10 text-primary animate-pulse" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">Lendo o PDF com inteligência artificial…</p>
+                  <p className="text-xs text-muted-foreground max-w-xs mx-auto">A IA está extraindo os dados da CCB. PDFs com muitas páginas levam de 10 a 40 segundos. Esta tela <b className="text-foreground">atualiza sozinha</b> quando terminar.</p>
+                </div>
+                <div className="w-full max-w-xs space-y-1.5">
+                  <Progress value={progresso} className="h-2" />
+                  <p className="text-[11px] font-medium text-muted-foreground">{Math.round(progresso)}%</p>
+                </div>
+                {demorou && (
+                  <Button onClick={reprocessarSel} disabled={reprocessando} variant="outline" className="gap-2">
                     {reprocessando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Está demorando — tentar novamente
                   </Button>
-                ) : <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
+                )}
               </div>
             ) : emErro ? (
-              <div className="rounded-lg border border-red-200 bg-red-50/50 flex flex-col items-center justify-center text-center p-8 gap-3 min-h-[420px]">
+              <div className="rounded-lg border border-red-500/30 bg-red-500/5 flex flex-col items-center justify-center text-center p-8 gap-3 min-h-[420px]">
                 <AlertTriangle className="w-9 h-9 text-red-500" />
                 <p className="text-sm font-semibold text-foreground">Não foi possível ler esta CCB</p>
-                <p className="text-xs text-red-700 max-w-sm break-words">{sel.observacao || 'Falha na extração.'}</p>
+                <p className="text-xs text-red-600 dark:text-red-400 max-w-sm break-words">{sel.observacao || 'Falha na extração.'}</p>
                 <Button onClick={reprocessarSel} disabled={reprocessando} className="gap-2 mt-1">
                   {reprocessando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Tentar novamente
                 </Button>
