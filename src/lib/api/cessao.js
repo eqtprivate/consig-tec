@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getEmpresaView } from '@/lib/tenantView';
 
 // Fábrica de CRUD simples para as entidades de cadastro da cessão.
 function crud(table, select = '*', order = 'created_at') {
@@ -57,4 +58,29 @@ export const termosCessaoApi = {
     if (error) throw error;
     return data; // nº de títulos adicionados
   },
+  // Item 6 — deságio por lote (KPI de topo).
+  async desagioPorLote() {
+    const { data, error } = await supabase.rpc('desagio_por_lote', { p_empresa: getEmpresaView() });
+    if (error) throw error;
+    return data || [];
+  },
+  // Item 6 — bordereau / arquivo de remessa do lote (linhas dos títulos).
+  async bordereau(termoId) {
+    const { data, error } = await supabase.rpc('bordereau_termo', { p_termo: termoId });
+    if (error) throw error;
+    return data || [];
+  },
+  // Item 6 — recompra de um título (só pro solvendo); marca parcelas 'recomprada'.
+  async recomprarItem(itemId) {
+    const { error } = await supabase.rpc('recomprar_item_cessao', { p_item: itemId });
+    if (error) throw error;
+  },
 };
+
+// Item 6 — gera o CSV do bordereau (formato de remessa p/ administrador do fundo).
+export function bordereauToCsv(linhas) {
+  const head = ['titulo', 'emitente', 'cpf_cnpj', 'vencimento', 'valor', 'agio_desagio', 'ccb_numero', 'recompravel'];
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = (linhas || []).map((l) => head.map((k) => esc(l[k])).join(';'));
+  return [head.join(';'), ...rows].join('\n');
+}
