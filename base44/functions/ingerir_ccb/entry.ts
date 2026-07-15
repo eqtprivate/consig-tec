@@ -73,7 +73,7 @@ function cpfValido(cpf: string): boolean {
 
 const EXTRACT_TOOL = {
   name: 'extrair_ccb',
-  description: 'Extrai os campos de uma Cédula de Crédito Bancário (CCB). Retorne null quando o campo não constar. Valores numéricos sem "R$" nem separador de milhar. Datas em ISO (AAAA-MM-DD). NUNCA infira, calcule ou complete valores ausentes.',
+  description: 'Extrai os campos de uma Cédula de Crédito Bancário (CCB). Para campos ausentes use null — NUNCA "N/A", "não informado" nem texto equivalente. Valores numéricos sem "R$" nem separador de milhar. Datas em ISO (AAAA-MM-DD). NUNCA infira, calcule ou complete valores ausentes.',
   input_schema: {
     type: 'object',
     additionalProperties: false,
@@ -148,7 +148,7 @@ async function extrairComClaude(apiKey: string, model: string, base64: string) {
         role: 'user',
         content: [
           { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-          { type: 'text', text: 'Extraia os campos desta CCB usando a ferramenta extrair_ccb. Retorne null para o que não constar. Não invente nem calcule nada.' },
+          { type: 'text', text: 'Extraia os campos desta CCB usando a ferramenta extrair_ccb. Para o que não constar, retorne null (nunca "N/A" ou texto). Não invente nem calcule nada.' },
         ],
       }],
     }),
