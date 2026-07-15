@@ -62,8 +62,16 @@ async function uploadPdf(tok: string, nome: string, parent: string, bytes: Uint8
 }
 
 // Espelha UMA ingestão. Retorna { mirrored, ... }. Nunca lança.
-async function espelharIngestao(admin: any, ing: any, saRaw: string, root: string) {
+async function espelharIngestao(admin: any, ing: any, saRaw: string, globalRoot: string | null) {
   if (!ing.storage_path) return { id: ing.id, mirrored: false, motivo: 'sem storage_path' };
+  // Destino: pasta do Drive DA EMPRESA (se registrada/ativa) ou a pasta global.
+  let empFolder: string | null = null;
+  try {
+    const { data: cfg } = await admin.from('config_ingestao_ccb').select('drive_folder_id, drive_ativo').eq('empresa_id', ing.empresa_id).maybeSingle();
+    if (cfg?.drive_ativo && cfg?.drive_folder_id) empFolder = String(cfg.drive_folder_id).trim();
+  } catch { /* colunas podem não existir antes da 0091 */ }
+  const root = empFolder || globalRoot;
+  if (!root) return { id: ing.id, mirrored: false, motivo: 'sem pasta de Drive (global ou por empresa)' };
   const { data: file, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
   if (dlErr || !file) return { id: ing.id, mirrored: false, motivo: 'PDF não encontrado no Storage.' };
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -81,9 +89,11 @@ async function espelharIngestao(admin: any, ing: any, saRaw: string, root: strin
     try {
       const sa = JSON.parse(saRaw);
       const tok = await googleToken(sa);
-      const fEmp = await ensureFolder(tok, empNome, root);
-      const fAno = await ensureFolder(tok, ano, fEmp);
-      const fileId = await uploadPdf(tok, nome, fAno, bytes);
+      // Pasta própria da empresa → organiza por ano; pasta global → empresa/ano.
+      const parent = empFolder
+        ? await ensureFolder(tok, ano, empFolder)
+        : await ensureFolder(tok, ano, await ensureFolder(tok, empNome, root));
+      const fileId = await uploadPdf(tok, nome, parent, bytes);
       await admin.from('ingestoes_documento').update({ drive_file_id: fileId, drive_sincronizado_em: new Date().toISOString() }).eq('id', ing.id);
       return { id: ing.id, mirrored: true, drive_file_id: fileId, nome };
     } catch (e) {
@@ -118,8 +128,8 @@ Deno.serve(async (req) => {
   }
 
   const saRaw = Deno.env.get('GOOGLE_SA_JSON');
-  const root = Deno.env.get('GOOGLE_DRIVE_ROOT_FOLDER_ID');
-  if (!saRaw || !root) return Response.json({ mirrored: false, motivo: 'Google Drive não configurado (GOOGLE_SA_JSON / ROOT_FOLDER).' });
+  const globalRoot = Deno.env.get('GOOGLE_DRIVE_ROOT_FOLDER_ID') || null;
+  if (!saRaw) return Response.json({ mirrored: false, motivo: 'Google Drive não configurado (GOOGLE_SA_JSON ausente).' });
 
   // Modo RETRY em lote (cron): reprocessa ingestões aprovadas sem drive_file_id.
   if (body.reprocessar) {
@@ -128,7 +138,7 @@ Deno.serve(async (req) => {
       .eq('status', 'aprovado').is('drive_file_id', null).not('storage_path', 'is', null)
       .order('aprovado_em', { ascending: true }).limit(25);
     const resultados = [];
-    for (const ing of pend || []) resultados.push(await espelharIngestao(admin, ing, saRaw, root));
+    for (const ing of pend || []) resultados.push(await espelharIngestao(admin, ing, saRaw, globalRoot));
     return Response.json({ reprocessados: resultados.length, ok: resultados.filter((r) => r.mirrored).length, resultados });
   }
 
@@ -138,5 +148,5 @@ Deno.serve(async (req) => {
   const { data: ing } = await admin.from('ingestoes_documento').select('*, empresa:empresas(nome)').eq('id', ingestaoId).single();
   if (!ing) return Response.json({ error: 'Ingestão não encontrada.' }, { status: 404 });
   if (ing.drive_file_id) return Response.json({ mirrored: true, drive_file_id: ing.drive_file_id, already: true });
-  return Response.json(await espelharIngestao(admin, ing, saRaw, root));
+  return Response.json(await espelharIngestao(admin, ing, saRaw, globalRoot));
 });
