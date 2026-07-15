@@ -30,6 +30,15 @@ export const ingestaoConfigApi = {
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
   },
+  async salvarArquivamento({ drive_folder_id, drive_ativo }) {
+    const { data, error } = await supabase.rpc('salvar_arquivamento_ccb', {
+      p_drive_folder_id: drive_folder_id || null,
+      p_drive_ativo: !!drive_ativo,
+      p_empresa: getEmpresaView() || null,
+    });
+    if (error) throw error;
+    return Array.isArray(data) ? data[0] : data;
+  },
   async tentativas(limit = 50) {
     const ev = getEmpresaView();
     let q = supabase.from('ingestao_tentativas').select('*').order('created_at', { ascending: false }).limit(limit);
