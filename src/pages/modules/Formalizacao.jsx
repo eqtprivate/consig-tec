@@ -10,6 +10,7 @@ import { confirmar } from '@/lib/confirm';
 import { brl, dataBR, num } from '@/lib/format';
 import Contratos from '@/pages/modules/Contratos';
 import IngestaoCCB from '@/pages/modules/IngestaoCCB';
+import AjustesLeituraCCB from '@/pages/modules/AjustesLeituraCCB';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ const TABS = [
   { key: 'form', label: 'Formalização & Antifraude' },
   { key: 'ccb', label: 'CCB' },
   { key: 'ingestao', label: 'Ingestão de CCB' },
+  { key: 'ajustes', label: 'Ajustes da leitura' },
   { key: 'contratos', label: 'Contratos' },
 ];
 
@@ -422,7 +424,7 @@ export default function Formalizacao() {
           </button>
         ))}
       </div>
-      {tab === 'form' ? <FormalizacaoTab /> : tab === 'ccb' ? <CcbTab /> : tab === 'ingestao' ? <IngestaoCCB /> : <Contratos />}
+      {tab === 'form' ? <FormalizacaoTab /> : tab === 'ccb' ? <CcbTab /> : tab === 'ingestao' ? <IngestaoCCB /> : tab === 'ajustes' ? <AjustesLeituraCCB /> : <Contratos />}
     </div>
   );
 }
