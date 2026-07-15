@@ -58,6 +58,7 @@ export default function Sidebar({ collapsed = false }) {
       'crm|propostas': n('propostas_analise'),
       'averbacao|averbacoes': n('averbacoes_pendentes'),
       'formalizacao|form': n('formalizacoes_pendentes'),
+      'formalizacao|ingestao': n('ingestoes_conferencia'),
       'financeiro|carteira': n('contratos_inadimplentes'),
       'juridico|chamados': n('chamados_abertos'),
       'juridico|lgpd': n('lgpd_pendentes'),
