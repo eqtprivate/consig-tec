@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/kit';
-import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History } from 'lucide-react';
+import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck } from 'lucide-react';
 
 const dt = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : '—');
 const usd = (v) => (v == null ? '—' : `US$ ${Number(v).toFixed(4)}`);
@@ -30,6 +31,9 @@ export default function AjustesLeituraCCB() {
   const [salvando, setSalvando] = useState(false);
   const [tentativas, setTentativas] = useState([]);
   const [loadingLog, setLoadingLog] = useState(true);
+  const [driveAtivo, setDriveAtivo] = useState(false);
+  const [driveFolder, setDriveFolder] = useState('');
+  const [salvandoArq, setSalvandoArq] = useState(false);
 
   // Reprocessar
   const [repRow, setRepRow] = useState(null);
@@ -41,7 +45,12 @@ export default function AjustesLeituraCCB() {
   const carregarConfig = async () => {
     try {
       const c = await ingestaoConfigApi.get();
-      if (c) { setModelo(c.modelo || 'claude-sonnet-5'); setConfPct(Math.round(Number(c.confianca_minima ?? 0.75) * 100)); }
+      if (c) {
+        setModelo(c.modelo || 'claude-sonnet-5');
+        setConfPct(Math.round(Number(c.confianca_minima ?? 0.75) * 100));
+        setDriveAtivo(!!c.drive_ativo);
+        setDriveFolder(c.drive_folder_id || '');
+      }
     } catch { /* usa defaults */ }
     finally { setCarregado(true); }
   };
@@ -60,6 +69,16 @@ export default function AjustesLeituraCCB() {
       toast.success('Ajustes salvos. Valem na próxima leitura de CCB.');
     } catch (e) { toast.error(e.message || 'Falha ao salvar.'); }
     finally { setSalvando(false); }
+  };
+
+  const salvarArq = async () => {
+    setSalvandoArq(true);
+    try {
+      await ingestaoConfigApi.salvarArquivamento({ drive_folder_id: driveFolder.trim(), drive_ativo: driveAtivo });
+      await auditoriaApi.log('config_arquivamento_ccb', 'config_ingestao_ccb', null, { drive_ativo: driveAtivo, drive_folder_id: driveFolder.trim() });
+      toast.success('Arquivamento salvo.');
+    } catch (e) { toast.error(e.message || 'Falha ao salvar.'); }
+    finally { setSalvandoArq(false); }
   };
 
   const reprocessar = async () => {
@@ -131,6 +150,47 @@ export default function AjustesLeituraCCB() {
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Arquivamento dos PDFs */}
+      <div className="bg-card rounded-xl border border-border shadow-sm p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <HardDrive className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Arquivamento dos PDFs</h3>
+        </div>
+
+        <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          <ShieldCheck className="w-4 h-4 mt-0.5 text-green-600 shrink-0" />
+          <div className="text-xs text-muted-foreground">
+            <p className="text-foreground font-medium">Supabase Storage — principal (sempre ativo)</p>
+            <p>Cada CCB fica em bucket <b>privado</b> (<code>ccb-docs</code>), criptografado em repouso, organizado por <b>empresa/ano/mês</b>. Acesso só por link assinado temporário — nunca público.</p>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border p-3 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Cloud className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Espelhar também no Google Drive (alternativa)</span>
+            </div>
+            <Switch checked={driveAtivo} onCheckedChange={setDriveAtivo} disabled={bloqueadoSuper} />
+          </div>
+          {driveAtivo && (
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><FolderOpen className="w-3.5 h-3.5" /> ID da pasta do Drive</Label>
+              <Input value={driveFolder} onChange={(e) => setDriveFolder(e.target.value)} placeholder="ex.: 1AbC…xyz (ID da pasta no Google Drive)" disabled={bloqueadoSuper} />
+              <p className="text-[11px] text-muted-foreground">Compartilhe essa pasta com a <b>conta de serviço do Google</b> (permissão de Editor) para o sistema poder gravar. O espelho roda na aprovação de cada CCB, organizando por ano.</p>
+            </div>
+          )}
+          {!bloqueadoSuper && (
+            <div className="flex justify-end">
+              <Button onClick={salvarArq} disabled={salvandoArq} size="sm" className="gap-2">
+                {salvandoArq ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar arquivamento
+              </Button>
+            </div>
+          )}
+          {bloqueadoSuper && <p className="text-[11px] text-amber-600">Selecione uma empresa em “Ver como” para configurar o Drive dela.</p>}
+        </div>
       </div>
 
       {/* Log de tentativas */}
