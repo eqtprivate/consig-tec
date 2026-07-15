@@ -129,6 +129,10 @@ async function lerConfig(admin: any, empresaId: string) {
 async function logTentativa(admin: any, row: Record<string, unknown>) {
   try { await admin.from('ingestao_tentativas').insert(row); } catch { /* noop */ }
 }
+// Grava o modelo usado (coluna pode não existir antes da migration 0089).
+async function setModeloUsado(admin: any, id: string, model: string) {
+  try { await admin.from('ingestoes_documento').update({ modelo_usado: model }).eq('id', id); } catch { /* noop */ }
+}
 
 // Matching + validações → { dados, divergencias, confianca, acao, propostaId }.
 async function analisar(admin: any, empresaId: string, ext: Record<string, unknown>, confMin: number) {
@@ -245,8 +249,9 @@ Deno.serve(async (req) => {
       const a = await analisar(admin, ing.empresa_id, ext, confMin);
       await admin.from('ingestoes_documento').update({
         status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
-        dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca, modelo_usado: model,
+        dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
       }).eq('id', ing.id);
+      await setModeloUsado(admin, ing.id, model);
 
       await logTentativa(admin, {
         empresa_id: ing.empresa_id, ingestao_id: ing.id, arquivo_nome: ing.arquivo_nome, modelo: model,
@@ -256,7 +261,8 @@ Deno.serve(async (req) => {
       });
       return Response.json({ id: ing.id, status: 'aguardando_conferencia', modelo_usado: model, acao_sugerida: a.acao, proposta_id: a.propostaId, dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca });
     } catch (e) {
-      await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message, modelo_usado: model }).eq('id', ing.id);
+      await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message }).eq('id', ing.id);
+      await setModeloUsado(admin, ing.id, model);
       await logTentativa(admin, {
         empresa_id: ing.empresa_id, ingestao_id: ing.id, arquivo_nome: ing.arquivo_nome, modelo: model,
         status: 'erro', duracao_ms: Date.now() - t0, erro: (e as Error).message, reprocessamento: true, criado_por: caller.user.id,
@@ -311,8 +317,9 @@ Deno.serve(async (req) => {
 
     await admin.from('ingestoes_documento').update({
       status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
-      dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca, modelo_usado: model,
+      dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
     }).eq('id', ing.id);
+    await setModeloUsado(admin, ing.id, model);
 
     await logTentativa(admin, {
       empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model,
@@ -323,7 +330,8 @@ Deno.serve(async (req) => {
 
     return Response.json({ id: ing.id, status: 'aguardando_conferencia', modelo_usado: model, acao_sugerida: a.acao, proposta_id: a.propostaId, dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca });
   } catch (e) {
-    await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message, modelo_usado: model }).eq('id', ing.id);
+    await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message }).eq('id', ing.id);
+    await setModeloUsado(admin, ing.id, model);
     await logTentativa(admin, {
       empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model,
       status: 'erro', duracao_ms: Date.now() - t0, erro: (e as Error).message, reprocessamento: false, criado_por: caller.user.id,
