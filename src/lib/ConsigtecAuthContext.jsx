@@ -150,7 +150,19 @@ export const ConsigtecAuthProvider = ({ children }) => {
   // reaplicarem o filtro de empresa de forma consistente em todas as telas.
   // (Todas as tabelas operacionais já filtram por empresa_id — não há mais
   // filtro por franquia a resolver.)
-  const setEmpresaView = (id) => {
+  const setEmpresaView = async (id) => {
+    // Trilha de acesso do superadmin (Item 1 / P0): registra a impersonação
+    // ("ver como") antes de recarregar. Só superadmin chega aqui com id de outro
+    // tenant; falha no log nunca bloqueia a navegação.
+    if (perfil?.role === 'superadmin') {
+      try {
+        await supabase.rpc('registrar_log_acesso', {
+          p_evento: id ? 'impersonacao_inicio' : 'impersonacao_fim',
+          p_empresa_alvo: id || null,
+          p_detalhe: { origem: 'switcher_ver_como' },
+        });
+      } catch { /* nunca bloqueia a troca de visão */ }
+    }
     setEmpresaViewStore(id || null);
     setEmpresaViewState(id || null);
     setFranquiasViewStore(null);
