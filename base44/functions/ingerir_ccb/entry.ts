@@ -34,6 +34,7 @@ const numOrNull = (v: unknown) => {
   return Number.isFinite(n) ? n : null;
 };
 const soDig = (v: unknown) => (v ? String(v).replace(/\D/g, '') : '');
+const S = (v: unknown) => { const s = v == null ? '' : String(v).trim(); return s === '' ? null : s; };
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', bytes);
@@ -77,17 +78,59 @@ const EXTRACT_TOOL = {
     type: 'object',
     additionalProperties: false,
     properties: {
+      // Identificação
       numero_ccb: { type: ['string', 'null'] },
-      cpf: { type: ['string', 'null'], description: 'Somente dígitos' },
+      data_emissao: { type: ['string', 'null'] },
+      modalidade: { type: ['string', 'null'], description: 'Ex.: Cartão Consignado, Empréstimo Consignado' },
+      praca_pagamento: { type: ['string', 'null'], description: 'Cidade/praça de pagamento ou emissão' },
+      // Devedor (emitente)
       nome_cliente: { type: ['string', 'null'] },
-      convenio: { type: ['string', 'null'] },
+      cpf: { type: ['string', 'null'], description: 'Somente dígitos' },
+      rg: { type: ['string', 'null'] },
+      orgao_expedidor: { type: ['string', 'null'], description: 'Órgão expedidor do RG e UF' },
+      data_nascimento: { type: ['string', 'null'] },
+      estado_civil: { type: ['string', 'null'] },
+      nacionalidade: { type: ['string', 'null'] },
+      naturalidade: { type: ['string', 'null'] },
+      profissao: { type: ['string', 'null'] },
+      email: { type: ['string', 'null'] },
+      telefone: { type: ['string', 'null'] },
+      // Endereço
+      endereco: { type: ['string', 'null'], description: 'Logradouro' },
+      numero_endereco: { type: ['string', 'null'] },
+      complemento: { type: ['string', 'null'] },
+      bairro: { type: ['string', 'null'] },
+      cidade: { type: ['string', 'null'] },
+      uf: { type: ['string', 'null'] },
+      cep: { type: ['string', 'null'] },
+      // Convênio / empregador
+      convenio: { type: ['string', 'null'], description: 'Órgão/convênio consignante (ex.: Prefeitura)' },
+      matricula: { type: ['string', 'null'] },
+      orgao_empregador: { type: ['string', 'null'] },
+      // Credor / correspondente
+      credor_nome: { type: ['string', 'null'] },
+      credor_cnpj: { type: ['string', 'null'] },
+      correspondente_nome: { type: ['string', 'null'] },
+      correspondente_cnpj: { type: ['string', 'null'] },
+      // Condições financeiras
       valor_principal: { type: ['number', 'null'], description: 'Valor financiado / principal' },
+      valor_liberado: { type: ['number', 'null'], description: 'Valor líquido creditado ao cliente' },
       valor_total: { type: ['number', 'null'], description: 'Valor total / a pagar' },
-      taxa_mensal: { type: ['number', 'null'], description: 'Taxa de juros ao mês, em %' },
+      taxa_mensal: { type: ['number', 'null'], description: 'Juros ao mês, em %' },
+      taxa_anual: { type: ['number', 'null'], description: 'Juros ao ano, em %' },
+      cet_mensal: { type: ['number', 'null'], description: 'Custo Efetivo Total ao mês, em %' },
+      cet_anual: { type: ['number', 'null'], description: 'Custo Efetivo Total ao ano, em %' },
+      iof: { type: ['number', 'null'], description: 'Valor do IOF' },
+      tarifa_cadastro: { type: ['number', 'null'], description: 'TAC / tarifa de cadastro' },
       prazo: { type: ['integer', 'null'], description: 'Número de parcelas' },
       valor_parcela: { type: ['number', 'null'], description: 'Valor da parcela (PMT) conforme a CCB' },
-      data_emissao: { type: ['string', 'null'] },
       primeiro_vencimento: { type: ['string', 'null'] },
+      ultimo_vencimento: { type: ['string', 'null'] },
+      // Crédito ao cliente (dados bancários)
+      banco_credito: { type: ['string', 'null'] },
+      agencia_credito: { type: ['string', 'null'] },
+      conta_credito: { type: ['string', 'null'] },
+      tipo_conta: { type: ['string', 'null'] },
       confianca: { type: 'number', description: 'Confiança geral da extração, 0 a 1' },
     },
     required: ['numero_ccb', 'cpf', 'valor_principal', 'prazo', 'valor_parcela', 'confianca'],
@@ -99,7 +142,7 @@ async function extrairComClaude(apiKey: string, model: string, base64: string) {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model, max_tokens: 1024,
+      model, max_tokens: 2048,
       tools: [EXTRACT_TOOL], tool_choice: { type: 'tool', name: 'extrair_ccb' },
       messages: [{
         role: 'user',
@@ -193,9 +236,29 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
   const revisaoForcada = confianca != null && confMin != null && confianca < confMin;
   if (revisaoForcada) push('confianca', 'critica', confianca, confMin, `Confiança ${Math.round((confianca as number) * 100)}% abaixo do limite (${Math.round(confMin * 100)}%). Revisão obrigatória.`);
 
-  const dados = { numero_ccb: numeroCcb, cpf, nome_cliente: ext.nome_cliente ?? null, convenio: ext.convenio ?? null,
-    valor_principal: vPrinc, valor_total: vTotal, taxa_mensal: vTaxa, prazo: vPrazo, valor_parcela: vPmt,
-    data_emissao: ext.data_emissao ?? null, primeiro_vencimento: ext.primeiro_vencimento ?? null };
+  const dados = {
+    // Identificação
+    numero_ccb: numeroCcb, data_emissao: S(ext.data_emissao), modalidade: S(ext.modalidade), praca_pagamento: S(ext.praca_pagamento),
+    // Devedor
+    cpf, nome_cliente: S(ext.nome_cliente), rg: S(ext.rg), orgao_expedidor: S(ext.orgao_expedidor),
+    data_nascimento: S(ext.data_nascimento), estado_civil: S(ext.estado_civil), nacionalidade: S(ext.nacionalidade),
+    naturalidade: S(ext.naturalidade), profissao: S(ext.profissao), email: S(ext.email), telefone: S(ext.telefone),
+    // Endereço
+    endereco: S(ext.endereco), numero_endereco: S(ext.numero_endereco), complemento: S(ext.complemento),
+    bairro: S(ext.bairro), cidade: S(ext.cidade), uf: S(ext.uf), cep: S(ext.cep),
+    // Convênio / empregador
+    convenio: S(ext.convenio), matricula: S(ext.matricula), orgao_empregador: S(ext.orgao_empregador),
+    // Credor / correspondente
+    credor_nome: S(ext.credor_nome), credor_cnpj: S(ext.credor_cnpj),
+    correspondente_nome: S(ext.correspondente_nome), correspondente_cnpj: S(ext.correspondente_cnpj),
+    // Financeiro
+    valor_principal: vPrinc, valor_liberado: numOrNull(ext.valor_liberado), valor_total: vTotal,
+    taxa_mensal: vTaxa, taxa_anual: numOrNull(ext.taxa_anual), cet_mensal: numOrNull(ext.cet_mensal), cet_anual: numOrNull(ext.cet_anual),
+    iof: numOrNull(ext.iof), tarifa_cadastro: numOrNull(ext.tarifa_cadastro),
+    prazo: vPrazo, valor_parcela: vPmt, primeiro_vencimento: S(ext.primeiro_vencimento), ultimo_vencimento: S(ext.ultimo_vencimento),
+    // Bancário
+    banco_credito: S(ext.banco_credito), agencia_credito: S(ext.agencia_credito), conta_credito: S(ext.conta_credito), tipo_conta: S(ext.tipo_conta),
+  };
 
   return { dados, divergencias, confianca, acao, propostaId, revisaoForcada };
 }
