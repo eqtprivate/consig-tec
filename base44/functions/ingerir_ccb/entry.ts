@@ -359,8 +359,11 @@ Deno.serve(async (req) => {
   const model = modeloPedido || cfg?.modelo || modeloFallback;
   const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
 
-  // Upload ao Storage privado.
-  const storagePath = `${empresaId}/${hash}.pdf`;
+  // Upload ao Storage privado, organizado por empresa/ano/mês.
+  const _now = new Date();
+  const _yyyy = _now.getUTCFullYear();
+  const _mm = String(_now.getUTCMonth() + 1).padStart(2, '0');
+  const storagePath = `${empresaId}/${_yyyy}/${_mm}/${hash}.pdf`;
   try {
     await admin.storage.from('ccb-docs').upload(storagePath, bytes, { contentType: 'application/pdf', upsert: true });
   } catch { /* segue mesmo se o upload falhar; o hash garante idempotência */ }
