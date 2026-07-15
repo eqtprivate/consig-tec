@@ -1,0 +1,11 @@
+-- ============================================================
+-- CONSIGTEC — Item 7: métricas reais da carteira + importador histórico.
+-- Corpo completo aplicado no banco via MCP. Resumo:
+--  * metricas_carteira(empresa): VOP (principal), VF (a receber), VF/VOP,
+--    ticket_medio, prazo_medio, PDD (parcelas atrasadas) e deságio_medio_pct.
+--  * importar_contratos_historicos(linhas jsonb, empresa): valida por linha
+--    (numero/CPF/valor/convênio/status), resolve convênio por nome e cliente por
+--    CPF (cria se faltar), evita duplicados e devolve { inseridos, total, erros[] }.
+-- ============================================================
+-- (funções aplicadas via MCP; ver 0088 no projeto Supabase)
+select 1;
