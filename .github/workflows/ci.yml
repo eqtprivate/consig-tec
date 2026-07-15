@@ -1,0 +1,36 @@
+name: CI
+
+# Rede de seguranca (Item 0 do ciclo de endurecimento): lint + testes + build
+# em cada push e PR. O smoke test monta a Sidebar/app; se um import faltando
+# derrubar o render (como o AREA_SUBITEMS is not defined que travou o app em
+# loading infinito), o job falha e o merge e barrado — desde que a protecao de
+# branch exija este check (Settings > Branches > Require status checks).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    name: lint - test - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Lint (no-undef pega import ausente)
+        run: npm run lint
+
+      - name: Testes (smoke - app monta sem quebrar)
+        run: npm run test
+
+      - name: Build de producao
+        run: npm run build
