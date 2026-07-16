@@ -7,6 +7,9 @@ const linhas = [
   { key: 'usuarios', limite: 'limite_usuarios', label: 'Usuários' },
   { key: 'convenios', limite: 'limite_convenios', label: 'Convênios' },
   { key: 'propostas_mes', limite: 'limite_propostas_mes', label: 'Propostas (mês)' },
+  { key: 'leituras_ccb_mes', limite: 'limite_leituras_ccb_mes', label: 'Leituras CCB (mês)' },
+  { key: 'documentos', limite: 'limite_documentos', label: 'Documentos' },
+  { key: 'armazenamento_mb', limite: 'limite_armazenamento_mb', label: 'Armazenamento (MB)' },
 ];
 
 export default function PlanoUsoBanner() {
