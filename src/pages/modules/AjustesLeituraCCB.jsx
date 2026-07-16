@@ -137,7 +137,7 @@ export default function AjustesLeituraCCB() {
               );
             })}
           </div>
-          <p className="text-[11px] text-muted-foreground">Consumo de IA no mês: <b>{Number(uso.uso.tokens_mes || 0).toLocaleString('pt-BR')}</b> tokens · <b>US$ {Number(uso.uso.custo_mes || 0).toFixed(2)}</b>.</p>
+          <p className="text-[11px] text-muted-foreground">Consumo de IA no mês: <b>{Number(uso.uso.tokens_mes || 0).toLocaleString('pt-BR')}</b> tokens · <b>US$ {Number(uso.uso.custo_mes || 0).toFixed(2)}</b>{Number(uso.uso.leituras_mes) > 0 && <> · média <b>US$ {(Number(uso.uso.custo_mes || 0) / Number(uso.uso.leituras_mes)).toFixed(3)}</b>/leitura</>}.</p>
         </div>
       )}
 
