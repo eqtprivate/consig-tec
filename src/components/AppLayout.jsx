@@ -8,8 +8,6 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { Button } from '@/components/ui/button';
 import { ShieldAlert, LifeBuoy, ShieldCheck } from 'lucide-react';
 
-const DOC_COMPLIANCE = 'https://claude.ai/code/artifact/c8136f02-7fb1-4629-a40b-f550def0ceeb';
-
 function ContaInativa({ onLogout }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -76,7 +74,7 @@ export default function AppLayout() {
             <span className="flex items-center gap-1.5"><img src="/brand/consigtec_logo_icon.png" alt="" className="w-4 h-4 rounded" /> CONSIGTEC</span>
             <div className="flex items-center gap-4">
               <Link to="/suporte" className="hover:text-foreground inline-flex items-center gap-1"><LifeBuoy className="w-3.5 h-3.5" /> Suporte</Link>
-              <a href={DOC_COMPLIANCE} target="_blank" rel="noreferrer" className="hover:text-foreground inline-flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Segurança &amp; Privacidade</a>
+              <Link to="/seguranca" className="hover:text-foreground inline-flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Segurança &amp; Privacidade</Link>
             </div>
           </footer>
         </main>
