@@ -175,6 +175,11 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-16** — **P0 segurança**: signups **confirmados fechados** (`disable_signup=true`,
+  0 órfãos). **CI smoke ampliado** — além do render da Sidebar, novo teste importa **todos**
+  os módulos de página/componente (134) e falha se algum não carregar; barra o merge
+  (exige *Require status checks* na proteção de branch). Falta só ligar **proteção de senha
+  vazada** no painel Auth.
 - **2026-07-16** — **Fix logs_acesso** (migr. 0096–0097): a `logs_acesso` real tem
   `(usuario_id, acao, entidade, registro_id, ip)` — diferente do 0081 no repo. Corrigidos
   `get_documento_admin` (0096) e **`registrar_log_acesso`** (0097, reconciliação aditiva) para
