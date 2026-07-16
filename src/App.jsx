@@ -33,6 +33,7 @@ import SegurancaCompliance from '@/pages/SegurancaCompliance';
 import Personalizacao from '@/pages/admin/Personalizacao';
 import PixconsigCredenciais from '@/pages/admin/PixconsigCredenciais';
 import MenuLateral from '@/pages/admin/MenuLateral';
+import DocumentosSuperadmin from '@/pages/admin/DocumentosSuperadmin';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/menu" element={<MenuLateral />} />
             <Route path="/admin/pixconsig" element={<PixconsigCredenciais />} />
             <Route path="/admin/auditoria" element={<Auditoria />} />
+            <Route path="/admin/documentos" element={<DocumentosSuperadmin />} />
           </Route>
         </Route>
         <Route path="*" element={<PageNotFound />} />
