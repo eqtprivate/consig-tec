@@ -159,16 +159,16 @@ export default function SegurancaCompliance() {
       <Sec n="07" id="s7" titulo="Como mitigamos fraudes">
         <p>A defesa é em camadas: a IA acelera, mas <B>a decisão e a validação são humanas e verificadas</B>.</p>
         <Tab head={['Controle', 'Como funciona', 'Efeito']} rows={[
-          ['Conferência humana obrigatória', 'Extração é sugestão; campos editáveis; gravação exige aprovação de admin.', <Sev t="Bloqueia" />],
-          ['Recálculo de PMT', 'Parcela recalculada (Price) e comparada com a da CCB.', <Sev t="Sinaliza" />],
-          ['Validação de CPF', 'Checagem dos dígitos verificadores.', <Sev t="Valida" />],
-          ['Valor × proposta', 'Confronto com a proposta vinculada.', <Sev t="Sinaliza" />],
-          ['Coerência de valores', 'Verifica valor total ≈ parcela × prazo.', <Sev t="Valida" />],
-          ['Limite de confiança', 'Abaixo do percentual, entra em revisão obrigatória.', <Sev t="Bloqueia" />],
-          ['Justificativa em divergência crítica', 'Aprovar apesar de divergência crítica exige justificativa registrada.', <Sev t="Bloqueia" />],
-          ['Força executiva (Lei 10.931/04)', 'Checklist: denominação, promessa de pagamento, liquidez, devedor.', <Sev t="Sinaliza" />],
-          ['Idempotência por hash', 'SHA-256 impede reprocessar/duplicar o mesmo documento.', <Sev t="Valida" />],
-          ['Motor de travas', 'Bloqueia CCB sem averbação; travas de margem, idade e prazo.', <Sev t="Bloqueia" />],
+          ['Conferência humana obrigatória', 'Extração é sugestão; campos editáveis; gravação exige aprovação de admin.', <Sev key="s" t="Bloqueia" />],
+          ['Recálculo de PMT', 'Parcela recalculada (Price) e comparada com a da CCB.', <Sev key="s" t="Sinaliza" />],
+          ['Validação de CPF', 'Checagem dos dígitos verificadores.', <Sev key="s" t="Valida" />],
+          ['Valor × proposta', 'Confronto com a proposta vinculada.', <Sev key="s" t="Sinaliza" />],
+          ['Coerência de valores', 'Verifica valor total ≈ parcela × prazo.', <Sev key="s" t="Valida" />],
+          ['Limite de confiança', 'Abaixo do percentual, entra em revisão obrigatória.', <Sev key="s" t="Bloqueia" />],
+          ['Justificativa em divergência crítica', 'Aprovar apesar de divergência crítica exige justificativa registrada.', <Sev key="s" t="Bloqueia" />],
+          ['Força executiva (Lei 10.931/04)', 'Checklist: denominação, promessa de pagamento, liquidez, devedor.', <Sev key="s" t="Sinaliza" />],
+          ['Idempotência por hash', 'SHA-256 impede reprocessar/duplicar o mesmo documento.', <Sev key="s" t="Valida" />],
+          ['Motor de travas', 'Bloqueia CCB sem averbação; travas de margem, idade e prazo.', <Sev key="s" t="Bloqueia" />],
         ]} />
       </Sec>
 
