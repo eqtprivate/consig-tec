@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Upload, Package, Wallet, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Package, Wallet, Search, X, Gavel } from 'lucide-react';
 import { toast } from 'sonner';
 import { confirmar } from '@/lib/confirm';
 import Tip from '@/components/Tip';
@@ -44,6 +44,61 @@ const emptyForm = {
 };
 const num = (v) => (v === '' || v == null ? null : Number(v));
 const ov1 = (c) => (Array.isArray(c.overlay) ? c.overlay[0] : c.overlay) || null;
+
+const fmtData = (d) => { if (!d) return null; try { return new Date(d).toLocaleDateString('pt-BR'); } catch { return String(d); } };
+const arrOf = (v) => (Array.isArray(v) ? v : []);
+
+// Painel somente-leitura das regras que a leitura de decreto gravou no convênio.
+// Só aparece quando o convênio recebeu regras por decreto (regras_origem/decreto_numero).
+function RegrasDecretoPanel({ c }) {
+  if (!c) return null;
+  const temDecreto = c.regras_origem === 'decreto' || c.decreto_numero || c.decreto_ingestao_id;
+  if (!temDecreto) return null;
+  const linhas = [
+    ['Decreto/Lei', [c.decreto_numero, fmtData(c.decreto_data)].filter(Boolean).join(' · ')],
+    ['Lei base', c.lei_base],
+    ['Margem total', c.margem_total_pct != null ? `${c.margem_total_pct}%` : null],
+    ['Margem cartão', c.margem_cartao_pct != null ? `${c.margem_cartao_pct}%` : null],
+    ['Prazo máx.', (c.teto_parcelas ?? c.prazo_maximo) != null ? `${c.teto_parcelas ?? c.prazo_maximo} meses` : null],
+    ['Adiantamento', c.limite_adiantamento_pct != null ? `${c.limite_adiantamento_pct}%` : null],
+    ['Recompor margem', c.recomposicao_margem_horas != null ? `${c.recomposicao_margem_horas} h` : null],
+    ['Reposição erário', c.reposicao_erario],
+    ['Prioridade desconto', c.prioridade_desconto != null ? String(c.prioridade_desconto) : null],
+  ].filter(([, v]) => v != null && v !== '');
+  const tipos = arrOf(c.tipos_consignacao_permitidos);
+  const consig = arrOf(c.consignatarias_habilitadas);
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 inline-flex items-center gap-1.5"><Gavel className="w-3.5 h-3.5" /> Regras vigentes (aplicadas por decreto)</p>
+        {c.regras_atualizadas_em && <span className="text-[10px] text-muted-foreground">atualizado em {fmtData(c.regras_atualizadas_em)}</span>}
+      </div>
+      {linhas.length > 0 && (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          {linhas.map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">{k}</span>
+              <span className="font-medium text-foreground text-right truncate" title={String(v)}>{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {tipos.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tipos de consignação permitidos</p>
+          <div className="flex flex-wrap gap-1">{tipos.map((t, i) => <span key={i} className="text-[11px] px-1.5 py-0.5 rounded bg-card border border-border">{t}</span>)}</div>
+        </div>
+      )}
+      {consig.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Consignatárias habilitadas</p>
+          <div className="flex flex-wrap gap-1">{consig.map((t, i) => <span key={i} className="text-[11px] px-1.5 py-0.5 rounded bg-card border border-border">{t}</span>)}</div>
+        </div>
+      )}
+      <p className="text-[10px] text-muted-foreground">Preenchidas/validadas pela leitura do decreto — já refletidas no convênio. Ajuste os campos abaixo para alterar manualmente.</p>
+    </div>
+  );
+}
 
 export default function Convenios() {
   const [convenios, setConvenios] = useState([]);
@@ -347,7 +402,13 @@ export default function Convenios() {
             <tbody>
               {view.map((c) => (
                 <tr key={c.id} className="border-b border-border hover:bg-muted/50">
-                  <td className="px-4 py-3 font-medium text-foreground">{c.nome}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">
+                    <span className="inline-flex items-center gap-1.5">{c.nome}
+                      {(c.regras_origem === 'decreto' || c.decreto_numero) && (
+                        <Tip label={`Regras por decreto${c.decreto_numero ? ` ${c.decreto_numero}` : ''}`}><span className="inline-flex items-center gap-0.5 text-[10px] px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200"><Gavel className="w-3 h-3" /> decreto</span></Tip>
+                      )}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{[c.entidade?.cidade || c.orgao, c.entidade?.uf].filter(Boolean).join('/') || '—'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{MARGENS[c.tipo_margem] || '—'}</td>
                   <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{c.percentual_margem_apartada != null ? `${c.percentual_margem_apartada}%` : '—'}</td>
@@ -375,6 +436,7 @@ export default function Convenios() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editItem ? 'Editar convênio' : 'Novo convênio'}</DialogTitle></DialogHeader>
           <form onSubmit={handleSave} className="space-y-4">
+            {editItem && <RegrasDecretoPanel c={editItem} />}
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Entidade / Convênio</p>
             <div className="space-y-2">
               <Label>Nome</Label>
