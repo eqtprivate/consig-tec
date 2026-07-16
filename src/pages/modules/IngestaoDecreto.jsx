@@ -104,13 +104,14 @@ export default function IngestaoDecreto() {
 
   // Comparação campo-a-campo (extraído × cadastrado) contra o convênio selecionado.
   const comparacao = useMemo(() => {
+    const alvo = convSel || convenioId === '__novo__';
     const campos = SECOES.flatMap((s) => s.campos).filter((c) => c.cmp);
     return campos.map((c) => {
       const ext = dados[c.k];
       const reg = convSel ? c.conv(convSel) : null;
-      return { k: c.k, label: c.label, ext, reg, status: convSel ? statusCampo(ext, reg, c.num) : 'sem_dado' };
+      return { k: c.k, label: c.label, ext, reg, status: alvo ? statusCampo(ext, reg, c.num) : 'sem_dado' };
     });
-  }, [dados, convSel]);
+  }, [dados, convSel, convenioId]);
   const cmpMap = useMemo(() => Object.fromEntries(comparacao.map((c) => [c.k, c])), [comparacao]);
   const resumo = useMemo(() => {
     const r = { preenche: 0, confere: 0, divergente: 0 };
@@ -217,15 +218,22 @@ export default function IngestaoDecreto() {
   const precisaJustificar = temDivergencia || !!confDiv;
 
   const aplicar = async () => {
-    if (!convenioId) { toast.error('Selecione o convênio que receberá as regras.'); return; }
+    if (!convenioId) { toast.error('Selecione ou crie o convênio que receberá as regras.'); return; }
     if (precisaJustificar && !justificativa.trim()) { toast.error('Há divergência — justificativa é obrigatória para aplicar.'); return; }
     setBusy(true);
     try {
       const payload = { ...dados };
       LISTAS.forEach((l) => { if (typeof payload[l.k] === 'string') payload[l.k] = linhasToArr(payload[l.k]); });
-      const r = await decretosApi.aprovar({ ingestao_id: sel.id, acao: 'aplicar', convenio_id: convenioId, dados: payload, justificativa });
+      let convId = convenioId;
+      if (convId === '__novo__') {
+        const nome = (dados.ente_nome || '').trim() || `Convênio ${(dados.decreto_numero || '').trim()}`.trim();
+        const nova = await conveniosApi.create({ nome, orgao: dados.ente_nome || null });
+        convId = nova.id;
+        await auditoriaApi.log('criar_convenio_por_decreto', 'convenios', convId, { nome, ingestao: sel.id });
+      }
+      const r = await decretosApi.aprovar({ ingestao_id: sel.id, acao: 'aplicar', convenio_id: convId, dados: payload, justificativa });
       await auditoriaApi.log('aplicar_regras_decreto', 'convenios', r.convenio_id, { ingestao: sel.id, divergencias: resumo.divergente });
-      toast.success(convTemDecreto ? 'Regras validadas e atualizadas no convênio.' : 'Regras aplicadas ao convênio.');
+      toast.success(convenioId === '__novo__' ? 'Convênio criado e regras aplicadas.' : convTemDecreto ? 'Regras validadas e atualizadas no convênio.' : 'Regras aplicadas ao convênio.');
       setSel(null); load();
     } catch (err) { toast.error(err.message || 'Falha ao aplicar.'); }
     finally { setBusy(false); }
@@ -363,14 +371,15 @@ export default function IngestaoDecreto() {
                     <select value={convenioId} onChange={(e) => setConvenioId(e.target.value)}
                       className="h-8 text-sm rounded-md border border-border bg-card px-2 flex-1 min-w-[200px]">
                       <option value="">— selecione o convênio —</option>
+                      <option value="__novo__">➕ Criar novo convênio{dados.ente_nome ? ` — ${dados.ente_nome}` : ''}</option>
                       {convenios.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.orgao ? ` · ${c.orgao}` : ''}</option>)}
                     </select>
                   </div>
                   {sel.convenio?.nome && !convenioId && <p className="text-[11px] text-amber-600">sugerido pela IA: {sel.convenio.nome}</p>}
                   {convenioId && (
                     <div className="flex items-center gap-2 flex-wrap text-[11px]">
-                      <span className={`px-1.5 py-0.5 rounded ${convTemDecreto ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                        {convTemDecreto ? <><Check className="w-3 h-3 inline -mt-0.5" /> convênio já tem decreto — validando</> : <><PlusCircle className="w-3 h-3 inline -mt-0.5" /> convênio sem decreto — preenchendo</>}
+                      <span className={`px-1.5 py-0.5 rounded ${convenioId === '__novo__' ? 'bg-green-50 text-green-700 border border-green-200' : convTemDecreto ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                        {convenioId === '__novo__' ? <><PlusCircle className="w-3 h-3 inline -mt-0.5" /> novo convênio será criado — preenchendo</> : convTemDecreto ? <><Check className="w-3 h-3 inline -mt-0.5" /> convênio já tem decreto — validando</> : <><PlusCircle className="w-3 h-3 inline -mt-0.5" /> convênio sem decreto — preenchendo</>}
                       </span>
                       <span className="text-blue-700">{resumo.preenche} preenche</span>
                       <span className="text-green-700">{resumo.confere} confere</span>
@@ -396,7 +405,7 @@ export default function IngestaoDecreto() {
                           <Input value={dados[c.k] ?? ''} onChange={(e) => setCampo(c.k, e.target.value)} className={`h-8 text-sm ${borda}`} />
                           <div className="flex items-center gap-1 min-w-0">
                             <span className={`text-xs truncate ${cm?.status === 'divergente' ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                              {cm ? (vazio(cm.reg) ? (convenioId ? '(vazio)' : '—') : String(cm.reg)) : '—'}
+                              {cm ? (vazio(cm.reg) ? (convenioId === '__novo__' ? '(novo)' : convenioId ? '(vazio)' : '—') : String(cm.reg)) : '—'}
                             </span>
                             {meta && cm.status !== 'sem_dado' && <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${meta.cls}`}>{meta.label}</span>}
                           </div>
@@ -406,11 +415,11 @@ export default function IngestaoDecreto() {
                   </div>
                 ))}
                 <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80 border-b border-border pb-0.5">Listas (uma por linha)</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80 border-b border-border pb-0.5">Listas (itens separados)</p>
                   {LISTAS.map((l) => (
                     <div key={l.k} className="space-y-1">
                       <Label className="text-xs text-muted-foreground">{l.label}</Label>
-                      <Textarea rows={3} value={listaVal(l.k)} onChange={(e) => setCampo(l.k, e.target.value)} className="text-sm" />
+                      <TagList items={dados[l.k]} onChange={(arr) => setCampo(l.k, arr)} placeholder="Adicionar item e Enter…" />
                     </div>
                   ))}
                 </div>
