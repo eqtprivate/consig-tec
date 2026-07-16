@@ -6,6 +6,7 @@ export const ingestaoApi = {
   async list(status) {
     let q = supabase.from('ingestoes_documento')
       .select('*, proposta:propostas(id, numero, cliente:clientes(nome, cpf)), ccb:ccbs(id, numero)')
+      .eq('tipo_documento', 'ccb')
       .order('created_at', { ascending: false });
     if (status && status !== 'todos') q = q.eq('status', status);
     const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
