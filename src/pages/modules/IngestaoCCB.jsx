@@ -88,6 +88,7 @@ export default function IngestaoCCB() {
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const inputRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -161,10 +162,10 @@ export default function IngestaoCCB() {
 
   const enviar = async (file) => {
     if (!file) return;
-    setEnviando(true);
+    setEnviando(true); setUploadPct(0);
     try {
       const b64 = await fileToB64(file);
-      const r = await ingestaoApi.ingerir(b64, file.name);
+      const r = await ingestaoApi.ingerir(b64, file.name, setUploadPct);
       await auditoriaApi.log('ingerir_ccb', 'ingestoes_documento', r.id, { arquivo: file.name, status: r.status, duplicado: !!r.duplicado });
       await load();
       await abrir({ id: r.id });
@@ -247,9 +248,12 @@ export default function IngestaoCCB() {
 
       {/* Banner de progresso do envio/leitura */}
       {enviando && (
-        <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-sm text-foreground flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin shrink-0 text-primary" />
-          <span>Enviando e <b>lendo o PDF com inteligência artificial</b>… PDFs longos podem levar até ~40 segundos. Não feche a página.</span>
+        <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0 text-primary" />
+            <span>{uploadPct < 100 ? <>Enviando o PDF… <b>{uploadPct}%</b></> : <>PDF enviado. <b>Lendo com inteligência artificial</b>… não feche a página.</>}</span>
+          </div>
+          <Progress value={uploadPct} className="h-2" />
         </div>
       )}
 
