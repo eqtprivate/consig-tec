@@ -90,6 +90,24 @@ export default function IngestaoDecreto() {
   useEffect(() => () => clearInterval(pollRef.current), []);
 
   const convSel = useMemo(() => convenios.find((c) => c.id === convenioId) || null, [convenios, convenioId]);
+  const convTemDecreto = !!(convSel && (convSel.decreto_numero || convSel.regras_origem === 'decreto'));
+
+  // Comparação campo-a-campo (extraído × cadastrado) contra o convênio selecionado.
+  const comparacao = useMemo(() => {
+    const campos = SECOES.flatMap((s) => s.campos).filter((c) => c.cmp);
+    return campos.map((c) => {
+      const ext = dados[c.k];
+      const reg = convSel ? c.conv(convSel) : null;
+      return { k: c.k, label: c.label, ext, reg, status: convSel ? statusCampo(ext, reg, c.num) : 'sem_dado' };
+    });
+  }, [dados, convSel]);
+  const cmpMap = useMemo(() => Object.fromEntries(comparacao.map((c) => [c.k, c])), [comparacao]);
+  const resumo = useMemo(() => {
+    const r = { preenche: 0, confere: 0, divergente: 0 };
+    comparacao.forEach((c) => { if (r[c.status] != null) r[c.status] += 1; });
+    return r;
+  }, [comparacao]);
+  const temDivergencia = resumo.divergente > 0;
 
   const excluirIng = async (r) => {
     if (!window.confirm(`Excluir o decreto "${r.arquivo_nome}"? O PDF será removido do armazenamento. Esta ação não pode ser desfeita.`)) return;
