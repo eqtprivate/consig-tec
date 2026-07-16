@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ingestaoApi } from '@/lib/api/ingestao';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { brl } from '@/lib/format';
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { EmptyState, StatusBadge } from '@/components/kit';
-import { Upload, Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw, Trash2 } from 'lucide-react';
+import { Upload, Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw, Trash2, LifeBuoy } from 'lucide-react';
 
 const ST = { recebido: 'Recebido', extraindo: 'Extraindo', aguardando_conferencia: 'Conferência', aprovado: 'Aprovado', rejeitado: 'Rejeitado', erro: 'Erro' };
 const ST_COR = { recebido: 'bg-muted text-muted-foreground', extraindo: 'bg-blue-50 text-blue-700', aguardando_conferencia: 'bg-amber-50 text-amber-700', aprovado: 'bg-green-50 text-green-700', rejeitado: 'bg-muted text-muted-foreground', erro: 'bg-red-50 text-red-700' };
@@ -236,7 +237,7 @@ export default function IngestaoCCB() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <p className="text-sm font-semibold text-foreground flex items-center gap-2"><ScanLine className="w-4 h-4 text-primary" /> Ingestão & Leitura Automática de CCB</p>
-          <p className="text-[11px] text-muted-foreground">A extração é uma <b>sugestão</b> — nada é gravado sem conferência e aprovação humana.</p>
+          <p className="text-[11px] text-muted-foreground">A extração é uma <b>sugestão</b> — nada é gravado sem conferência e aprovação humana. <Link to="/suporte" className="text-primary hover:underline inline-flex items-center gap-0.5"><LifeBuoy className="w-3 h-3" /> Ajuda &amp; segurança</Link></p>
         </div>
         <div>
           <input ref={inputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => enviar(e.target.files?.[0])} />
