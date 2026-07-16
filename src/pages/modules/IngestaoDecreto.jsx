@@ -19,23 +19,23 @@ const FILTROS = [['todos', 'Todos'], ['aguardando_conferencia', 'Conferência'],
 // Seções de campos escalares. `sis` traz o valor equivalente no convênio selecionado.
 const SECOES = [
   { titulo: 'Identificação da norma', campos: [
-    { k: 'decreto_numero', label: 'Nº do decreto/lei' },
-    { k: 'decreto_data', label: 'Data (AAAA-MM-DD)' },
+    { k: 'decreto_numero', label: 'Nº do decreto/lei', cmp: true, conv: (c) => c?.decreto_numero },
+    { k: 'decreto_data', label: 'Data (AAAA-MM-DD)', cmp: true, conv: (c) => c?.decreto_data },
     { k: 'ente_nome', label: 'Ente / município' },
     { k: 'uf', label: 'UF' },
     { k: 'esfera', label: 'Esfera' },
-    { k: 'lei_base', label: 'Lei base' },
+    { k: 'lei_base', label: 'Lei base', cmp: true, conv: (c) => c?.lei_base },
     { k: 'vigencia', label: 'Vigência' },
     { k: 'revogacoes', label: 'Revogações' },
   ] },
   { titulo: 'Regras de margem e prazo', campos: [
-    { k: 'margem_total_pct', label: 'Margem total (%)', sis: (c) => c?.margem_total_pct },
-    { k: 'margem_cartao_pct', label: 'Margem cartão (%)', sis: (c) => c?.margem_por_produto?.cartao },
-    { k: 'prazo_maximo_meses', label: 'Prazo máx. (meses)', sis: (c) => c?.teto_parcelas ?? c?.prazo_maximo },
-    { k: 'limite_adiantamento_pct', label: 'Adiantamento (%)', sis: (c) => c?.limite_adiantamento_pct },
-    { k: 'recomposicao_margem_horas', label: 'Recompor margem (h)', sis: (c) => c?.recomposicao_margem_horas },
-    { k: 'reposicao_erario', label: 'Reposição ao erário', sis: (c) => c?.reposicao_erario },
-    { k: 'prioridade_desconto', label: 'Prioridade (nº)', sis: (c) => c?.prioridade_desconto },
+    { k: 'margem_total_pct', label: 'Margem total (%)', cmp: true, num: true, conv: (c) => c?.margem_total_pct },
+    { k: 'margem_cartao_pct', label: 'Margem cartão (%)', cmp: true, num: true, conv: (c) => c?.margem_cartao_pct ?? c?.margem_por_produto?.cartao },
+    { k: 'prazo_maximo_meses', label: 'Prazo máx. (meses)', cmp: true, num: true, conv: (c) => c?.teto_parcelas ?? c?.prazo_maximo },
+    { k: 'limite_adiantamento_pct', label: 'Adiantamento (%)', cmp: true, num: true, conv: (c) => c?.limite_adiantamento_pct },
+    { k: 'recomposicao_margem_horas', label: 'Recompor margem (h)', cmp: true, num: true, conv: (c) => c?.recomposicao_margem_horas },
+    { k: 'reposicao_erario', label: 'Reposição ao erário', cmp: true, conv: (c) => c?.reposicao_erario },
+    { k: 'prioridade_desconto', label: 'Prioridade (nº)', cmp: true, num: true, conv: (c) => c?.prioridade_desconto },
     { k: 'prioridade_desconto_descricao', label: 'Prioridade (descrição)' },
   ] },
 ];
@@ -47,6 +47,23 @@ const LISTAS = [
 
 const fileToB64 = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
 const linhasToArr = (s) => String(s || '').split('\n').map((x) => x.trim()).filter(Boolean);
+const vazio = (v) => v == null || String(v).trim() === '';
+const normStr = (v) => String(v ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+const asNum = (v) => { if (vazio(v)) return null; const n = Number(String(v).replace(/[%\s]/g, '').replace(',', '.').replace(/[^\d.-]/g, '')); return Number.isFinite(n) ? n : null; };
+
+// Status da comparação de UM campo: extraído × cadastrado no convênio.
+function statusCampo(ext, reg, num) {
+  if (vazio(ext)) return 'sem_dado';
+  if (vazio(reg)) return 'preenche';
+  if (num) { const a = asNum(ext), b = asNum(reg); if (a != null && b != null) return a === b ? 'confere' : 'divergente'; }
+  return normStr(ext) === normStr(reg) ? 'confere' : 'divergente';
+}
+const CMP_META = {
+  sem_dado: { label: '—', cls: 'text-muted-foreground bg-muted' },
+  preenche: { label: 'preenche', cls: 'text-blue-700 bg-blue-50 border border-blue-200' },
+  confere: { label: 'confere', cls: 'text-green-700 bg-green-50 border border-green-200' },
+  divergente: { label: 'DIVERGENTE', cls: 'text-red-700 bg-red-50 border border-red-300 font-semibold' },
+};
 
 export default function IngestaoDecreto() {
   const [lista, setLista] = useState([]);
