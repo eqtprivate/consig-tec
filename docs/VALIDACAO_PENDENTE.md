@@ -7,6 +7,25 @@ Legenda: ⬜ pendente de validação · ✅ validado · ⚠️ validado com ress
 
 ---
 
+## ✅ Leitura Automática de CCB (migr. 0089–0093) — validado ao vivo (2026-07-16)
+
+- **Chave Anthropic**: presente no runtime; leitura real de CCB de **15 páginas**
+  escaneada — **45 campos** extraídos corretamente (Haiku ~10s, ~R$ 0,25).
+- **Ajustes (0089)**: config de modelo/confiança por empresa, log de tentativas e
+  reprocessamento — verificados via runtime (esquema + RPCs + reprocesso real).
+- **Persistência (0090)**: colunas em `clientes`/`ccbs` + `dados_extraidos` jsonb e
+  funções `num_br`/`parse_data_br`/`enriquecer_ccb_dados` — esquema conferido.
+- **Arquivamento (0091)**: `config_ingestao_ccb.drive_folder_id/drive_ativo` +
+  `salvar_arquivamento_ccb`; path do Storage por empresa/ano/mês.
+- **Cota/gestão (0092/0093)**: colunas de limite no `planos`, `tamanho_bytes`,
+  `uso_ingestao_empresa`, e funções de exclusão — esquema + autorização conferidos.
+
+**Ressalvas / a fazer:** ⚠️ rodar `select backfill_tamanho_ccb();` (tamanho dos PDFs
+antigos); ⬜ testar o **bloqueio de cota** pela UI (limite baixo → 2ª leitura recusada);
+⬜ conferir a persistência dos campos ricos ao **aprovar** uma CCB real.
+
+---
+
 ## ⬜ Teste guiado fim-a-fim da esteira (migrs. 0024–0034)
 
 **Status:** implementado, **validação pendente** (anotado a pedido do cliente em 2026-07-12).
