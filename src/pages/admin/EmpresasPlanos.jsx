@@ -29,6 +29,9 @@ export default function EmpresasPlanos() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({ nome: '', cnpj: '', segmento: '', plano_id: '', ativo: true });
+  const [planoOpen, setPlanoOpen] = useState(false);
+  const [planoEdit, setPlanoEdit] = useState(null);
+  const [planoForm, setPlanoForm] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -39,6 +42,37 @@ export default function EmpresasPlanos() {
 
   const openCreate = () => { setEdit(null); setForm({ nome: '', cnpj: '', segmento: '', plano_id: '', ativo: true }); setOpen(true); };
   const openEdit = (e) => { setEdit(e); setForm({ nome: e.nome, cnpj: e.cnpj || '', segmento: e.segmento || '', plano_id: e.plano_id || '', ativo: e.ativo }); setOpen(true); };
+
+  const AREAS = ['convenios', 'crm', 'averbacao', 'formalizacao', 'financeiro', 'comissoes', 'cobranca', 'cessao_fidc', 'juridico', 'suporte'];
+  const nn = (v) => (v === '' || v == null ? null : Number(v));
+  const openEditPlano = (p) => {
+    const todos = (p.modulos || []).includes('*');
+    setPlanoEdit(p);
+    setPlanoForm({
+      nome: p.nome || '', descricao: p.descricao || '', preco_mensal: p.preco_mensal ?? '',
+      limite_usuarios: p.limite_usuarios ?? '', limite_convenios: p.limite_convenios ?? '', limite_propostas_mes: p.limite_propostas_mes ?? '',
+      limite_leituras_ccb_mes: p.limite_leituras_ccb_mes ?? '', limite_documentos: p.limite_documentos ?? '', limite_armazenamento_mb: p.limite_armazenamento_mb ?? '',
+      modulos: todos ? [] : (p.modulos || []), todos, ativo: p.ativo,
+    });
+    setPlanoOpen(true);
+  };
+  const toggleMod = (m) => setPlanoForm((s) => ({ ...s, modulos: s.modulos.includes(m) ? s.modulos.filter((x) => x !== m) : [...s.modulos, m] }));
+  const savePlano = async (ev) => {
+    ev.preventDefault();
+    const f = planoForm;
+    const payload = {
+      nome: f.nome, descricao: f.descricao || null, preco_mensal: nn(f.preco_mensal),
+      limite_usuarios: nn(f.limite_usuarios), limite_convenios: nn(f.limite_convenios), limite_propostas_mes: nn(f.limite_propostas_mes),
+      limite_leituras_ccb_mes: nn(f.limite_leituras_ccb_mes), limite_documentos: nn(f.limite_documentos), limite_armazenamento_mb: nn(f.limite_armazenamento_mb),
+      modulos: f.todos ? ['*'] : f.modulos, ativo: f.ativo,
+    };
+    try {
+      await planosApi.update(planoEdit.id, payload);
+      await auditoriaApi.log('editar_plano', 'planos', planoEdit.id, { nome: f.nome });
+      toast.success('Plano salvo.');
+      setPlanoOpen(false); load();
+    } catch (err) { toast.error(err.message || 'Falha ao salvar (apenas superadmin).'); }
+  };
 
   const save = async (ev) => {
     ev.preventDefault();
@@ -78,12 +112,20 @@ export default function EmpresasPlanos() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {planos.map((p) => (
             <Panel key={p.id}>
-              <p className="text-sm font-semibold text-foreground">{p.nome}</p>
-              <p className="text-[11px] text-muted-foreground mb-2">{p.descricao}</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{p.nome}</p>
+                  <p className="text-[11px] text-muted-foreground mb-2">{p.descricao}</p>
+                </div>
+                <button onClick={() => openEditPlano(p)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded shrink-0" title="Editar plano"><Pencil className="w-4 h-4" /></button>
+              </div>
               <ul className="text-xs text-muted-foreground space-y-0.5">
                 <li>Usuários: <b>{lim(p.limite_usuarios)}</b></li>
                 <li>Convênios: <b>{lim(p.limite_convenios)}</b></li>
                 <li>Propostas/mês: <b>{lim(p.limite_propostas_mes)}</b></li>
+                <li>Leituras CCB/mês: <b>{lim(p.limite_leituras_ccb_mes)}</b></li>
+                <li>Documentos: <b>{lim(p.limite_documentos)}</b></li>
+                <li>Armazenamento: <b>{p.limite_armazenamento_mb == null ? '∞' : `${p.limite_armazenamento_mb} MB`}</b></li>
               </ul>
               <div className="mt-2 flex flex-wrap gap-1">
                 {(p.modulos || []).includes('*')
@@ -166,6 +208,48 @@ export default function EmpresasPlanos() {
               <Button type="submit">{edit ? 'Salvar' : 'Criar'}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={planoOpen} onOpenChange={setPlanoOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Editar plano {planoEdit?.nome}</DialogTitle></DialogHeader>
+          {planoForm && (
+            <form onSubmit={savePlano} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>Nome</Label><Input value={planoForm.nome} onChange={(e) => setPlanoForm({ ...planoForm, nome: e.target.value })} required /></div>
+                <div className="space-y-2"><Label>Preço mensal (R$)</Label><Input type="number" step="0.01" value={planoForm.preco_mensal} onChange={(e) => setPlanoForm({ ...planoForm, preco_mensal: e.target.value })} /></div>
+              </div>
+              <div className="space-y-2"><Label>Descrição</Label><Input value={planoForm.descricao} onChange={(e) => setPlanoForm({ ...planoForm, descricao: e.target.value })} /></div>
+              <p className="text-[11px] text-muted-foreground">Limites — deixe <b>vazio</b> para ilimitado (∞).</p>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  ['limite_usuarios', 'Usuários'], ['limite_convenios', 'Convênios'], ['limite_propostas_mes', 'Propostas/mês'],
+                  ['limite_leituras_ccb_mes', 'Leituras CCB/mês'], ['limite_documentos', 'Documentos'], ['limite_armazenamento_mb', 'Armazenam. (MB)'],
+                ].map(([k, label]) => (
+                  <div key={k} className="space-y-1"><Label className="text-xs">{label}</Label><Input type="number" min="0" value={planoForm[k]} onChange={(e) => setPlanoForm({ ...planoForm, [k]: e.target.value })} placeholder="∞" /></div>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Módulos liberados</Label>
+                  <label className="flex items-center gap-1.5 text-xs"><Switch checked={planoForm.todos} onCheckedChange={(v) => setPlanoForm({ ...planoForm, todos: v })} /> Todos</label>
+                </div>
+                {!planoForm.todos && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {AREAS.map((m) => (
+                      <button type="button" key={m} onClick={() => toggleMod(m)} className={`text-[11px] px-2 py-1 rounded border ${planoForm.modulos.includes(m) ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-muted border-border text-muted-foreground'}`}>{AREAS_LABEL[m] || m}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between"><Label>Plano ativo</Label><Switch checked={planoForm.ativo} onCheckedChange={(v) => setPlanoForm({ ...planoForm, ativo: v })} /></div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setPlanoOpen(false)}>Cancelar</Button>
+                <Button type="submit">Salvar plano</Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
