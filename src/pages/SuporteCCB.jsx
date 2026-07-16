@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
-  ShieldCheck, ScanLine, Cpu, Lock, FileCheck2, AlertTriangle, HelpCircle, LifeBuoy,
+  ShieldCheck, ScanLine, Cpu, Lock, FileCheck2, HelpCircle, LifeBuoy,
   Wrench, Coins, Database, ExternalLink, ChevronRight, FolderLock, ListChecks, ArrowUpRight,
 } from 'lucide-react';
 
