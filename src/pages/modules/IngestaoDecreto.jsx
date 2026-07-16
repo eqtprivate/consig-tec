@@ -357,26 +357,49 @@ export default function IngestaoDecreto() {
               </div>
             ) : (
               <div className="space-y-3 lg:max-h-[560px] lg:overflow-y-auto pr-1">
-                <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 text-[10px] uppercase tracking-wide text-muted-foreground px-1 sticky top-0 bg-card pb-1 z-10">
+                <div className="rounded-lg border border-border bg-muted/30 p-2.5 space-y-2 sticky top-0 z-10">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-foreground">Convênio:</span>
+                    <select value={convenioId} onChange={(e) => setConvenioId(e.target.value)}
+                      className="h-8 text-sm rounded-md border border-border bg-card px-2 flex-1 min-w-[200px]">
+                      <option value="">— selecione o convênio —</option>
+                      {convenios.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.orgao ? ` · ${c.orgao}` : ''}</option>)}
+                    </select>
+                  </div>
+                  {sel.convenio?.nome && !convenioId && <p className="text-[11px] text-amber-600">sugerido pela IA: {sel.convenio.nome}</p>}
+                  {convenioId && (
+                    <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                      <span className={`px-1.5 py-0.5 rounded ${convTemDecreto ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                        {convTemDecreto ? <><Check className="w-3 h-3 inline -mt-0.5" /> convênio já tem decreto — validando</> : <><PlusCircle className="w-3 h-3 inline -mt-0.5" /> convênio sem decreto — preenchendo</>}
+                      </span>
+                      <span className="text-blue-700">{resumo.preenche} preenche</span>
+                      <span className="text-green-700">{resumo.confere} confere</span>
+                      <span className={resumo.divergente ? 'text-red-700 font-semibold' : 'text-muted-foreground'}>{resumo.divergente} divergente</span>
+                    </div>
+                  )}
+                  {temDivergencia && <p className="text-[11px] text-red-600 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Há valores que <b>conflitam</b> com o cadastro do convênio. Corrija o campo ou justifique a atualização.</p>}
+                </div>
+
+                <div className="grid grid-cols-[1fr_1.1fr_1fr] gap-2 text-[10px] uppercase tracking-wide text-muted-foreground px-1">
                   <span>Regra</span><span>Extraído (editável)</span><span>No convênio</span>
                 </div>
                 {SECOES.map((sec) => (
                   <div key={sec.titulo} className="space-y-1.5">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80 border-b border-border pb-0.5">{sec.titulo}</p>
                     {sec.campos.map((c) => {
-                      const dv = divMap[c.k];
-                      const sistema = c.sis ? c.sis(convSel) : null;
-                      const borda = dv ? (dv.tipo === 'critica' ? 'border-red-400' : 'border-amber-400') : 'border-border';
+                      const cm = c.cmp ? cmpMap[c.k] : null;
+                      const meta = cm ? CMP_META[cm.status] : null;
+                      const borda = cm?.status === 'divergente' ? 'border-red-400' : 'border-border';
                       return (
-                        <div key={c.k}>
-                          <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 items-center">
-                            <span className="text-xs text-muted-foreground">{c.label}</span>
-                            <Input value={dados[c.k] ?? ''} onChange={(e) => setCampo(c.k, e.target.value)} className={`h-8 text-sm ${borda}`} />
-                            <span className={`text-xs ${dv?.tipo === 'critica' ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                              {sistema != null && sistema !== '' ? sistema : (convenioId ? '—' : '(selecione o convênio)')}
+                        <div key={c.k} className="grid grid-cols-[1fr_1.1fr_1fr] gap-2 items-center">
+                          <span className="text-xs text-muted-foreground">{c.label}</span>
+                          <Input value={dados[c.k] ?? ''} onChange={(e) => setCampo(c.k, e.target.value)} className={`h-8 text-sm ${borda}`} />
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className={`text-xs truncate ${cm?.status === 'divergente' ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                              {cm ? (vazio(cm.reg) ? (convenioId ? '(vazio)' : '—') : String(cm.reg)) : '—'}
                             </span>
+                            {meta && cm.status !== 'sem_dado' && <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 ${meta.cls}`}>{meta.label}</span>}
                           </div>
-                          {dv && <p className={`text-[11px] mt-0.5 ${dv.tipo === 'critica' ? 'text-red-600' : 'text-amber-600'}`}>{dv.mensagem}</p>}
                         </div>
                       );
                     })}
@@ -397,27 +420,20 @@ export default function IngestaoDecreto() {
 
           {!lendo && !emErro && (
             <div className="border-t border-border pt-3 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-foreground">Aplicar ao convênio:</span>
-                <select value={convenioId} onChange={(e) => setConvenioId(e.target.value)}
-                  className="h-8 text-sm rounded-md border border-border bg-card px-2 min-w-[220px]">
-                  <option value="">— selecione o convênio —</option>
-                  {convenios.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.orgao ? ` · ${c.orgao}` : ''}</option>)}
-                </select>
-                {sel.convenio?.nome && !convenioId && <span className="text-[11px] text-amber-600">sugerido: {sel.convenio.nome}</span>}
-                <button onClick={reprocessarSel} disabled={reprocessando} className="ml-auto text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
-                  {reprocessando ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reprocessar
-                </button>
-              </div>
-              {temCritica && (
+              {precisaJustificar && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-red-600">Justificativa (obrigatória — há divergência crítica)</Label>
-                  <Textarea rows={2} value={justificativa} onChange={(e) => setJustificativa(e.target.value)} placeholder="Explique por que a aplicação é válida apesar da divergência…" />
+                  <Label className="text-xs text-red-600">Justificativa (obrigatória — {temDivergencia ? 'há divergência com o cadastro' : 'confiança abaixo do limite'})</Label>
+                  <Textarea rows={2} value={justificativa} onChange={(e) => setJustificativa(e.target.value)} placeholder="Explique por que a atualização é válida apesar da divergência…" />
                 </div>
               )}
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" onClick={rejeitar} disabled={busy} className="gap-2"><XCircle className="w-4 h-4" /> Rejeitar</Button>
-                <Button onClick={aplicar} disabled={busy || sel.status === 'aprovado' || !convenioId} className="gap-2">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Aplicar ao convênio</Button>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <button onClick={reprocessarSel} disabled={reprocessando} className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
+                  {reprocessando ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reprocessar
+                </button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={rejeitar} disabled={busy} className="gap-2"><XCircle className="w-4 h-4" /> Rejeitar</Button>
+                  <Button onClick={aplicar} disabled={busy || sel.status === 'aprovado' || !convenioId} className="gap-2">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} {convTemDecreto ? 'Validar e atualizar' : 'Aplicar ao convênio'}</Button>
+                </div>
               </div>
             </div>
           )}
