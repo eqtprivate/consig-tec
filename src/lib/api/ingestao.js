@@ -45,6 +45,14 @@ export const ingestaoApi = {
   async aprovar({ ingestao_id, acao, dados, justificativa }) {
     return callFn('aprovar_ingestao', { ingestao_id, acao, dados, justificativa });
   },
+  // Exclui a ingestão (não aprovada) + tentativas; apaga o PDF do Storage.
+  async excluir(ingestao_id) {
+    const { data, error } = await supabase.rpc('excluir_ingestao', { p_id: ingestao_id });
+    if (error) throw error;
+    const sp = data?.storage_path;
+    if (sp) { try { await supabase.storage.from('ccb-docs').remove([sp]); } catch { /* best-effort */ } }
+    return data;
+  },
   // URL assinada do PDF no bucket privado (para a prévia).
   async pdfUrl(storagePath) {
     if (!storagePath) return null;
