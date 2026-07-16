@@ -103,21 +103,34 @@ do PDF, link do Drive e **log por CCB** (tentativas + auditoria).
 `AjustesLeituraCCB.jsx`, `ArquivoCCBs.jsx` + `api/ingestao.js`, `api/ingestaoConfig.js`,
 `api/ccbsArquivo.js`.
 
-### 5b) Leitura de DECRETOS/LEIS de convênios — ✅ construído (migr. 0094) · aguarda SQL + Publish
+### 5b) Leitura de DECRETOS/LEIS de convênios — ✅ construído + validado (migr. 0094 aplicada)
 
 Mesma espinha da CCB aplicada ao **decreto que regula a consignação do ente**: upload do
 PDF → `ingerir_decreto` (IA, tool `extrair_decreto`) extrai as regras (margem total/cartão,
 prazo máx., adiantamento, recomposição, reposição ao erário, tipos permitidos,
-consignatárias, lei base) → **conferência humana** que casa o decreto ao **convênio** e
-mostra regra sugerida × valor atual → `aprovar_decreto` aplica via RPC
-`aplicar_regras_decreto` (COALESCE preserva o existente) nas colunas de regra do
+consignatárias, lei base) → **conferência humana** que casa o decreto ao **convênio** →
+`aprovar_decreto` aplica via RPC `aplicar_regras_decreto` nas colunas de regra do
 `convenios` (0083 + novas de 0094) com proveniência (`decreto_numero/data`, `decreto_dados`
 jsonb, `regras_origem='decreto'`). Reusa cota/metering, log de tentativas, Storage privado
 (`empresa/decretos/ano/hash.pdf`) e o padrão de segurança/compliance da CCB.
 
-**Componentes**: migr. `0094`; Edge Functions `ingerir_decreto`, `aprovar_decreto`; front
-`IngestaoDecreto.jsx` (aba **Decretos (IA)** na área Convênios) + `api/decretos.js`.
-**Pendente do usuário**: rodar o SQL `0094` no Supabase e **Publish** no Base44.
+**Comparação/validação (extraído × cadastrado)** — na conferência, cada regra é comparada
+com o valor já cadastrado no convênio e classificada: **preenche** (cadastro vazio),
+**confere** (igual) ou **DIVERGENTE** (conflito). Qualquer divergência **exige justificativa**
+para aplicar (trava crítica, igual à CCB); recalcula ao vivo ao trocar de convênio/editar.
+Badge indica se o convênio está **sem decreto (preenchendo)** ou **com decreto (validando)**.
+
+**Arquivo de Decretos** — tela com banco dos decretos lidos, KPIs (lidos, aplicados,
+convênios cobertos, armazenamento), busca e **detalhe** (regras agrupadas + jsonb + log de
+leituras + PDF).
+
+**Componentes**: migr. `0094` (**aplicada** e validada — 13/13 colunas, `convenio_id`, RPC
+`aplicar_regras_decreto`); Edge Functions `ingerir_decreto`, `aprovar_decreto` (publicadas,
+respondem 401); front `IngestaoDecreto.jsx` (aba **Decretos (IA)**), `ArquivoDecretos.jsx`
+(aba **Arquivo de Decretos**) + `api/decretos.js`, `api/decretosArquivo.js`.
+**Validação IA**: extração real do Decreto 4.572/2019 (Manaus) retornou todos os campos-alvo
+corretos (margem 40%/10%, prazo 96m, adiantamento 20%, recomposição 48h, 1/3 erário) por
+~R$ 0,02 em ~3s (Haiku). **Pendente do usuário**: **Publish** no Base44 (SQL 0094 já aplicado).
 
 **Custo unitário real (medido nos logs da Anthropic, 15 pág.)**: Haiku ≈ **R$ 0,25**;
 Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
