@@ -161,7 +161,8 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
    (HaveIBeenPwned) é recurso do plano Pro** — indisponível no Free. Mitigação atual: política
    de senha forte + signup fechado + poucos usuários internos. Opções: (a) ligar ao migrar
    para Pro; (b) *compensating control* próprio no fluxo de senha via API pública k-anonymity
-   do HIBP (sem chave). Revisar antes do 1º cliente externo.
+   do HIBP (sem chave). **Decisão (2026-07-16): aceitar a postura atual para o MVP interno;
+   revisitar (Pro ou HIBP próprio) antes do 1º cliente externo.**
 
 ## 8) Dependências externas
 - **Anthropic API key** — ✅ **configurada e em uso** (leitura de CCB **e de decretos**).
