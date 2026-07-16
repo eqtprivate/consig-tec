@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0093**.
+> Supabase). Migrações no repo: **0001–0094**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -102,6 +102,22 @@ do PDF, link do Drive e **log por CCB** (tentativas + auditoria).
 `aprovar_ingestao`, `espelhar_drive` (publicadas); front `IngestaoCCB.jsx`,
 `AjustesLeituraCCB.jsx`, `ArquivoCCBs.jsx` + `api/ingestao.js`, `api/ingestaoConfig.js`,
 `api/ccbsArquivo.js`.
+
+### 5b) Leitura de DECRETOS/LEIS de convênios — ✅ construído (migr. 0094) · aguarda SQL + Publish
+
+Mesma espinha da CCB aplicada ao **decreto que regula a consignação do ente**: upload do
+PDF → `ingerir_decreto` (IA, tool `extrair_decreto`) extrai as regras (margem total/cartão,
+prazo máx., adiantamento, recomposição, reposição ao erário, tipos permitidos,
+consignatárias, lei base) → **conferência humana** que casa o decreto ao **convênio** e
+mostra regra sugerida × valor atual → `aprovar_decreto` aplica via RPC
+`aplicar_regras_decreto` (COALESCE preserva o existente) nas colunas de regra do
+`convenios` (0083 + novas de 0094) com proveniência (`decreto_numero/data`, `decreto_dados`
+jsonb, `regras_origem='decreto'`). Reusa cota/metering, log de tentativas, Storage privado
+(`empresa/decretos/ano/hash.pdf`) e o padrão de segurança/compliance da CCB.
+
+**Componentes**: migr. `0094`; Edge Functions `ingerir_decreto`, `aprovar_decreto`; front
+`IngestaoDecreto.jsx` (aba **Decretos (IA)** na área Convênios) + `api/decretos.js`.
+**Pendente do usuário**: rodar o SQL `0094` no Supabase e **Publish** no Base44.
 
 **Custo unitário real (medido nos logs da Anthropic, 15 pág.)**: Haiku ≈ **R$ 0,25**;
 Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
