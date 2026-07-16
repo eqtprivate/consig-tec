@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) return Response.json({ error: 'sem ANTHROPIC_API_KEY' }, { status: 200 });
     const model = body.modelo || 'claude-haiku-4-5';
-    const texto = await gunzipB64(body.gzb64 || '');
+    const texto = body.texto ? String(body.texto) : await gunzipB64(body.gzb64 || '');
     const t0 = Date.now();
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
