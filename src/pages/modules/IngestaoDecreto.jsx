@@ -176,11 +176,17 @@ export default function IngestaoDecreto() {
       const b64 = await fileToB64(file, setReadPct);
       const r = await decretosApi.ingerir(b64, file.name, setUploadPct);
       await auditoriaApi.log('ingerir_decreto', 'ingestoes_documento', r.id, { arquivo: file.name, status: r.status, duplicado: !!r.duplicado });
-      await load();
-      await abrir({ id: r.id });
-      if (r.duplicado) toast.info('Arquivo já ingerido — abrindo a ingestão existente.');
-      else if (r.status === 'erro') toast.error(`Extração falhou: ${r.error || ''}`);
-      else if (r.status === 'aguardando_conferencia') toast.success('Decreto lido — pronto para conferência.');
+      if (r.duplicado) {
+        await load();
+        await abrir({ id: r.id });
+        toast.info('Arquivo já ingerido — abrindo a ingestão existente.');
+      } else {
+        // Fase 2: dispara a extração em segundo plano (keepalive) e acompanha por polling.
+        await decretosApi.processar(r.id);
+        await load();
+        await abrir({ id: r.id });
+        toast.success('Documento recebido — a leitura roda em segundo plano. Você pode fechar esta página.');
+      }
     } catch (err) {
       toast.error(err.message || 'Falha ao enviar.');
     } finally {
