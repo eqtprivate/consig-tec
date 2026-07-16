@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ingestaoApi } from '@/lib/api/ingestao';
 import { auditoriaApi } from '@/lib/api/auditoria';
+import { useExtracaoWatcher } from '@/lib/useExtracaoWatcher';
 import { brl } from '@/lib/format';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -115,6 +116,28 @@ export default function IngestaoCCB() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filtroStatus]);
   useEffect(() => () => clearInterval(pollRef.current), []);
 
+  // Observador global de extrações em segundo plano: avisa quando cada leitura
+  // conclui — mesmo com o painel fechado, após enviar vários ou recarregar a página.
+  const { observar, observarVarios, pendentesCount } = useExtracaoWatcher({
+    getFn: (id) => ingestaoApi.get(id),
+    onConcluido: (full) => {
+      load();
+      toast.success(`Leitura concluída — ${full.arquivo_nome}`, {
+        description: 'CCB pronta para conferência.',
+        action: { label: 'Abrir', onClick: () => abrir({ id: full.id }) },
+      });
+    },
+    onErro: (full) => {
+      load();
+      toast.error(`Falha na leitura — ${full.arquivo_nome}`, { description: full.observacao || 'Tente novamente.' });
+    },
+  });
+
+  // Semeia o observador com o que já estiver 'extraindo' na lista (ex.: page reload).
+  useEffect(() => {
+    observarVarios(lista.filter((r) => r.status === 'extraindo').map((r) => r.id));
+  }, [lista, observarVarios]);
+
   const excluirIng = async (r) => {
     if (!window.confirm(`Excluir a ingestão "${r.arquivo_nome}"? O PDF será removido do armazenamento. Esta ação não pode ser desfeita.`)) return;
     try {
@@ -158,9 +181,7 @@ export default function IngestaoCCB() {
           clearInterval(pollRef.current);
           await aplicarSel(full);
           load();
-          if (full.status === 'erro') toast.error(`Extração falhou: ${full.observacao || ''}`);
-          else if (full.status === 'aguardando_conferencia') toast.success('CCB lida — pronta para conferência.');
-          else if (tries > 40 && full.status === 'extraindo') { setDemorou(true); toast.warning('A leitura está demorando mais que o esperado. Você pode tentar novamente.'); }
+          if (tries > 40 && full.status === 'extraindo') { setDemorou(true); toast.warning('A leitura está demorando mais que o esperado. Você pode tentar novamente.'); }
         } else {
           setSel((s) => (s && s.id === id ? { ...s, status: 'extraindo' } : s));
         }
@@ -182,6 +203,7 @@ export default function IngestaoCCB() {
       } else {
         // Fase 2: dispara a extração em segundo plano (keepalive) e acompanha por polling.
         await ingestaoApi.processar(r.id);
+        observar(r.id);
         await load();
         await abrir({ id: r.id });
         toast.success('Documento recebido — a leitura roda em segundo plano. Você pode fechar esta página.');
@@ -253,6 +275,11 @@ export default function IngestaoCCB() {
           <p className="text-sm font-semibold text-foreground flex items-center gap-2"><ScanLine className="w-4 h-4 text-primary" /> Ingestão & Leitura Automática de CCB</p>
           <p className="text-[11px] text-muted-foreground">A extração é uma <b>sugestão</b> — nada é gravado sem conferência e aprovação humana. <Link to="/suporte" className="text-primary hover:underline inline-flex items-center gap-0.5"><LifeBuoy className="w-3 h-3" /> Ajuda &amp; segurança</Link></p>
         </div>
+        {pendentesCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200" title="Documentos sendo lidos pela IA em segundo plano">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> {pendentesCount} em leitura…
+          </span>
+        )}
       </div>
 
       {/* Upload: dropzone (ocioso) ou progresso em fases (enviando) */}
