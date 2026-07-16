@@ -11,6 +11,7 @@ import { brl, dataBR, num } from '@/lib/format';
 import Contratos from '@/pages/modules/Contratos';
 import IngestaoCCB from '@/pages/modules/IngestaoCCB';
 import AjustesLeituraCCB from '@/pages/modules/AjustesLeituraCCB';
+import ArquivoCCBs from '@/pages/modules/ArquivoCCBs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ const TABS = [
   { key: 'form', label: 'Formalização & Antifraude' },
   { key: 'ccb', label: 'CCB' },
   { key: 'ingestao', label: 'Ingestão de CCB' },
+  { key: 'arquivo', label: 'Arquivo (CCBs)' },
   { key: 'ajustes', label: 'Ajustes da leitura' },
   { key: 'contratos', label: 'Contratos' },
 ];
@@ -424,7 +426,7 @@ export default function Formalizacao() {
           </button>
         ))}
       </div>
-      {tab === 'form' ? <FormalizacaoTab /> : tab === 'ccb' ? <CcbTab /> : tab === 'ingestao' ? <IngestaoCCB /> : tab === 'ajustes' ? <AjustesLeituraCCB /> : <Contratos />}
+      {tab === 'form' ? <FormalizacaoTab /> : tab === 'ccb' ? <CcbTab /> : tab === 'ingestao' ? <IngestaoCCB /> : tab === 'ajustes' ? <AjustesLeituraCCB /> : tab === 'arquivo' ? <ArquivoCCBs /> : <Contratos />}
     </div>
   );
 }
