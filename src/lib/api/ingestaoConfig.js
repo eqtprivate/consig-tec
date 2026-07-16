@@ -39,6 +39,11 @@ export const ingestaoConfigApi = {
     if (error) throw error;
     return Array.isArray(data) ? data[0] : data;
   },
+  async usoIngestao() {
+    const { data, error } = await supabase.rpc('uso_ingestao_empresa', { p_empresa: getEmpresaView() || null });
+    if (error) throw error;
+    return data; // { bloqueia, motivo, uso:{...}, limites:{...}, plano_nome }
+  },
   async tentativas(limit = 50) {
     const ev = getEmpresaView();
     let q = supabase.from('ingestao_tentativas').select('*').order('created_at', { ascending: false }).limit(limit);
