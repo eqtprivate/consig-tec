@@ -44,6 +44,15 @@ export const ingestaoConfigApi = {
     if (error) throw error;
     return data; // { bloqueia, motivo, uso:{...}, limites:{...}, plano_nome }
   },
+  async excluirTentativa(id) {
+    const { error } = await supabase.rpc('excluir_tentativa_ingestao', { p_id: id });
+    if (error) throw error;
+  },
+  async limparTentativas() {
+    const { data, error } = await supabase.rpc('limpar_tentativas_ingestao', { p_empresa: getEmpresaView() || null });
+    if (error) throw error;
+    return data; // nº removido
+  },
   async tentativas(limit = 50) {
     const ev = getEmpresaView();
     let q = supabase.from('ingestao_tentativas').select('*').order('created_at', { ascending: false }).limit(limit);
