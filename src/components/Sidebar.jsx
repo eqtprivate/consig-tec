@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { buildLabel, BUILD_TIME } from '@/lib/version';
-import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette, PanelLeft, LifeBuoy, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette, PanelLeft, LifeBuoy, ShieldCheck, Lock } from 'lucide-react';
 
 // Modelo do menu (grupos/páginas) e aplicação da config por empresa.
 import { AREA_SUBITEMS, buildCanonical, applyMenuConfig } from '@/lib/menuModel';
@@ -204,6 +204,7 @@ export default function Sidebar({ collapsed = false }) {
             {navItem('/admin/empresas', 'Empresas & Planos', Building2)}
             {navItem('/admin/onboarding', 'Novo cliente', UserPlus)}
             {navItem('/admin/pixconsig', 'Credenciais PixConsig', KeyRound)}
+            {navItem('/admin/documentos', 'Documentos', Lock)}
           </div>
         )}
 
