@@ -6,7 +6,7 @@ import { getEmpresaView } from '@/lib/tenantView';
 export const decretosArquivoApi = {
   async list() {
     let q = supabase.from('ingestoes_documento')
-      .select('id, arquivo_nome, storage_path, status, confianca, modelo_usado, dados_extraidos, convenio_id, tamanho_bytes, created_at, aprovado_em, convenio:convenios!ingestoes_documento_convenio_id_fkey(id, nome, orgao)')
+      .select('id, arquivo_nome, storage_path, status, confianca, modelo_usado, dados_extraidos, convenio_id, tamanho_bytes, created_at, aprovado_em, convenio:convenios!convenio_id(id, nome, orgao)')
       .eq('tipo_documento', 'decreto')
       .order('created_at', { ascending: false });
     const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
@@ -16,7 +16,7 @@ export const decretosArquivoApi = {
   },
   async detalhe(id) {
     const { data: ing, error } = await supabase.from('ingestoes_documento')
-      .select('*, convenio:convenios!ingestoes_documento_convenio_id_fkey(id, nome, orgao)')
+      .select('*, convenio:convenios!convenio_id(id, nome, orgao)')
       .eq('id', id).single();
     if (error) throw error;
     let pdfUrl = null;
