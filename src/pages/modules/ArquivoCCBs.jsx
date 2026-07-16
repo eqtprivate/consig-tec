@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ccbsArquivoApi } from '@/lib/api/ccbsArquivo';
-import { brl, dataBR } from '@/lib/format';
+import { brl, dataBR, brlUsd } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -195,7 +195,7 @@ export default function ArquivoCCBs() {
                       {(det?.tentativas || []).map((t) => (
                         <div key={t.id} className="flex justify-between gap-2 text-muted-foreground">
                           <span>{dt(t.created_at)} · leitura {t.modelo} {t.reprocessamento ? '(reproc.)' : ''}</span>
-                          <span>{t.status} · {t.custo_usd != null ? `US$ ${Number(t.custo_usd).toFixed(4)}` : '—'}</span>
+                          <span>{t.status} · {brlUsd(t.custo_usd)}</span>
                         </div>
                       ))}
                       {(det?.audit || []).map((a, i) => (
