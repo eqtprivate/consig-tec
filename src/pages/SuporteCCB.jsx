@@ -3,11 +3,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   ShieldCheck, ScanLine, Cpu, Lock, FileCheck2, HelpCircle, LifeBuoy,
-  Wrench, Coins, Database, ExternalLink, ChevronRight, FolderLock, ListChecks, ArrowUpRight,
+  Wrench, Coins, Database, ChevronRight, FolderLock, ListChecks,
 } from 'lucide-react';
-
-// URL da página institucional de Segurança & Compliance (apresentação comercial).
-const DOC_COMPLIANCE = 'https://claude.ai/code/artifact/c8136f02-7fb1-4629-a40b-f550def0ceeb';
 
 function Secao({ id, icon: Icon, titulo, children }) {
   return (
@@ -78,7 +75,7 @@ export default function SuporteCCB() {
           com os controles de segurança e antifraude que sustentam a operação.
         </p>
         <div className="flex flex-wrap gap-2 mt-4">
-          <a href={DOC_COMPLIANCE} target="_blank" rel="noreferrer"><Button size="sm" className="gap-2"><ShieldCheck className="w-4 h-4" /> Documento de Segurança & Compliance <ArrowUpRight className="w-3.5 h-3.5" /></Button></a>
+          <Link to="/seguranca"><Button size="sm" className="gap-2"><ShieldCheck className="w-4 h-4" /> Segurança &amp; Compliance</Button></Link>
           <Link to="/area/formalizacao?tab=ingestao"><Button size="sm" variant="outline" className="gap-2"><ScanLine className="w-4 h-4" /> Ir para Ingestão de CCB</Button></Link>
         </div>
       </header>
@@ -110,7 +107,7 @@ export default function SuporteCCB() {
           <li className="flex gap-2"><Cpu className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span><b className="text-foreground/90">IA sem uso indevido:</b> conforme os termos comerciais da Anthropic, os dados enviados <b>não treinam</b> os modelos. A chave de IA fica só no backend.</span></li>
           <li className="flex gap-2"><FileCheck2 className="w-4 h-4 text-primary shrink-0 mt-0.5" /><span><b className="text-foreground/90">LGPD:</b> tratamento para execução do contrato, acesso mínimo, direitos do titular e descarte controlado.</span></li>
         </ul>
-        <a href={DOC_COMPLIANCE} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary font-medium mt-1 hover:underline">Ver o documento técnico completo <ExternalLink className="w-3 h-3" /></a>
+        <Link to="/seguranca" className="inline-flex items-center gap-1 text-xs text-primary font-medium mt-1 hover:underline">Ver o documento técnico completo</Link>
       </Secao>
 
       <Secao id="antifraude" icon={ShieldCheck} titulo="Como mitigamos fraudes">
