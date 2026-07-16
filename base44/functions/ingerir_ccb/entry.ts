@@ -355,6 +355,18 @@ Deno.serve(async (req) => {
     return Response.json({ id: existente.id, duplicado: true, ...existente });
   }
 
+  // Gate de cota do plano — bloqueia ao exceder ANTES de gastar IA/storage.
+  // Best-effort: se a checagem falhar (ex.: pré-migração 0092), não bloqueia.
+  try {
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (anonKey) {
+      const userClient = createClient(url, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { autoRefreshToken: false, persistSession: false } });
+      const pEmp = (perfil.role === 'superadmin' && body.empresa_id) ? body.empresa_id : null;
+      const { data: cota } = await userClient.rpc('uso_ingestao_empresa', { p_empresa: pEmp });
+      if (cota?.bloqueia) return Response.json({ error: cota.motivo || 'Cota do plano excedida.' }, { status: 402 });
+    }
+  } catch { /* não bloqueia se a checagem falhar */ }
+
   const cfg = await lerConfig(admin, empresaId);
   const model = modeloPedido || cfg?.modelo || modeloFallback;
   const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
@@ -374,6 +386,7 @@ Deno.serve(async (req) => {
     hash_sha256: hash, status: 'extraindo', enviado_por: caller.user.id,
   }).select().single();
   if (insErr) return Response.json({ error: insErr.message }, { status: 400 });
+  try { await admin.from('ingestoes_documento').update({ tamanho_bytes: bytes.length }).eq('id', ing.id); } catch { /* coluna pode não existir antes da 0092 */ }
 
   const t0 = Date.now();
   try {
