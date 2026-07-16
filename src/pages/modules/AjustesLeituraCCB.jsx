@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/kit';
+import { brlUsd } from '@/lib/format';
 import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck, Package, Trash2 } from 'lucide-react';
 
 const dt = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : '—');
-const usd = (v) => (v == null ? '—' : `US$ ${Number(v).toFixed(4)}`);
+const usd = (v) => (v == null ? '—' : brlUsd(v));
 const pct = (v) => (v == null ? '—' : `${Math.round(Number(v) * 100)}%`);
 
 const ST_TENT = {
@@ -137,7 +138,7 @@ export default function AjustesLeituraCCB() {
               );
             })}
           </div>
-          <p className="text-[11px] text-muted-foreground">Consumo de IA no mês: <b>{Number(uso.uso.tokens_mes || 0).toLocaleString('pt-BR')}</b> tokens · <b>US$ {Number(uso.uso.custo_mes || 0).toFixed(2)}</b>{Number(uso.uso.leituras_mes) > 0 && <> · média <b>US$ {(Number(uso.uso.custo_mes || 0) / Number(uso.uso.leituras_mes)).toFixed(3)}</b>/leitura</>}.</p>
+          <p className="text-[11px] text-muted-foreground">Consumo de IA no mês: <b>{Number(uso.uso.tokens_mes || 0).toLocaleString('pt-BR')}</b> tokens · <b>{brlUsd(uso.uso.custo_mes)}</b>{Number(uso.uso.leituras_mes) > 0 && <> · média <b>{brlUsd(Number(uso.uso.custo_mes || 0) / Number(uso.uso.leituras_mes))}</b>/leitura</>}.</p>
         </div>
       )}
 
