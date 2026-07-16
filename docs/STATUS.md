@@ -175,6 +175,10 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-16** — **Ingestão de decretos** (migr. 0094): extração por IA das regras do
+  decreto, comparação preenche/confere/DIVERGENTE contra o convênio, telas Decretos (IA) e
+  Arquivo de Decretos. Extração real do Decreto de Manaus validada. Docs de projeto
+  atualizados + novo `CONSIGTEC_Auditoria_Externa.md` (mapa para validação externa).
 - **2026-07-16** — Leitura de CCB **em produção** (chave validada, extração real).
   Extração rica (45 campos, 0090), Ajustes da leitura (0089), Arquivamento (0091),
   Cota/metering + editor de planos (0092), Gestão da ingestão (0093), Arquivo (CCBs),
