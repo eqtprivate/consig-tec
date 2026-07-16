@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.36.0**.
+> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.37.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -71,6 +71,11 @@ sugestão; nada grava sem conferência humana**.
   divergências destacadas, aprovar/rejeitar (justificativa em divergência crítica).
 - UX de leitura: estado **"lendo com IA"** explícito, **barra de progresso**, polling
   (atualiza sozinha), **tentar novamente**, contraste tema claro/escuro.
+- **Processamento em segundo plano (v1.37.0)** — o upload é dividido em 2 fases: a 1ª
+  grava o documento (status `extraindo`) e **retorna na hora**; a 2ª dispara a extração
+  por IA com `fetch keepalive`, que o servidor **conclui mesmo se a aba for fechada**.
+  O operador **não precisa manter a tela aberta** — a lista/conferência atualiza por
+  polling quando a leitura termina. Vale para **CCBs e decretos**.
 - Idempotência por **hash SHA-256** (um PDF por empresa).
 
 **Extração rica (0090)** — ~**45 campos** (antes 11): identificação, devedor (RG,
@@ -182,6 +187,13 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-16** — **v1.37.0** · **Ingestão em segundo plano** (CCB e decretos): o
+  `ingerir_ccb`/`ingerir_decreto` passam a **retornar imediatamente** após gravar o
+  documento (status `extraindo`); a extração por IA roda numa 2ª chamada com
+  `keepalive`, que o servidor conclui **mesmo com a aba fechada** (runtime efêmero
+  validado por diagnóstico: `waitUntil`/promessas soltas não sobrevivem, mas o handler
+  conclui após o cliente desconectar). Novo `fireFn` no `fnClient` + `processar(id)` em
+  `api/ingestao.js` e `api/decretos.js`. Diagnósticos temporários removidos + checkpoint.
 - **2026-07-16** — **P0 segurança**: signups **confirmados fechados** (`disable_signup=true`,
   0 órfãos). **CI smoke ampliado** — além do render da Sidebar, novo teste importa **todos**
   os módulos de página/componente (134) e falha se algum não carregar; barra o merge
