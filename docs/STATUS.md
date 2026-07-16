@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0095**. Versão do app: **v1.36.0**.
+> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.36.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -175,6 +175,11 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-16** — **Fix logs_acesso** (migr. 0096–0097): a `logs_acesso` real tem
+  `(usuario_id, acao, entidade, registro_id, ip)` — diferente do 0081 no repo. Corrigidos
+  `get_documento_admin` (0096) e **`registrar_log_acesso`** (0097, reconciliação aditiva) para
+  gravar nas colunas reais. Com isso a **trilha de impersonação "ver como"** volta a ser
+  registrada (era o risco 🔴 do Briefing) e a página de Documentos abre normalmente.
 - **2026-07-16** — **v1.36.0** · **Documentos de Superadmin** (migr. 0095): página
   confidencial `/admin/documentos` (roadmap + briefing) com **RLS só-superadmin** e
   **leitura auditada** em `logs_acesso`; link no menu lateral (seção superadmin). Política de
