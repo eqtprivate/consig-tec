@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/kit';
-import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck } from 'lucide-react';
+import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck, Package } from 'lucide-react';
 
 const dt = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : '—');
 const usd = (v) => (v == null ? '—' : `US$ ${Number(v).toFixed(4)}`);
@@ -31,6 +31,7 @@ export default function AjustesLeituraCCB() {
   const [salvando, setSalvando] = useState(false);
   const [tentativas, setTentativas] = useState([]);
   const [loadingLog, setLoadingLog] = useState(true);
+  const [uso, setUso] = useState(null);
   const [driveAtivo, setDriveAtivo] = useState(false);
   const [driveFolder, setDriveFolder] = useState('');
   const [salvandoArq, setSalvandoArq] = useState(false);
@@ -54,12 +55,13 @@ export default function AjustesLeituraCCB() {
     } catch { /* usa defaults */ }
     finally { setCarregado(true); }
   };
+  const carregarUso = () => ingestaoConfigApi.usoIngestao().then(setUso).catch(() => setUso(null));
   const carregarLog = async () => {
     setLoadingLog(true);
     try { setTentativas(await ingestaoConfigApi.tentativas(80)); } catch { setTentativas([]); }
     finally { setLoadingLog(false); }
   };
-  useEffect(() => { carregarConfig(); carregarLog(); /* eslint-disable-next-line */ }, [empresaView]);
+  useEffect(() => { carregarConfig(); carregarLog(); carregarUso(); /* eslint-disable-next-line */ }, [empresaView]);
 
   const salvar = async () => {
     setSalvando(true);
@@ -98,6 +100,36 @@ export default function AjustesLeituraCCB() {
 
   return (
     <div className="space-y-5">
+      {/* Uso do plano (cota) */}
+      {uso?.uso && (
+        <div className={`bg-card rounded-xl border shadow-sm p-4 space-y-3 ${uso.bloqueia ? 'border-red-300' : 'border-border'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2"><Package className="w-4 h-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Uso do plano{uso.plano_nome ? ` — ${uso.plano_nome}` : ''}</h3></div>
+            {uso.bloqueia && <span className="text-[11px] text-red-600 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> cota excedida</span>}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { label: 'Leituras (mês)', usado: uso.uso.leituras_mes, limite: uso.limites?.leituras_ccb_mes },
+              { label: 'Documentos', usado: uso.uso.documentos, limite: uso.limites?.documentos },
+              { label: 'Armazenamento (MB)', usado: uso.uso.armazenamento_mb, limite: uso.limites?.armazenamento_mb },
+            ].map((m) => {
+              const excedido = m.limite != null && Number(m.usado) >= Number(m.limite);
+              const pct = m.limite ? Math.min(100, Math.round((Number(m.usado) / Number(m.limite)) * 100)) : 6;
+              return (
+                <div key={m.label}>
+                  <div className="flex items-center justify-between text-[11px] mb-1">
+                    <span className="text-muted-foreground">{m.label}</span>
+                    <span className={`font-semibold ${excedido ? 'text-red-600' : 'text-foreground'}`}>{Number(m.usado || 0).toLocaleString('pt-BR')} / {m.limite == null ? '∞' : Number(m.limite).toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded overflow-hidden"><div className={`h-full rounded ${excedido ? 'bg-red-500' : 'bg-primary'}`} style={{ width: `${pct}%` }} /></div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">Consumo de IA no mês: <b>{Number(uso.uso.tokens_mes || 0).toLocaleString('pt-BR')}</b> tokens · <b>US$ {Number(uso.uso.custo_mes || 0).toFixed(2)}</b>.</p>
+        </div>
+      )}
+
       {/* Config */}
       <div className="bg-card rounded-xl border border-border shadow-sm p-4 space-y-4">
         <div className="flex items-center gap-2">
