@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { getEmpresaView } from '@/lib/tenantView';
-import { callFn } from '@/lib/api/fnClient';
+import { callFn, fireFn } from '@/lib/api/fnClient';
 
 export const ingestaoApi = {
   async list(status) {
@@ -25,6 +25,11 @@ export const ingestaoApi = {
   async ingerir(arquivoBase64, arquivoNome, onProgress) {
     const ev = getEmpresaView();
     return callFn('ingerir_ccb', { arquivo_base64: arquivoBase64, arquivo_nome: arquivoNome, ...(ev ? { empresa_id: ev } : {}) }, onProgress);
+  },
+  // Fase 2 da ingestão em segundo plano: dispara a extração (branch reprocessar)
+  // com keepalive — o servidor conclui mesmo se a aba for fechada. Não aguarda.
+  processar(ingestao_id) {
+    return fireFn('ingerir_ccb', { reprocessar_ingestao_id: ingestao_id });
   },
   // Relê uma ingestão existente a partir do PDF no Storage, opcionalmente com
   // outro modelo (ex.: escalar para Opus numa CCB difícil).
