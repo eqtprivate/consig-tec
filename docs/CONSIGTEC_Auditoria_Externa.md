@@ -2,7 +2,7 @@
 
 > **Versão:** 2026-07-16 · **Escopo:** plataforma multi-tenant de crédito consignado
 > (Grupo Raman / Emprestei Card / PixConsig). Este documento é o ponto único de entrada
-> (app **v1.36.0**, migrações até **0095**) para um avaliador/auditor externo entender **o que o sistema faz, como os dados são
+> (app **v1.36.0**, migrações até **0097**) para um avaliador/auditor externo entender **o que o sistema faz, como os dados são
 > tratados e protegidos, e como cada afirmação pode ser verificada**. Complementa
 > `CONSIGTEC_Arquitetura_Tecnica.md`, `STATUS.md`, `CONSIGTEC_Seguranca_Compliance_Leitura_CCB.md`
 > e a página interna `/seguranca`.
@@ -80,6 +80,8 @@ temático das principais:
 | `0093` | Gestão da ingestão (excluir tentativas/ingestões, filtros) |
 | `0094` | **Ingestão de decretos** (`convenio_id` na ingestão, colunas de regra + `decreto_dados` jsonb, RPC `aplicar_regras_decreto`) |
 | `0095` | **Documentos de Superadmin** (`documentos_admin` com RLS só-superadmin; `get_documento_admin` com leitura auditada em `logs_acesso`; `salvar_documento_admin`) |
+| `0096` | Fix: `get_documento_admin` grava o log com as colunas reais de `logs_acesso` (defensivo) |
+| `0097` | Reconciliação de `logs_acesso` (superset de colunas) + `registrar_log_acesso` gravando nas colunas reais — restaura a **trilha de impersonação** |
 
 ## 5. Edge Functions (Deno) — inventário
 
