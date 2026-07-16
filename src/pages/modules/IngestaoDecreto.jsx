@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { decretosApi } from '@/lib/api/decretos';
 import { conveniosApi } from '@/lib/api/convenios';
 import { auditoriaApi } from '@/lib/api/auditoria';
+import { useExtracaoWatcher } from '@/lib/useExtracaoWatcher';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { EmptyState, StatusBadge } from '@/components/kit';
 import PdfUpload from '@/components/PdfUpload';
 import TagList from '@/components/TagList';
+import ConvenioPicker from '@/components/ConvenioPicker';
 import { Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw, Trash2, LifeBuoy, Gavel, PlusCircle, Check } from 'lucide-react';
 
 const ST = { recebido: 'Recebido', extraindo: 'Extraindo', aguardando_conferencia: 'Conferência', aprovado: 'Aplicado', rejeitado: 'Rejeitado', erro: 'Erro' };
@@ -99,6 +101,28 @@ export default function IngestaoDecreto() {
   useEffect(() => { conveniosApi.list().then(setConvenios).catch(() => setConvenios([])); }, []);
   useEffect(() => () => clearInterval(pollRef.current), []);
 
+  // Observador global de extrações em segundo plano: avisa quando cada leitura
+  // conclui — mesmo com o painel fechado, após enviar vários ou recarregar a página.
+  const { observar, observarVarios, pendentesCount } = useExtracaoWatcher({
+    getFn: (id) => decretosApi.get(id),
+    onConcluido: (full) => {
+      load();
+      toast.success(`Leitura concluída — ${full.arquivo_nome}`, {
+        description: 'Decreto pronto para conferência.',
+        action: { label: 'Abrir', onClick: () => abrir({ id: full.id }) },
+      });
+    },
+    onErro: (full) => {
+      load();
+      toast.error(`Falha na leitura — ${full.arquivo_nome}`, { description: full.observacao || 'Tente novamente.' });
+    },
+  });
+
+  // Semeia o observador com o que já estiver 'extraindo' na lista (ex.: page reload).
+  useEffect(() => {
+    observarVarios(lista.filter((r) => r.status === 'extraindo').map((r) => r.id));
+  }, [lista, observarVarios]);
+
   const convSel = useMemo(() => convenios.find((c) => c.id === convenioId) || null, [convenios, convenioId]);
   const convTemDecreto = !!(convSel && (convSel.decreto_numero || convSel.regras_origem === 'decreto'));
 
@@ -159,9 +183,7 @@ export default function IngestaoDecreto() {
           clearInterval(pollRef.current);
           await aplicarSel(full);
           load();
-          if (full.status === 'erro') toast.error(`Extração falhou: ${full.observacao || ''}`);
-          else if (full.status === 'aguardando_conferencia') toast.success('Decreto lido — pronto para conferência.');
-          else if (tries > 40 && full.status === 'extraindo') { setDemorou(true); toast.warning('A leitura está demorando mais que o esperado.'); }
+          if (tries > 40 && full.status === 'extraindo') { setDemorou(true); toast.warning('A leitura está demorando mais que o esperado.'); }
         } else {
           setSel((s) => (s && s.id === id ? { ...s, status: 'extraindo' } : s));
         }
@@ -183,6 +205,7 @@ export default function IngestaoDecreto() {
       } else {
         // Fase 2: dispara a extração em segundo plano (keepalive) e acompanha por polling.
         await decretosApi.processar(r.id);
+        observar(r.id);
         await load();
         await abrir({ id: r.id });
         toast.success('Documento recebido — a leitura roda em segundo plano. Você pode fechar esta página.');
@@ -263,6 +286,11 @@ export default function IngestaoDecreto() {
           <p className="text-sm font-semibold text-foreground flex items-center gap-2"><Gavel className="w-4 h-4 text-primary" /> Ingestão & Leitura de Decretos (regras do convênio)</p>
           <p className="text-[11px] text-muted-foreground">A extração é uma <b>sugestão</b> — as regras só entram no convênio após conferência e aprovação humana. <Link to="/suporte" className="text-primary hover:underline inline-flex items-center gap-0.5"><LifeBuoy className="w-3 h-3" /> Ajuda &amp; segurança</Link></p>
         </div>
+        {pendentesCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200" title="Documentos sendo lidos pela IA em segundo plano">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> {pendentesCount} em leitura…
+          </span>
+        )}
       </div>
 
       {/* Upload: dropzone (ocioso) ou progresso em fases (enviando) */}
@@ -374,12 +402,7 @@ export default function IngestaoDecreto() {
                 <div className="rounded-lg border border-border bg-muted/30 p-2.5 space-y-2 sticky top-0 z-10">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-medium text-foreground">Convênio:</span>
-                    <select value={convenioId} onChange={(e) => setConvenioId(e.target.value)}
-                      className="h-8 text-sm rounded-md border border-border bg-card px-2 flex-1 min-w-[200px]">
-                      <option value="">— selecione o convênio —</option>
-                      <option value="__novo__">➕ Criar novo convênio{dados.ente_nome ? ` — ${dados.ente_nome}` : ''}</option>
-                      {convenios.map((c) => <option key={c.id} value={c.id}>{c.nome}{c.orgao ? ` · ${c.orgao}` : ''}</option>)}
-                    </select>
+                    <ConvenioPicker convenios={convenios} value={convenioId} onChange={setConvenioId} createHint={dados.ente_nome || ''} placeholder="— buscar / selecionar convênio —" />
                   </div>
                   {sel.convenio?.nome && !convenioId && <p className="text-[11px] text-amber-600">sugerido pela IA: {sel.convenio.nome}</p>}
                   {convenioId && (
