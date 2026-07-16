@@ -11,7 +11,10 @@ Edge Functions (Deno) · hospedado no **Base44** (publica/espelha no GitHub) ·
 IA de leitura de documentos via **Anthropic Claude**.
 
 ## Módulos principais
-- **Convênios & Produtos** — cadastro, capacidade por município, regras do decreto.
+- **Convênios & Produtos** — cadastro, capacidade por município, regras do decreto, e
+  **Leitura de Decretos por IA** (Decretos IA + Arquivo de Decretos): extrai as regras do
+  decreto/lei, compara com o cadastro do convênio (preenche / confere / diverge) e aplica
+  sob conferência humana.
 - **CRM / Vendas** — leads, funil Kanban, agenda, propostas, campanhas, call center.
 - **Margem & Averbação** — consulta, averbações, reconciliação.
 - **Formalização, Antifraude & CCB** — inclui **Leitura Automática de CCB** (IA):
@@ -22,13 +25,16 @@ IA de leitura de documentos via **Anthropic Claude**.
 - **Suporte** (`/suporte`) e **Segurança & Compliance** (`/seguranca`).
 
 ## Documentação (`docs/`)
+- `CONSIGTEC_Auditoria_Externa.md` — **mapa para validação/auditoria externa** (arquitetura,
+  tenancy/RLS, modelo de dados, índice de migrações, edge functions, IA de documentos,
+  cotas, segurança/LGPD, status de validação).
 - `STATUS.md` — **régua do roadmap** (o que está pronto/pendente, por migração).
 - `CONSIGTEC_Roadmap_Implementacao.md` (v1) e `CONSIGTEC_Roadmap_v2_Enriquecido.md` (v2).
 - `CONSIGTEC_Arquitetura_Tecnica.md` — arquitetura.
 - `CONSIGTEC_Seguranca_Compliance_Leitura_CCB.md` — segurança/compliance da leitura de CCB.
 - `CONSIGTEC_Item8_Conector_Averbacao_Plan.md` — plano do conector eConsig/Zetra.
 - `VALIDACAO_PENDENTE.md` — validações end-to-end pendentes.
-- `supabase/migrations/` — migrações (0001–0093). Base44 sincroniza pelo git.
+- `supabase/migrations/` — migrações (0001–0094). Base44 sincroniza pelo git.
 
 ---
 
