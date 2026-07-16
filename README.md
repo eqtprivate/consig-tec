@@ -1,77 +1,69 @@
-# Base44 Project
+# CONSIGTEC
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+Plataforma **multi-tenant (SaaS) de crédito consignado** — sistema de registro e
+orquestração da operação (Grupo Raman / Emprestei Card / PixConsig): convênios,
+CRM/vendas, margem & averbação, formalização, CCB, recebíveis, comissões, cessão/FIDC,
+cobrança, LGPD e dashboards. Onde parceiros externos executam (UY3, Kanastra, Utility),
+o CONSIGTEC **registra e concilia**.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+**Stack:** Vite + React (JSX) · Supabase (Postgres, RLS, Storage, Auth, pg_cron) ·
+Edge Functions (Deno) · hospedado no **Base44** (publica/espelha no GitHub) ·
+IA de leitura de documentos via **Anthropic Claude**.
 
-## Prerequisites
+## Módulos principais
+- **Convênios & Produtos** — cadastro, capacidade por município, regras do decreto.
+- **CRM / Vendas** — leads, funil Kanban, agenda, propostas, campanhas, call center.
+- **Margem & Averbação** — consulta, averbações, reconciliação.
+- **Formalização, Antifraude & CCB** — inclui **Leitura Automática de CCB** (IA):
+  Ingestão, Ajustes da leitura, Arquivo (CCBs) — extração + conferência humana.
+- **Financeiro** — recebíveis/PMT, conciliação de repasse e de folha (paridade BPO), carteira.
+- **Comissões** · **Cessão/FIDC** (deságio, borderô, lastro) · **Cobrança** · **LGPD** · **Suporte**.
+- **Admin** — empresas & planos (cotas/limites), usuários, personalização (white-label), menu.
+- **Suporte** (`/suporte`) e **Segurança & Compliance** (`/seguranca`).
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
+## Documentação (`docs/`)
+- `STATUS.md` — **régua do roadmap** (o que está pronto/pendente, por migração).
+- `CONSIGTEC_Roadmap_Implementacao.md` (v1) e `CONSIGTEC_Roadmap_v2_Enriquecido.md` (v2).
+- `CONSIGTEC_Arquitetura_Tecnica.md` — arquitetura.
+- `CONSIGTEC_Seguranca_Compliance_Leitura_CCB.md` — segurança/compliance da leitura de CCB.
+- `CONSIGTEC_Item8_Conector_Averbacao_Plan.md` — plano do conector eConsig/Zetra.
+- `VALIDACAO_PENDENTE.md` — validações end-to-end pendentes.
+- `supabase/migrations/` — migrações (0001–0093). Base44 sincroniza pelo git.
 
-See the [Base44 CLI docs](https://docs.base44.com/developers/references/cli/get-started/overview) if you want to run Base44 commands directly.
+---
 
-## Run Locally
+## Base44 — desenvolvimento
 
-Run the full local development environment from the project root:
+Use este repositório para rodar e editar o app localmente e publicar via Base44.
+Qualquer mudança no repo também reflete no Base44 Builder.
 
+### Pré-requisitos
+1. Clone o repositório pela URL Git do projeto.
+2. Entre no diretório do projeto.
+3. Instale dependências: `npm install`.
+4. Instale a CLI do Base44: `npm install -g base44@latest`.
+
+Docs da CLI: https://docs.base44.com/developers/references/cli/get-started/overview
+
+### Rodar localmente
 ```bash
 base44 dev
 ```
+Inicia o backend local do Base44 e, quando configurado, o dev server do frontend.
 
-`base44 dev` starts the local Base44 development backend and, when this app is configured for it, also starts the frontend dev server for you. Use the frontend URL printed by the command.
-
-For example, when the Base44 project config includes a `serveCommand`, `base44 dev` can launch the frontend too:
-
-```json5
-{
-  "site": {
-    "serveCommand": "npm run dev"
-  }
-}
-```
-
-In a Base44 project this lives in `base44/config.jsonc`.
-
-## Run Only The Frontend
-
-If you only want to work on the frontend against the hosted Base44 backend, run:
-
+### Só o frontend (backend hospedado)
 ```bash
 npm run dev
 ```
-
-Open the local URL printed by Vite.
-
-## Use The Hosted Backend
-
-For frontend-only development, create or update `.env.local` in the project root:
-
+Crie/atualize `.env.local`:
 ```bash
 VITE_BASE44_APP_ID=your_app_id
 VITE_BASE44_APP_BASE_URL=https://your-app.base44.app
 ```
 
-`VITE_BASE44_APP_ID` identifies the Base44 app.
-
-`VITE_BASE44_APP_BASE_URL` tells the Base44 Vite plugin where to send local `/api` requests. Point it at your deployed Base44 app URL when you want the local frontend to use the hosted backend.
-
-When you use `base44 dev`, the command injects the local Base44 values for you, so `.env.local` is mainly needed for frontend-only workflows.
-
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
-
+### Qualidade
 ```bash
-base44 dashboard open
+npm run lint   # eslint
+npm run test   # vitest
+npm run build  # vite build
 ```
-
-## Docs & Support
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Base44 CLI command reference: [https://docs.base44.com/developers/references/cli/commands/introduction](https://docs.base44.com/developers/references/cli/commands/introduction)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
