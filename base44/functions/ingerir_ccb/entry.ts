@@ -367,10 +367,6 @@ Deno.serve(async (req) => {
     }
   } catch { /* não bloqueia se a checagem falhar */ }
 
-  const cfg = await lerConfig(admin, empresaId);
-  const model = modeloPedido || cfg?.modelo || modeloFallback;
-  const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
-
   // Upload ao Storage privado, organizado por empresa/ano/mês.
   const _now = new Date();
   const _yyyy = _now.getUTCFullYear();
