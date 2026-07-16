@@ -21,7 +21,7 @@ async function callFn(fn, payload) {
 export const decretosApi = {
   async list(status) {
     let q = supabase.from('ingestoes_documento')
-      .select('*, convenio:convenios(id, nome, orgao)')
+      .select('*, convenio:convenios!ingestoes_documento_convenio_id_fkey(id, nome, orgao)')
       .eq('tipo_documento', 'decreto')
       .order('created_at', { ascending: false });
     if (status && status !== 'todos') q = q.eq('status', status);
@@ -32,7 +32,7 @@ export const decretosApi = {
   },
   async get(id) {
     const { data, error } = await supabase.from('ingestoes_documento')
-      .select('*, convenio:convenios(id, nome, orgao)')
+      .select('*, convenio:convenios!ingestoes_documento_convenio_id_fkey(id, nome, orgao)')
       .eq('id', id).single();
     if (error) throw error;
     return data;
