@@ -155,7 +155,7 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
 4. **Semear dashboards** com a carteira histórica real (importador pronto — 0088).
 5. **Integrações reais** (UY3/CNAB, Kanastra/Utility FIDC, WhatsApp) + **RPA/conector** das averbadoras.
 6. **SLA/escalonamento automático** (Est. 9).
-7. **Segurança Supabase**: desligar signups públicos + proteção de senha vazada.
+7. **Segurança Supabase (P0)**: ✅ signups públicos **confirmados FECHADOS** (`disable_signup=true`, 0 usuários órfãos — verificado 2026-07-16); ⚠️ falta **ativar proteção de senha vazada** (HaveIBeenPwned) no painel Auth.
 
 ## 8) Dependências externas
 - **Anthropic API key** — ✅ **configurada e em uso** (leitura de CCB **e de decretos**).
