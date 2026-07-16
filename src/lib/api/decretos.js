@@ -5,18 +5,7 @@ import { getEmpresaView } from '@/lib/tenantView';
 // ingestoes_documento (tipo_documento='decreto') e as Edge Functions
 // ingerir_decreto / aprovar_decreto. A aprovação aplica as regras conferidas
 // ao convênio via a RPC aplicar_regras_decreto.
-
-async function callFn(fn, payload) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const res = await fetch(`/api/functions/${fn}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Operação falhou');
-  return data;
-}
+import { callFn } from '@/lib/api/fnClient';
 
 export const decretosApi = {
   async list(status) {
@@ -37,10 +26,10 @@ export const decretosApi = {
     if (error) throw error;
     return data;
   },
-  // Envia o PDF (base64) para a Edge Function ingerir_decreto.
-  async ingerir(arquivoBase64, arquivoNome) {
+  // Envia o PDF (base64) para a Edge Function ingerir_decreto. onProgress(pct) reporta o upload.
+  async ingerir(arquivoBase64, arquivoNome, onProgress) {
     const ev = getEmpresaView();
-    return callFn('ingerir_decreto', { arquivo_base64: arquivoBase64, arquivo_nome: arquivoNome, ...(ev ? { empresa_id: ev } : {}) });
+    return callFn('ingerir_decreto', { arquivo_base64: arquivoBase64, arquivo_nome: arquivoNome, ...(ev ? { empresa_id: ev } : {}) }, onProgress);
   },
   async reprocessar(ingestao_id, modelo) {
     return callFn('ingerir_decreto', { reprocessar_ingestao_id: ingestao_id, ...(modelo ? { modelo } : {}) });
