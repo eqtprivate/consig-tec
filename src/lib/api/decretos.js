@@ -5,7 +5,7 @@ import { getEmpresaView } from '@/lib/tenantView';
 // ingestoes_documento (tipo_documento='decreto') e as Edge Functions
 // ingerir_decreto / aprovar_decreto. A aprovação aplica as regras conferidas
 // ao convênio via a RPC aplicar_regras_decreto.
-import { callFn } from '@/lib/api/fnClient';
+import { callFn, fireFn } from '@/lib/api/fnClient';
 
 export const decretosApi = {
   async list(status) {
@@ -30,6 +30,11 @@ export const decretosApi = {
   async ingerir(arquivoBase64, arquivoNome, onProgress) {
     const ev = getEmpresaView();
     return callFn('ingerir_decreto', { arquivo_base64: arquivoBase64, arquivo_nome: arquivoNome, ...(ev ? { empresa_id: ev } : {}) }, onProgress);
+  },
+  // Fase 2 da ingestão em segundo plano: dispara a extração (branch reprocessar)
+  // com keepalive — o servidor conclui mesmo se a aba for fechada. Não aguarda.
+  processar(ingestao_id) {
+    return fireFn('ingerir_decreto', { reprocessar_ingestao_id: ingestao_id });
   },
   async reprocessar(ingestao_id, modelo) {
     return callFn('ingerir_decreto', { reprocessar_ingestao_id: ingestao_id, ...(modelo ? { modelo } : {}) });
