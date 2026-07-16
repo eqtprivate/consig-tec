@@ -29,6 +29,7 @@ import OnboardingEmpresa from '@/pages/admin/OnboardingEmpresa';
 import Auditoria from '@/pages/Auditoria';
 import Perfil from '@/pages/Perfil';
 import SuporteCCB from '@/pages/SuporteCCB';
+import SegurancaCompliance from '@/pages/SegurancaCompliance';
 import Personalizacao from '@/pages/admin/Personalizacao';
 import PixconsigCredenciais from '@/pages/admin/PixconsigCredenciais';
 import MenuLateral from '@/pages/admin/MenuLateral';
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/suporte" element={<SuporteCCB />} />
+            <Route path="/seguranca" element={<SegurancaCompliance />} />
             <Route path="/pendencias" element={<Pendencias />} />
             <Route path="/area/:codigo" element={<AreaPage />} />
             <Route path="/admin/usuarios" element={<Users />} />
