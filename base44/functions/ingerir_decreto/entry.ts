@@ -127,7 +127,7 @@ async function setModeloUsado(admin: any, id: string, model: string) {
 
 // Normaliza para comparação de nomes (sem acento, minúsculo).
 function norm(s: string): string {
-  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
 // Monta o objeto de regras + tenta casar o convênio + lista divergências
