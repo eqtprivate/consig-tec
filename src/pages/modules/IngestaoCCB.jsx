@@ -9,11 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { EmptyState, StatusBadge } from '@/components/kit';
-import { Upload, Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw } from 'lucide-react';
+import { Upload, Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw, Trash2 } from 'lucide-react';
 
 const ST = { recebido: 'Recebido', extraindo: 'Extraindo', aguardando_conferencia: 'Conferência', aprovado: 'Aprovado', rejeitado: 'Rejeitado', erro: 'Erro' };
 const ST_COR = { recebido: 'bg-muted text-muted-foreground', extraindo: 'bg-blue-50 text-blue-700', aguardando_conferencia: 'bg-amber-50 text-amber-700', aprovado: 'bg-green-50 text-green-700', rejeitado: 'bg-muted text-muted-foreground', erro: 'bg-red-50 text-red-700' };
 const ACAO = { completar_venda: 'Completar venda', novo_registro: 'Novo registro', duplicata: 'Duplicata' };
+const FILTROS = [['todos', 'Todos'], ['aguardando_conferencia', 'Conferência'], ['extraindo', 'Extraindo'], ['erro', 'Erro'], ['aprovado', 'Aprovado'], ['rejeitado', 'Rejeitado']];
 
 // Conferência agrupada por seção. `moeda` formata o valor do sistema em R$;
 // `sis` traz o valor equivalente já no sistema (para comparar/destacar divergência).
@@ -99,8 +100,20 @@ export default function IngestaoCCB() {
   const [demorou, setDemorou] = useState(false);
   const [progresso, setProgresso] = useState(0);
 
-  const load = async () => { setLoading(true); setLista(await ingestaoApi.list().catch(() => [])); setLoading(false); };
-  useEffect(() => { load(); return () => clearInterval(pollRef.current); }, []);
+  const [filtroStatus, setFiltroStatus] = useState('todos');
+  const load = async () => { setLoading(true); setLista(await ingestaoApi.list(filtroStatus).catch(() => [])); setLoading(false); };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filtroStatus]);
+  useEffect(() => () => clearInterval(pollRef.current), []);
+
+  const excluirIng = async (r) => {
+    if (!window.confirm(`Excluir a ingestão "${r.arquivo_nome}"? O PDF será removido do armazenamento. Esta ação não pode ser desfeita.`)) return;
+    try {
+      await ingestaoApi.excluir(r.id);
+      toast.success('Ingestão excluída.');
+      if (sel?.id === r.id) { clearInterval(pollRef.current); setSel(null); }
+      load();
+    } catch (e) { toast.error(e.message || 'Falha ao excluir.'); }
+  };
 
   // Barra de progresso estimada enquanto a IA lê (a API não devolve progresso real):
   // avança rápido no início e desacelera, saturando em ~96% até concluir.
@@ -239,6 +252,16 @@ export default function IngestaoCCB() {
         </div>
       )}
 
+      {/* Filtro por status */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {FILTROS.map(([k, label]) => (
+          <button key={k} onClick={() => setFiltroStatus(k)}
+            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${filtroStatus === k ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:text-foreground'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Lista de ingestões */}
       <div className="bg-card rounded-xl border border-border shadow-sm overflow-x-auto">
         {loading ? <EmptyState title="Carregando…" />
@@ -274,8 +297,9 @@ export default function IngestaoCCB() {
                         <span className="inline-flex items-center gap-1">{rLendo && <Loader2 className="w-3 h-3 animate-spin" />}{ST[r.status]}</span>
                       </StatusBadge>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => abrir(r)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded inline-flex"><ChevronRight className="w-4 h-4" /></button>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      {r.status !== 'aprovado' && <button onClick={() => excluirIng(r)} className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-muted rounded inline-flex" title="Excluir ingestão"><Trash2 className="w-4 h-4" /></button>}
+                      <button onClick={() => abrir(r)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded inline-flex" title="Abrir"><ChevronRight className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 );
