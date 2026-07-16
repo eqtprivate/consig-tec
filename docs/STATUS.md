@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.37.0**.
+> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.38.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -187,6 +187,16 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-16** — **v1.38.0** · **UX da ingestão + reflexo no convênio**: (1) **aviso de
+  conclusão** — `useExtracaoWatcher` observa as leituras em segundo plano e dispara um
+  toast clicável (“Abrir”) quando cada uma termina, **mesmo com o painel fechado / após
+  enviar vários / recarregar**, além de um selo “N em leitura…” no topo (CCB e decreto);
+  (2) **vínculo de convênio pesquisável** — novo `ConvenioPicker` (combobox cmdk) substitui
+  o `<select>`, filtrando por digitação os ~1100 convênios, com a opção “criar novo”;
+  (3) **reflexo visível no convênio** — `aplicar_regras_decreto` já grava todas as regras
+  (margens, prazos, prioridade, tipos, consignatárias, decreto nº/data, lei base) via
+  COALESCE; a tela **Convênios** agora mostra um chip “decreto” na lista e um painel
+  **“Regras vigentes (aplicadas por decreto)”** na edição.
 - **2026-07-16** — **v1.37.0** · **Ingestão em segundo plano** (CCB e decretos): o
   `ingerir_ccb`/`ingerir_decreto` passam a **retornar imediatamente** após gravar o
   documento (status `extraindo`); a extração por IA roda numa 2ª chamada com
