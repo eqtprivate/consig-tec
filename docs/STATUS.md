@@ -155,7 +155,13 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
 4. **Semear dashboards** com a carteira histórica real (importador pronto — 0088).
 5. **Integrações reais** (UY3/CNAB, Kanastra/Utility FIDC, WhatsApp) + **RPA/conector** das averbadoras.
 6. **SLA/escalonamento automático** (Est. 9).
-7. **Segurança Supabase (P0)**: ✅ signups públicos **confirmados FECHADOS** (`disable_signup=true`, 0 usuários órfãos — verificado 2026-07-16); ⚠️ falta **ativar proteção de senha vazada** (HaveIBeenPwned) no painel Auth.
+7. **Segurança Supabase (P0)** — ✅ tratado no plano atual: signups **FECHADOS**
+   (`disable_signup=true`, 0 órfãos), **confirmação de e-mail** ON, **tamanho mínimo +
+   complexidade** de senha e **rate limit** ativos (2026-07-16). ⚠️ **Proteção de senha vazada
+   (HaveIBeenPwned) é recurso do plano Pro** — indisponível no Free. Mitigação atual: política
+   de senha forte + signup fechado + poucos usuários internos. Opções: (a) ligar ao migrar
+   para Pro; (b) *compensating control* próprio no fluxo de senha via API pública k-anonymity
+   do HIBP (sem chave). Revisar antes do 1º cliente externo.
 
 ## 8) Dependências externas
 - **Anthropic API key** — ✅ **configurada e em uso** (leitura de CCB **e de decretos**).
