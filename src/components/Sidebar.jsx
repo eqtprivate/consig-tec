@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { areasApi } from '@/lib/api/areas';
 import { dashboardApi } from '@/lib/api/dashboard';
 import { buildLabel, BUILD_TIME } from '@/lib/version';
-import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette, PanelLeft } from 'lucide-react';
+import { LayoutDashboard, AlertCircle, Users, Link2, Settings, ScrollText, ChevronDown, Bell, TrendingUp, Plug, Building2, UserPlus, KeyRound, Palette, PanelLeft, LifeBuoy, ShieldCheck } from 'lucide-react';
 
 // Modelo do menu (grupos/páginas) e aplicação da config por empresa.
 import { AREA_SUBITEMS, buildCanonical, applyMenuConfig } from '@/lib/menuModel';
@@ -222,6 +222,16 @@ export default function Sidebar({ collapsed = false }) {
           </div>
         )}
       </nav>
+
+      {/* Ajuda: Suporte + Segurança & Compliance */}
+      <div className={`${collapsed ? 'px-2' : 'px-3'} pt-2 pb-1`}>
+        <Link to="/suporte" title="Suporte" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5'} px-2 py-1.5 rounded-md text-xs opacity-80 hover:opacity-100 transition-opacity`} style={{ color: 'hsl(var(--sidebar-foreground))' }}>
+          <LifeBuoy className="w-4 h-4 shrink-0" />{!collapsed && <span>Suporte</span>}
+        </Link>
+        <Link to="/seguranca" title="Segurança & Compliance" className={`flex items-center ${collapsed ? 'justify-center' : 'gap-2.5'} px-2 py-1.5 rounded-md text-xs opacity-80 hover:opacity-100 transition-opacity`} style={{ color: 'hsl(var(--sidebar-foreground))' }}>
+          <ShieldCheck className="w-4 h-4 shrink-0" />{!collapsed && <span>Segurança</span>}
+        </Link>
+      </div>
 
       {/* Rodapé — usuário com avatar (só o avatar quando colapsado) + versão */}
       <div className={`${collapsed ? 'px-2' : 'px-3'} py-3`} style={{ borderTop: '1px solid hsl(var(--sidebar-border))' }}>
