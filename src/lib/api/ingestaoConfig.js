@@ -4,9 +4,9 @@ import { getEmpresaView } from '@/lib/tenantView';
 // Modelos disponíveis para a leitura de CCB (curados). Custo por CCB é
 // estimativa para ~5 páginas — só orientação de UI.
 export const MODELOS_CCB = [
-  { value: 'claude-haiku-4-5', label: 'Haiku 4.5', tag: 'mais barato', preco: 'US$ 1 / US$ 5 por 1M', custoCcb: '~US$ 0,015 / CCB' },
-  { value: 'claude-sonnet-5', label: 'Sonnet 5', tag: 'equilibrado (padrão)', preco: 'US$ 3 / US$ 15 por 1M', custoCcb: '~US$ 0,04–0,06 / CCB' },
-  { value: 'claude-opus-4-8', label: 'Opus 4.8', tag: 'máxima precisão', preco: 'US$ 5 / US$ 25 por 1M', custoCcb: '~US$ 0,10+ / CCB' },
+  { value: 'claude-haiku-4-5', label: 'Haiku 4.5', tag: 'mais barato', preco: 'entrada/saída mais baratas', custoCcb: '~R$ 0,25 / CCB' },
+  { value: 'claude-sonnet-5', label: 'Sonnet 5', tag: 'equilibrado (padrão)', preco: 'equilíbrio custo/precisão', custoCcb: '~R$ 0,85 / CCB' },
+  { value: 'claude-opus-4-8', label: 'Opus 4.8', tag: 'máxima precisão', preco: 'maior precisão, mais caro', custoCcb: '~R$ 1,30+ / CCB' },
 ];
 
 export const MODELO_LABEL = Object.fromEntries(MODELOS_CCB.map((m) => [m.value, m.label]));
