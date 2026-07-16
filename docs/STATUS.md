@@ -158,7 +158,7 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
 7. **Segurança Supabase**: desligar signups públicos + proteção de senha vazada.
 
 ## 8) Dependências externas
-- **Anthropic API key** — ✅ **configurada e em uso** (leitura de CCB).
+- **Anthropic API key** — ✅ **configurada e em uso** (leitura de CCB **e de decretos**).
 - **Resend API key** — em uso (e-mail/lembretes).
 - **PixConsig** x-api-key por cliente.
 - **UY3 / Kanastra / Utility / WhatsApp** — handoff manual hoje; API depois.
@@ -168,9 +168,11 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
 ## 9) Decisões arquiteturais firmadas
 - Supabase Auth + RLS multi-empresa · Secrets no Base44 (service_role só no backend) ·
   PixConsig = fonte da verdade dos convênios · empresa = tenant e unidade operacional ·
-  **ingestão de CCB com aprovação humana obrigatória** · **cota do plano bloqueia** a
-  leitura ao exceder (superadmin/sem-plano nunca bloqueiam) · custo da IA guardado em
-  US$ (bruto) e exibido em R$ · superadmin nunca é bloqueado pela RLS.
+  **ingestão de documentos (CCB e decretos) com aprovação humana obrigatória** · **cota do
+  plano bloqueia** a leitura ao exceder (superadmin/sem-plano nunca bloqueiam) · decreto
+  aplicado ao convênio com **comparação preenche/confere/DIVERGENTE** e justificativa em
+  conflito · custo da IA guardado em US$ (bruto) e exibido em R$ · superadmin nunca é
+  bloqueado pela RLS.
 
 ## 10) Histórico recente
 - **2026-07-16** — Leitura de CCB **em produção** (chave validada, extração real).
