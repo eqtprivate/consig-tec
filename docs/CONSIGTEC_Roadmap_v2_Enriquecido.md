@@ -188,7 +188,15 @@ Entrou em produção um **módulo de ingestão de documentos com IA** (Claude vi
 
 **Migrações:** `0089` (config + log de tentativas), `0090` (colunas persistidas + jsonb + `enriquecer_ccb_dados`), `0091` (arquivamento/Drive), `0092` (cota por plano), `0093` (gestão da ingestão). Edge Functions: `ingerir_ccb`, `aprovar_ingestao`, `espelhar_drive`.
 
-### 11.1 — Próxima expansão: Ingestão de DECRETOS/LEIS de convênios [PLANEJADO]
+### 11.1 — Ingestão de DECRETOS/LEIS de convênios [EM PRODUÇÃO · 2026-07-16]
+
+> **Status:** construído e validado. Migração `0094` aplicada; Edge Functions
+> `ingerir_decreto`/`aprovar_decreto` publicadas; telas **Decretos (IA)** e **Arquivo de
+> Decretos** na área Convênios. Extração real do Decreto 4.572/2019 (Manaus) validada
+> (todos os campos-alvo corretos, ~R$ 0,02/leitura). **Comparação/validação** campo-a-campo
+> contra o cadastro do convênio: *preenche* (vazio) · *confere* (igual) · *DIVERGENTE*
+> (conflito → exige justificativa). Falta apenas **Publish** no Base44 para expor as telas.
+
 
 Mesma espinha da CCB, aplicada ao **decreto/lei que regula a consignação de cada ente (prefeitura/órgão)**. Objetivo: ler o decreto, extrair as **regras de parametrização** e sugeri-las para o convênio correspondente — com conferência humana antes de valer. Isso alimenta diretamente as colunas de regra dos `convenios` (migração 0083: `idade_minima`, `idade_maxima_fim`, `teto_parcelas`, `max_contratos_servidor`, `prioridade_desconto`, `margem_por_produto` jsonb, `regras_manuais`).
 
