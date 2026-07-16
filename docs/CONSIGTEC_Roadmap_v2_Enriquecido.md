@@ -170,3 +170,46 @@ Semear com a base apurada (13/08/2025–10/06/2026) faz o painel nascer útil e 
 3. **Integrações internas:** ✅ **PixConsig definido** — API co-desenvolvida; CAPAG, comissão da prefeitura e spread vêm da API; MVP via espelho CSV (ver `CONSIGTEC_API_PixConsig_Contrato.md`). Falta definir **UY3/Kanastra/Utility** (API hoje ou handoff manual na fase 1?).
 4. **Seed de dados:** posso usar os números reais da carteira (1.928 contratos etc.) para semear o dashboard do MVP?
 5. **"Repositório de senhas/acessos":** secrets de runtime no Base44 (recomendado) ou cofre de time? Contas Base44/GitHub/Resend já existem?
+
+---
+
+## 11. Leitura de documentos por IA — módulo de Ingestão (EM PRODUÇÃO) [2026-07-16]
+
+Entrou em produção um **módulo de ingestão de documentos com IA** (Claude via API Anthropic) que transforma PDFs em dados estruturados, conferidos por humano antes de virar registro. Nasceu para a **CCB** e agora é a base reutilizável para outros documentos (a seguir, **decretos**).
+
+**O que já está no ar (CCB):**
+- **Extração nativa de PDF** pela API Messages (bloco `document` + *tool use* `extrair_ccb`), sem OCR externo. Cerca de **45 campos** — identificação (nº CCB, datas, valores, taxas, CET, IOF, tarifas), devedor (nome, CPF, RG, órgão expedidor, estado civil, endereço completo), convênio/averbação, credor/correspondente e dados bancários de crédito.
+- **Conferência humana obrigatória:** a IA propõe, um operador aprova/corrige. Divergências abaixo da confiança mínima caem para revisão. Ao aprovar, os campos preenchem `clientes`/`ccbs` (COALESCE preserva o que já existe) e o **JSON completo** fica em `ccbs.dados_extraidos` (jsonb) para auditoria/reprocesso.
+- **Ajustes de leitura** (`/ajustes-leitura-ccb`): escolha de modelo (Haiku/Sonnet/Opus), confiança mínima, **log de tentativas** (tokens, custo em R$, duração, status), reprocessamento e limpeza de log.
+- **Arquivamento organizado e criptografado:** PDFs no Storage privado do Supabase em `empresa/ano/mês/hash.pdf` (bucket `ccb-docs`, RLS por empresa, URLs assinadas temporárias); opção de espelhar numa **pasta do Drive** por empresa.
+- **Cota por plano (metering):** cada pacote define teto de **leituras/mês**, **armazenamento (MB)** e **documentos**; o `ingerir_ccb` recusa (402) antes de gastar IA quando a empresa estoura o limite. Superadmin e empresa sem plano nunca bloqueiam. Editor de planos no admin; banner/cartão de uso na UI.
+- **Gestão da ingestão:** filtros por status, exclusão de tentativas e de ingestões não aprovadas, tela **Arquivo (CCBs)** com KPIs, busca e detalhe (campos agrupados + jsonb + log).
+- **Segurança & Compliance in-app:** páginas `/suporte` e `/seguranca` (documento de compliance da operação de leitura — dados tratados, subprocessadores, antifraude, retenção, direitos do titular), com links no rodapé, na sidebar e nas telas de ingestão.
+
+**Migrações:** `0089` (config + log de tentativas), `0090` (colunas persistidas + jsonb + `enriquecer_ccb_dados`), `0091` (arquivamento/Drive), `0092` (cota por plano), `0093` (gestão da ingestão). Edge Functions: `ingerir_ccb`, `aprovar_ingestao`, `espelhar_drive`.
+
+### 11.1 — Próxima expansão: Ingestão de DECRETOS/LEIS de convênios [PLANEJADO]
+
+Mesma espinha da CCB, aplicada ao **decreto/lei que regula a consignação de cada ente (prefeitura/órgão)**. Objetivo: ler o decreto, extrair as **regras de parametrização** e sugeri-las para o convênio correspondente — com conferência humana antes de valer. Isso alimenta diretamente as colunas de regra dos `convenios` (migração 0083: `idade_minima`, `idade_maxima_fim`, `teto_parcelas`, `max_contratos_servidor`, `prioridade_desconto`, `margem_por_produto` jsonb, `regras_manuais`).
+
+**Campos-alvo de extração** (validados contra o Decreto nº 4.572/2019 de Manaus/AM):
+
+| Campo | Exemplo (Manaus) | Uso no sistema |
+|---|---|---|
+| `decreto_numero`, `decreto_data` | 4.572 · 10/09/2019 | Identificação/versão da norma |
+| `ente_nome`, `uf`, `esfera` | Manaus · AM · municipal | Vínculo ao convênio/ente |
+| `lei_base` | Lei 871/2005 (alt. 1.726/2013) | Rastreabilidade jurídica |
+| `margem_total_pct` | 40% | Teto de comprometimento da margem |
+| `margem_cartao_pct` | 10% (exclusivo cartão de crédito) | Margem apartada do cartão |
+| `prazo_maximo_meses` | 96 | Teto de parcelas (`teto_parcelas`) |
+| `limite_adiantamento_pct` | 20% | Regra de adiantamento de remuneração |
+| `recomposicao_margem` | 48h após liquidação antecipada | Regra operacional de margem |
+| `reposicao_erario` | 1/3 da remuneração | Regra de desconto/erário |
+| `tipos_consignacao_permitidos` | financiamento casa, previdência/seguro/saúde, entidade de classe, pensão, empréstimo, crédito farmácia, **cartão de crédito**, entretenimento, adiantamento, seguros | Produtos autorizados no ente |
+| `consignatarias_habilitadas` | lista do Art. 4 | Elegibilidade de consignatária |
+| `prioridade_desconto` | ordem legal de prioridade | `prioridade_desconto` |
+| `vigencia`, `revogacoes` | — | Controle de versão da norma |
+
+**Arquitetura proposta (reuso do módulo CCB):** upload do decreto (PDF) → `ingerir_decreto` (Claude, *tool* `extrair_decreto`, extração nativa de PDF) → grava tentativa/log e jsonb bruto → **tela de conferência** que casa o decreto ao **convênio/ente** e mostra as regras sugeridas × valores atuais → operador aprova → `aplicar_regras_decreto` preenche as colunas de regra do `convenios` (COALESCE, com `regras_atualizadas_em`/origem) e guarda o decreto no Storage (`empresa/decretos/ente/…`). Mesma cota/metering, mesmo padrão de segurança/compliance.
+
+> **Validação pendente com o usuário:** confirmar o conjunto de campos acima (e se há campos do decreto de Manaus/decretos futuros que faltam) antes de construir a migração e as Edge Functions do módulo de decretos.
