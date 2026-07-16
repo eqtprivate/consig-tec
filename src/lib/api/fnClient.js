@@ -29,3 +29,22 @@ export function callFn(fn, payload, onUploadProgress) {
     }).catch(reject);
   });
 }
+
+// Dispara uma Edge Function em segundo plano (fire-and-forget) com keepalive:
+// o navegador conclui a requisição mesmo se o usuário fechar a aba/navegar.
+// Usado na 2ª fase da ingestão (extração), cujo payload é mínimo
+// ({ reprocessar_ingestao_id }), bem dentro do limite de keepalive (~64KB).
+// Não aguarda a resposta — o resultado é observado via polling do status.
+export async function fireFn(fn, payload) {
+  const { data: { session } } = await supabase.auth.getSession();
+  // Sem await no fetch: a promessa fica pendente, mas keepalive garante entrega.
+  fetch(`/api/functions/${fn}`, {
+    method: 'POST',
+    keepalive: true,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token || ''}`,
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => { /* fire-and-forget: erros são observados pelo polling */ });
+}
