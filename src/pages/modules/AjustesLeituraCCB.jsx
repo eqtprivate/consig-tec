@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/kit';
-import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck, Package } from 'lucide-react';
+import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck, Package, Trash2 } from 'lucide-react';
 
 const dt = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : '—');
 const usd = (v) => (v == null ? '—' : `US$ ${Number(v).toFixed(4)}`);
@@ -94,6 +94,17 @@ export default function AjustesLeituraCCB() {
       setRepRow(null); carregarLog();
     } catch (e) { toast.error(e.message || 'Falha ao reprocessar.'); }
     finally { setRepBusy(false); }
+  };
+
+  const excluirTent = async (id) => {
+    if (!window.confirm('Excluir esta tentativa do log?')) return;
+    try { await ingestaoConfigApi.excluirTentativa(id); toast.success('Tentativa excluída.'); carregarLog(); }
+    catch (e) { toast.error(e.message || 'Falha ao excluir.'); }
+  };
+  const limparLog = async () => {
+    if (!window.confirm('Limpar TODO o log de tentativas desta empresa? Esta ação não pode ser desfeita.')) return;
+    try { const n = await ingestaoConfigApi.limparTentativas(); toast.success(`${n || 0} tentativa(s) removida(s).`); carregarLog(); }
+    catch (e) { toast.error(e.message || 'Falha ao limpar.'); }
   };
 
   if (!isAdmin) return <EmptyState icon={ShieldQuestion} title="Restrito a administradores" description="Os ajustes da leitura de CCB são visíveis apenas para administradores." />;
@@ -232,7 +243,10 @@ export default function AjustesLeituraCCB() {
             <History className="w-4 h-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold text-foreground">Log de tentativas de leitura</h3>
           </div>
-          <Button variant="outline" size="sm" onClick={carregarLog} className="gap-2"><RefreshCw className="w-3.5 h-3.5" /> Atualizar</Button>
+          <div className="flex items-center gap-2">
+            {tentativas.length > 0 && <Button variant="ghost" size="sm" onClick={limparLog} className="gap-2 text-red-600 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /> Limpar log</Button>}
+            <Button variant="outline" size="sm" onClick={carregarLog} className="gap-2"><RefreshCw className="w-3.5 h-3.5" /> Atualizar</Button>
+          </div>
         </div>
         {loadingLog ? <EmptyState title="Carregando…" />
           : tentativas.length === 0 ? <EmptyState icon={History} title="Sem leituras ainda" description="Cada CCB enviada para leitura aparece aqui, com modelo, custo e resultado." />
@@ -272,13 +286,14 @@ export default function AjustesLeituraCCB() {
                           <td className="px-3 py-2 text-right whitespace-nowrap">{t.tokens_entrada != null ? `${t.tokens_entrada}/${t.tokens_saida ?? '—'}` : '—'}</td>
                           <td className="px-3 py-2 text-right whitespace-nowrap">{usd(t.custo_usd)}</td>
                           <td className="px-3 py-2 text-right whitespace-nowrap">{t.duracao_ms != null ? `${(t.duracao_ms / 1000).toFixed(1)}s` : '—'}</td>
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-3 py-2 text-right whitespace-nowrap">
                             {podeReprocessar && (
                               <Button variant="outline" size="sm" className="h-7 gap-1 text-[11px]"
                                 onClick={() => { setRepRow(t); setRepModelo('claude-opus-4-8'); }}>
                                 <RefreshCw className="w-3 h-3" /> Reprocessar
                               </Button>
                             )}
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 ml-1 text-muted-foreground hover:text-red-600" onClick={() => excluirTent(t.id)} title="Excluir do log"><Trash2 className="w-3.5 h-3.5" /></Button>
                           </td>
                         </tr>
                       );
