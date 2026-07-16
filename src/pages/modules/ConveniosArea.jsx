@@ -3,11 +3,13 @@ import { useTabParam } from '@/lib/useTabParam';
 import ConveniosDashboard from '@/pages/modules/ConveniosDashboard';
 import Convenios from '@/pages/modules/Convenios';
 import CapacidadeMunicipios from '@/pages/modules/CapacidadeMunicipios';
+import IngestaoDecreto from '@/pages/modules/IngestaoDecreto';
 
 const TABS = [
   { key: 'visao', label: 'Visão Geral' },
   { key: 'convenios', label: 'Convênios & Produtos' },
   { key: 'capacidade', label: 'Capacidade por Município' },
+  { key: 'decretos', label: 'Decretos (IA)' },
 ];
 
 export default function ConveniosArea() {
@@ -27,7 +29,7 @@ export default function ConveniosArea() {
           </button>
         ))}
       </div>
-      {tab === 'visao' ? <ConveniosDashboard /> : tab === 'convenios' ? <Convenios /> : <CapacidadeMunicipios />}
+      {tab === 'visao' ? <ConveniosDashboard /> : tab === 'convenios' ? <Convenios /> : tab === 'capacidade' ? <CapacidadeMunicipios /> : <IngestaoDecreto />}
     </div>
   );
 }
