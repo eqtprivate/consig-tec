@@ -4,12 +4,14 @@ import ConveniosDashboard from '@/pages/modules/ConveniosDashboard';
 import Convenios from '@/pages/modules/Convenios';
 import CapacidadeMunicipios from '@/pages/modules/CapacidadeMunicipios';
 import IngestaoDecreto from '@/pages/modules/IngestaoDecreto';
+import ArquivoDecretos from '@/pages/modules/ArquivoDecretos';
 
 const TABS = [
   { key: 'visao', label: 'Visão Geral' },
   { key: 'convenios', label: 'Convênios & Produtos' },
   { key: 'capacidade', label: 'Capacidade por Município' },
   { key: 'decretos', label: 'Decretos (IA)' },
+  { key: 'arquivo-decretos', label: 'Arquivo de Decretos' },
 ];
 
 export default function ConveniosArea() {
@@ -29,7 +31,7 @@ export default function ConveniosArea() {
           </button>
         ))}
       </div>
-      {tab === 'visao' ? <ConveniosDashboard /> : tab === 'convenios' ? <Convenios /> : tab === 'capacidade' ? <CapacidadeMunicipios /> : <IngestaoDecreto />}
+      {tab === 'visao' ? <ConveniosDashboard /> : tab === 'convenios' ? <Convenios /> : tab === 'capacidade' ? <CapacidadeMunicipios /> : tab === 'decretos' ? <IngestaoDecreto /> : <ArquivoDecretos />}
     </div>
   );
 }
