@@ -28,6 +28,7 @@ export const AREA_SUBITEMS = {
     { key: 'form', label: 'Formalização & Antifraude' },
     { key: 'ccb', label: 'CCB' },
     { key: 'ingestao', label: 'Ingestão de CCB' },
+    { key: 'arquivo', label: 'Arquivo (CCBs)' },
     { key: 'ajustes', label: 'Ajustes da leitura' },
     { key: 'contratos', label: 'Contratos' },
   ],
