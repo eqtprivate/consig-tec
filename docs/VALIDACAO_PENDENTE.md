@@ -26,6 +26,25 @@ antigos); ⬜ testar o **bloqueio de cota** pela UI (limite baixo → 2ª leitur
 
 ---
 
+## ✅ Leitura de DECRETOS/LEIS (migr. 0094) — validado ao vivo (2026-07-16)
+
+- **Schema (0094)**: confirmado aplicado no banco — `convenios` com **13/13** colunas novas
+  (decreto_*, margem_*_pct, tipos/consignatárias jsonb, `decreto_dados`, `regras_origem`),
+  `ingestoes_documento.convenio_id`, e RPC `aplicar_regras_decreto` existente/executável.
+- **Edge Functions**: `ingerir_decreto` e `aprovar_decreto` publicadas (respondem 401).
+- **Extração IA real**: Decreto **4.572/2019 (Manaus)** — todos os campos-alvo corretos
+  (nº/data, ente/UF, lei base, **margem 40% / cartão 10%**, **prazo 96m**, adiantamento 20%,
+  recomposição 48h, 1/3 erário, 12 tipos) por **~R$ 0,02** em ~3s (Haiku).
+- **Comparação/validação**: conferência classifica cada regra como *preenche/confere/
+  DIVERGENTE* contra o cadastro do convênio; divergência **exige justificativa** para aplicar.
+- **Arquivo de Decretos**: banco + KPIs + detalhe (regras + jsonb + log + PDF).
+
+**Ressalvas / a fazer:** ⬜ **Publish** no Base44 para expor as abas **Decretos (IA)** e
+**Arquivo de Decretos**; ⬜ teste fim-a-fim pela UI aplicando um decreto real a um convênio
+já preenchido (validar o caminho *DIVERGENTE* + justificativa).
+
+---
+
 ## ⬜ Teste guiado fim-a-fim da esteira (migrs. 0024–0034)
 
 **Status:** implementado, **validação pendente** (anotado a pedido do cliente em 2026-07-12).
