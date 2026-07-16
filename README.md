@@ -34,7 +34,7 @@ IA de leitura de documentos via **Anthropic Claude**.
 - `CONSIGTEC_Seguranca_Compliance_Leitura_CCB.md` — segurança/compliance da leitura de CCB.
 - `CONSIGTEC_Item8_Conector_Averbacao_Plan.md` — plano do conector eConsig/Zetra.
 - `VALIDACAO_PENDENTE.md` — validações end-to-end pendentes.
-- `supabase/migrations/` — migrações (0001–0094). Base44 sincroniza pelo git.
+- `supabase/migrations/` — migrações (0001–0095). Base44 sincroniza pelo git. Versão **v1.36.0**.
 
 ---
 
