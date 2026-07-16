@@ -68,7 +68,7 @@ export default function IngestaoDecreto() {
 
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const load = async () => { setLoading(true); setLista(await decretosApi.list(filtroStatus).catch(() => [])); setLoading(false); };
-  useEffect(() => { load(); }, [filtroStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [filtroStatus]);
   useEffect(() => { conveniosApi.list().then(setConvenios).catch(() => setConvenios([])); }, []);
   useEffect(() => () => clearInterval(pollRef.current), []);
 
