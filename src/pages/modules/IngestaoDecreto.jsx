@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { EmptyState, StatusBadge } from '@/components/kit';
-import { Upload, Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw, Trash2, LifeBuoy, Gavel, PlusCircle, Check } from 'lucide-react';
+import PdfUpload from '@/components/PdfUpload';
+import TagList from '@/components/TagList';
+import { Loader2, FileText, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ScanLine, RefreshCw, Trash2, LifeBuoy, Gavel, PlusCircle, Check } from 'lucide-react';
 
 const ST = { recebido: 'Recebido', extraindo: 'Extraindo', aguardando_conferencia: 'Conferência', aprovado: 'Aplicado', rejeitado: 'Rejeitado', erro: 'Erro' };
 const ST_COR = { recebido: 'bg-muted text-muted-foreground', extraindo: 'bg-blue-50 text-blue-700', aguardando_conferencia: 'bg-amber-50 text-amber-700', aprovado: 'bg-green-50 text-green-700', rejeitado: 'bg-muted text-muted-foreground', erro: 'bg-red-50 text-red-700' };
@@ -45,7 +47,13 @@ const LISTAS = [
   { k: 'consignatarias_habilitadas', label: 'Consignatárias habilitadas' },
 ];
 
-const fileToB64 = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
+const fileToB64 = (file, onProgress) => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onprogress = (e) => { if (onProgress && e.lengthComputable) onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100))); };
+  r.onload = () => { onProgress?.(100); res(String(r.result)); };
+  r.onerror = rej;
+  r.readAsDataURL(file);
+});
 const linhasToArr = (s) => String(s || '').split('\n').map((x) => x.trim()).filter(Boolean);
 const vazio = (v) => v == null || String(v).trim() === '';
 const normStr = (v) => String(v ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -71,7 +79,8 @@ export default function IngestaoDecreto() {
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
-  const inputRef = useRef(null);
+  const [readPct, setReadPct] = useState(0);
+  const [nomeArq, setNomeArq] = useState('');
   const pollRef = useRef(null);
 
   const [sel, setSel] = useState(null);
@@ -161,9 +170,9 @@ export default function IngestaoDecreto() {
 
   const enviar = async (file) => {
     if (!file) return;
-    setEnviando(true); setUploadPct(0);
+    setEnviando(true); setReadPct(0); setUploadPct(0); setNomeArq(file.name);
     try {
-      const b64 = await fileToB64(file);
+      const b64 = await fileToB64(file, setReadPct);
       const r = await decretosApi.ingerir(b64, file.name, setUploadPct);
       await auditoriaApi.log('ingerir_decreto', 'ingestoes_documento', r.id, { arquivo: file.name, status: r.status, duplicado: !!r.duplicado });
       await load();
@@ -175,7 +184,6 @@ export default function IngestaoDecreto() {
       toast.error(err.message || 'Falha ao enviar.');
     } finally {
       setEnviando(false);
-      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
@@ -233,7 +241,6 @@ export default function IngestaoDecreto() {
   };
 
   const setCampo = (k, v) => setDados((d) => ({ ...d, [k]: v }));
-  const listaVal = (k) => { const v = dados[k]; return Array.isArray(v) ? v.join('\n') : (v ?? ''); };
 
   return (
     <div className="space-y-4">
@@ -242,21 +249,10 @@ export default function IngestaoDecreto() {
           <p className="text-sm font-semibold text-foreground flex items-center gap-2"><Gavel className="w-4 h-4 text-primary" /> Ingestão & Leitura de Decretos (regras do convênio)</p>
           <p className="text-[11px] text-muted-foreground">A extração é uma <b>sugestão</b> — as regras só entram no convênio após conferência e aprovação humana. <Link to="/suporte" className="text-primary hover:underline inline-flex items-center gap-0.5"><LifeBuoy className="w-3 h-3" /> Ajuda &amp; segurança</Link></p>
         </div>
-        <div>
-          <input ref={inputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => enviar(e.target.files?.[0])} />
-          <Button onClick={() => inputRef.current?.click()} disabled={enviando} className="gap-2">{enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Enviar decreto (PDF)</Button>
-        </div>
       </div>
 
-      {enviando && (
-        <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
-          <div className="flex items-center gap-2 text-sm text-foreground">
-            <Loader2 className="w-4 h-4 animate-spin shrink-0 text-primary" />
-            <span>{uploadPct < 100 ? <>Enviando o decreto… <b>{uploadPct}%</b></> : <>Decreto enviado. <b>Lendo com inteligência artificial</b>… não feche a página.</>}</span>
-          </div>
-          <Progress value={uploadPct} className="h-2" />
-        </div>
-      )}
+      {/* Upload: dropzone (ocioso) ou progresso em fases (enviando) */}
+      <PdfUpload onFile={enviar} busy={enviando} readPct={readPct} uploadPct={uploadPct} tipo="decreto" fileName={nomeArq} />
 
       <div className="flex flex-wrap items-center gap-1.5">
         {FILTROS.map(([k, label]) => (
