@@ -202,21 +202,21 @@ export default function IngestaoDecreto() {
     finally { setReprocessando(false); }
   };
 
-  const divMap = useMemo(() => { const m = {}; (sel?.divergencias || []).forEach((d) => { m[d.campo] = d; }); return m; }, [sel]);
-  const temCritica = (sel?.divergencias || []).some((d) => d.tipo === 'critica');
+  const confDiv = (sel?.divergencias || []).find((d) => d.campo === 'confianca' && d.tipo === 'critica');
   const lendo = sel?.status === 'extraindo';
   const emErro = sel?.status === 'erro';
+  const precisaJustificar = temDivergencia || !!confDiv;
 
   const aplicar = async () => {
     if (!convenioId) { toast.error('Selecione o convênio que receberá as regras.'); return; }
-    if (temCritica && !justificativa.trim()) { toast.error('Divergência crítica — justificativa é obrigatória.'); return; }
+    if (precisaJustificar && !justificativa.trim()) { toast.error('Há divergência — justificativa é obrigatória para aplicar.'); return; }
     setBusy(true);
     try {
       const payload = { ...dados };
       LISTAS.forEach((l) => { if (typeof payload[l.k] === 'string') payload[l.k] = linhasToArr(payload[l.k]); });
       const r = await decretosApi.aprovar({ ingestao_id: sel.id, acao: 'aplicar', convenio_id: convenioId, dados: payload, justificativa });
-      await auditoriaApi.log('aplicar_regras_decreto', 'convenios', r.convenio_id, { ingestao: sel.id });
-      toast.success('Regras aplicadas ao convênio.');
+      await auditoriaApi.log('aplicar_regras_decreto', 'convenios', r.convenio_id, { ingestao: sel.id, divergencias: resumo.divergente });
+      toast.success(convTemDecreto ? 'Regras validadas e atualizadas no convênio.' : 'Regras aplicadas ao convênio.');
       setSel(null); load();
     } catch (err) { toast.error(err.message || 'Falha ao aplicar.'); }
     finally { setBusy(false); }
