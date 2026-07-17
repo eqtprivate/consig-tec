@@ -331,15 +331,28 @@ Deno.serve(async (req) => {
   if (perfil.role !== 'superadmin' && ing.empresa_id !== perfil.empresa_id) return json({ error: 'Sem permissão nesta ingestão.' }, 403);
   if (ing.status === 'aprovado') return json({ error: 'Ingestão já aprovada — não pode ser reprocessada.' }, 409);
 
-  // Marca 'extraindo' e roda a extração de forma SÍNCRONA (await). O isolate do
-  // Supabase é dropado cedo (EarlyDrop) quando retornamos antes de a tarefa
-  // terminar — mesmo com EdgeRuntime.waitUntil. Concluindo ANTES de responder, o
-  // status é gravado com certeza; o cliente mantém a conexão aberta (~30-60s) e
-  // acompanha por polling. A leitura é quase toda espera de rede (I/O), então o
-  // CPU time fica baixo e o wall-clock (~40s) cabe no limite do Supabase.
+  // Marca 'extraindo' e roda a extração SÍNCRONA dentro de uma resposta em
+  // STREAMING: emitimos um byte de keepalive a cada 5s enquanto o Claude lê o
+  // PDF. Sem isso, a função fica ~40s sem enviar nada, o gateway derruba a
+  // conexão ociosa e o isolate morre (EarlyDrop) antes de gravar o resultado.
+  // O keepalive mantém a conexão viva até o fim; o corpo final é o JSON (os
+  // espaços iniciais são ignorados pelo JSON.parse do cliente). `processar`
+  // trata os próprios erros (grava status 'erro'), então sempre fechamos limpo.
   await admin.from('ingestoes_documento').update({ status: 'extraindo', observacao: null }).eq('id', ing.id);
-  await processar(admin, anthKey, ing, modeloPedido, modeloFallback, caller.user.id);
-  return json({ id: ing.id, status: 'processado' });
+  const enc = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const tick = setInterval(() => { try { controller.enqueue(enc.encode(' ')); } catch { /* fechado */ } }, 5000);
+      try {
+        await processar(admin, anthKey, ing, modeloPedido, modeloFallback, caller.user.id);
+      } finally {
+        clearInterval(tick);
+        try { controller.enqueue(enc.encode(JSON.stringify({ id: ing.id, status: 'processado' }))); } catch { /* noop */ }
+        try { controller.close(); } catch { /* noop */ }
+      }
+    },
+  });
+  return new Response(stream, { status: 200, headers: { 'content-type': 'application/json; charset=utf-8', ...cors() } });
 });
 
 function cors() {
