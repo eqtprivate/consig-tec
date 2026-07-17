@@ -190,8 +190,10 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
 - **2026-07-17** — **v1.45.0** · **Máscaras nos campos extraídos (conferência de CCB)**:
   os campos da conferência agora exibem **formatação brasileira** — CPF `000.000.000-00`,
   CNPJ `00.000.000/0000-00` (credor/correspondente/endosso), CEP `00000-000`, telefone
-  `(00) 00000-0000` e datas `DD/MM/AAAA` (emissão, nascimento, 1º/último vencimento). O
-  cronograma também mostra os vencimentos em `DD/MM/AAAA`. Padrão **exibir formatado /
+  `(00) 00000-0000` e datas `DD/MM/AAAA` (emissão, nascimento, 1º/último vencimento). Os
+  campos de **valor** (principal, liberado, total, IOF, tarifa, PMT) exibem **R$** e são
+  digitados em centavos (armazenam número). O cronograma mostra os vencimentos em
+  `DD/MM/AAAA` e os valores em **R$**. Padrão **exibir formatado /
   armazenar limpo** (`src/lib/masks.js`): grava dígitos puros (CPF/CNPJ/CEP/telefone) e
   datas em ISO, normalizando na carga para a aprovação ficar consistente mesmo nos campos
   não editados.
