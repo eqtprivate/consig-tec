@@ -175,6 +175,23 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
     divergencias.push({ campo: 'convenio', tipo: 'aviso', extraido: dados.ente_nome, sistema: null, mensagem: 'Nenhum convênio casou automaticamente — selecione manualmente na conferência.' });
   }
 
+  // Conferência de habilitação: a empresa que opera deve constar entre as
+  // consignatárias habilitadas do decreto (por CNPJ ou nome). Aviso importante.
+  try {
+    const { data: emp } = await admin.from('empresas').select('cnpj, nome').eq('id', empresaId).maybeSingle();
+    const empCnpj = emp?.cnpj ? String(emp.cnpj).replace(/\D/g, '') : '';
+    const empNome = norm(emp?.nome || '');
+    const listaHab = (dados.consignatarias_habilitadas || []) as string[];
+    if (listaHab.length && (empCnpj || empNome)) {
+      const consta = listaHab.some((item) => {
+        const dig = String(item).replace(/\D/g, '');
+        const n = norm(item);
+        return (empCnpj && dig.includes(empCnpj)) || (empNome && n.length > 2 && (n.includes(empNome) || empNome.includes(n)));
+      });
+      if (!consta) divergencias.push({ campo: 'consignatarias_habilitadas', tipo: 'aviso', extraido: emp?.cnpj || emp?.nome, sistema: listaHab.join('; '), mensagem: `A empresa (${emp?.cnpj || emp?.nome}) não consta entre as consignatárias habilitadas do decreto — verifique a autorização para operar neste convênio.` });
+    }
+  } catch { /* best-effort: não bloqueia a leitura */ }
+
   const revisaoForcada = confianca != null && confMin != null && confianca < confMin;
   if (revisaoForcada) divergencias.push({ campo: 'confianca', tipo: 'critica', extraido: confianca, sistema: confMin, mensagem: `Confiança ${Math.round((confianca as number) * 100)}% abaixo do limite (${Math.round(confMin * 100)}%). Revisão obrigatória.` });
 
