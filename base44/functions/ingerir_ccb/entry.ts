@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { PDFDocument } from 'npm:pdf-lib@1.17.1';
+import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
 
 // Páginas (1-indexed) que contêm os dados na CCB padrão (UY3): identificação e
 // partes em 1-2; endosso em 13; cronograma de parcelas em 14-15. Ler só essas
