@@ -26,11 +26,21 @@ export const ingestaoApi = {
     const ev = getEmpresaView();
     return callFn('ingerir_ccb', { arquivo_base64: arquivoBase64, arquivo_nome: arquivoNome, ...(ev ? { empresa_id: ev } : {}) }, onProgress);
   },
-  // Relê uma ingestão existente a partir do PDF no Storage, opcionalmente com
-  // outro modelo (ex.: escalar para Opus numa CCB difícil).
+  // Fase 2 da ingestão: dispara a EXTRAÇÃO na Edge Function do SUPABASE
+  // (extrair_ccb) — roda com limite maior + background (waitUntil), sem o teto
+  // de tempo das functions do Base44. Não aguarda a extração (o status é visto
+  // por polling); a invoke retorna assim que a function responde ('extraindo').
+  async processar(ingestao_id, modelo) {
+    const { data, error } = await supabase.functions.invoke('extrair_ccb', {
+      body: { ingestao_id, ...(modelo ? { modelo } : {}) },
+    });
+    if (error) throw error;
+    return data;
+  },
+  // Relê uma ingestão existente (mesmo PDF no Storage), opcionalmente com outro
+  // modelo (ex.: escalar para Opus numa CCB difícil) — também via Supabase.
   async reprocessar(ingestao_id, modelo) {
-    const ev = getEmpresaView();
-    return callFn('ingerir_ccb', { reprocessar_ingestao_id: ingestao_id, ...(modelo ? { modelo } : {}), ...(ev ? { empresa_id: ev } : {}) });
+    return this.processar(ingestao_id, modelo);
   },
   async aprovar({ ingestao_id, acao, dados, justificativa }) {
     return callFn('aprovar_ingestao', { ingestao_id, acao, dados, justificativa });
