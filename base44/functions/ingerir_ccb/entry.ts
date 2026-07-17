@@ -185,8 +185,15 @@ const EXTRACT_TOOL = {
 };
 
 async function extrairComClaude(apiKey: string, model: string, base64: string) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  // Timeout defensivo: se passar disso, aborta e a leitura vira 'erro' (com
+  // mensagem) em vez de ficar presa até a function ser morta.
+  const ctrl = new AbortController();
+  const _to = setTimeout(() => ctrl.abort(), 55000);
+  let res: Response;
+  try {
+  res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal: ctrl.signal,
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model, max_tokens: 8192,
@@ -200,6 +207,9 @@ async function extrairComClaude(apiKey: string, model: string, base64: string) {
       }],
     }),
   });
+  } catch (e) {
+    throw new Error((e as Error)?.name === 'AbortError' ? 'Leitura demorou demais (timeout ~55s) — tente reprocessar.' : `Falha na chamada ao Claude: ${(e as Error).message}`);
+  } finally { clearTimeout(_to); }
   if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const j = await res.json();
   const tu = (j.content || []).find((b: any) => b.type === 'tool_use');
@@ -375,7 +385,7 @@ Deno.serve(async (req) => {
     if (!anthKey) return Response.json({ error: 'ANTHROPIC_API_KEY não configurada.' }, { status: 200 });
 
     const cfg = await lerConfig(admin, ing.empresa_id);
-    const model = modeloPedido || cfg?.modelo || modeloFallback;
+    const model = modeloPedido || 'claude-haiku-4-5'; // Haiku: rápido, cabe no tempo do Base44; reprocesse c/ Sonnet/Opus p/ mais precisão.
     const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
 
     const t0 = Date.now();
@@ -467,7 +477,7 @@ Deno.serve(async (req) => {
   // grava o resultado antes de responder. Foi o 'background' (não aguardar a
   // resposta) que quebrava — sem cliente segurando a conexão, o handler morria.
   const cfg = await lerConfig(admin, empresaId);
-  const model = modeloPedido || cfg?.modelo || modeloFallback;
+  const model = modeloPedido || 'claude-haiku-4-5'; // Haiku: rápido, cabe no tempo do Base44; reprocesse c/ Sonnet/Opus p/ mais precisão.
   const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
   const t0 = Date.now();
   try {
