@@ -357,6 +357,12 @@ Deno.serve(async (req) => {
   // reprocessamento e como override manual.
   const modeloPedido = MODELOS_OK.includes(body.modelo) ? body.modelo : null;
 
+  // Páginas a ler — vindas do PADRÃO de CCB escolhido no upload (body.paginas);
+  // fallback ao default (CCB_PAGES / secret) quando não vier.
+  const paginasReq = (Array.isArray(body.paginas) && body.paginas.length)
+    ? body.paginas.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n) && n > 0)
+    : CCB_PAGES;
+
   // ---------------------------------------------------------------
   // BRANCH A — Reprocessar uma ingestão existente com outro modelo.
   // ---------------------------------------------------------------
@@ -376,7 +382,7 @@ Deno.serve(async (req) => {
     try {
       const { data: blob, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
       if (dlErr || !blob) throw new Error('PDF original não encontrado no Storage.');
-      const prep = await prepararPdf(new Uint8Array(await blob.arrayBuffer()), CCB_PAGES);
+      const prep = await prepararPdf(new Uint8Array(await blob.arrayBuffer()), paginasReq);
 
       const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
       const a = await analisar(admin, ing.empresa_id, ext, confMin);
@@ -454,6 +460,7 @@ Deno.serve(async (req) => {
   }).select().single();
   if (insErr) return Response.json({ error: insErr.message }, { status: 400 });
   try { await admin.from('ingestoes_documento').update({ tamanho_bytes: bytes.length }).eq('id', ing.id); } catch { /* coluna pode não existir antes da 0092 */ }
+  try { await admin.from('ingestoes_documento').update({ ccb_template_id: body.template_id || null, ccb_paginas: paginasReq }).eq('id', ing.id); } catch { /* colunas pré-0098 */ }
 
   // EXTRAÇÃO INLINE (fluxo original, comprovado): a tela AGUARDA esta resposta,
   // mantendo a conexão aberta enquanto o Claude lê o PDF; o handler conclui e
@@ -465,7 +472,7 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
   try {
     if (!anthKey) throw new Error('ANTHROPIC_API_KEY não configurada.');
-    const prep = await prepararPdf(bytes, CCB_PAGES);
+    const prep = await prepararPdf(bytes, paginasReq);
     const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
     const a = await analisar(admin, empresaId, ext, confMin);
     if (prep.total > prep.usadas && prep.usadas > 0) a.divergencias.push(avisoPaginas(prep));
