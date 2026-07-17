@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { ingestaoConfigApi, MODELOS_CCB, MODELO_LABEL } from '@/lib/api/ingestaoConfig';
 import { ingestaoApi } from '@/lib/api/ingestao';
+import { ccbTemplatesApi, paginasFromStr, paginasToStr } from '@/lib/api/ccbTemplates';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/kit';
 import { brlUsd } from '@/lib/format';
-import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck, Package, Trash2 } from 'lucide-react';
+import { SlidersHorizontal, Save, Loader2, RefreshCw, Cpu, AlertTriangle, ShieldQuestion, History, HardDrive, Cloud, FolderOpen, ShieldCheck, Package, Trash2, Layers, Plus, Pencil } from 'lucide-react';
 
 const dt = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR') : '—');
 const usd = (v) => (v == null ? '—' : brlUsd(v));
@@ -42,6 +43,11 @@ export default function AjustesLeituraCCB() {
   const [repModelo, setRepModelo] = useState('claude-opus-4-8');
   const [repBusy, setRepBusy] = useState(false);
 
+  // Padrões de CCB (templates)
+  const [padroes, setPadroes] = useState([]);
+  const [padDlg, setPadDlg] = useState(null); // { id?, nome, descricao, paginasStr, ativo }
+  const [padBusy, setPadBusy] = useState(false);
+
   const bloqueadoSuper = isSuperadmin && !empresaView; // superadmin precisa focar uma empresa
 
   const carregarConfig = async () => {
@@ -62,7 +68,32 @@ export default function AjustesLeituraCCB() {
     try { setTentativas(await ingestaoConfigApi.tentativas(80)); } catch { setTentativas([]); }
     finally { setLoadingLog(false); }
   };
-  useEffect(() => { carregarConfig(); carregarLog(); carregarUso(); /* eslint-disable-next-line */ }, [empresaView]);
+  const carregarPadroes = () => ccbTemplatesApi.listTodos().then(setPadroes).catch(() => setPadroes([]));
+  useEffect(() => { carregarConfig(); carregarLog(); carregarUso(); carregarPadroes(); /* eslint-disable-next-line */ }, [empresaView]);
+
+  const salvarPadrao = async () => {
+    const p = padDlg;
+    if (!p?.nome?.trim()) { toast.error('Informe o nome do padrão.'); return; }
+    const paginas = paginasFromStr(p.paginasStr);
+    if (paginas.length === 0) { toast.error('Informe ao menos uma página (ex.: 1,2,13,14,15).'); return; }
+    setPadBusy(true);
+    try {
+      if (p.id) await ccbTemplatesApi.update(p.id, { nome: p.nome.trim(), descricao: p.descricao || null, paginas, ativo: p.ativo });
+      else await ccbTemplatesApi.create({ nome: p.nome.trim(), descricao: p.descricao || null, paginas, empresa_id: null });
+      await auditoriaApi.log(p.id ? 'editar_padrao_ccb' : 'criar_padrao_ccb', 'ccb_templates', p.id || null, { nome: p.nome.trim(), paginas });
+      toast.success('Padrão salvo.'); setPadDlg(null); carregarPadroes();
+    } catch (e) { toast.error(e.message || 'Falha ao salvar padrão.'); }
+    finally { setPadBusy(false); }
+  };
+  const togglePadrao = async (t) => {
+    try { await ccbTemplatesApi.update(t.id, { ativo: !t.ativo }); carregarPadroes(); }
+    catch (e) { toast.error(e.message || 'Falha ao alterar.'); }
+  };
+  const excluirPadrao = async (t) => {
+    if (!window.confirm(`Excluir o padrão "${t.nome}"?`)) return;
+    try { await ccbTemplatesApi.remove(t.id); toast.success('Padrão excluído.'); carregarPadroes(); }
+    catch (e) { toast.error(e.message || 'Falha ao excluir.'); }
+  };
 
   const salvar = async () => {
     setSalvando(true);
@@ -237,6 +268,32 @@ export default function AjustesLeituraCCB() {
         </div>
       </div>
 
+      {/* Padrões de CCB (superadmin) */}
+      {isSuperadmin && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /><h3 className="text-sm font-semibold text-foreground">Padrões de CCB</h3></div>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setPadDlg({ nome: '', descricao: '', paginasStr: '', ativo: true })}><Plus className="w-3.5 h-3.5" /> Novo padrão</Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Cada padrão define <b>quais páginas</b> do PDF a IA lê (por emissor de CCB). O usuário escolhe o padrão ao enviar o arquivo.</p>
+          {padroes.length === 0 ? <p className="text-xs text-muted-foreground">Nenhum padrão cadastrado.</p> : (
+            <div className="divide-y divide-border rounded-lg border border-border">
+              {padroes.map((t) => (
+                <div key={t.id} className="flex items-center gap-2 px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{t.nome} {t.empresa_id == null && <span className="text-[10px] text-muted-foreground">(global)</span>}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">Páginas: {paginasToStr(t.paginas) || '—'}{t.descricao ? ` · ${t.descricao}` : ''}</p>
+                  </div>
+                  <Switch checked={!!t.ativo} onCheckedChange={() => togglePadrao(t)} />
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setPadDlg({ id: t.id, nome: t.nome, descricao: t.descricao || '', paginasStr: paginasToStr(t.paginas), ativo: !!t.ativo })} title="Editar"><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600" onClick={() => excluirPadrao(t)} title="Excluir"><Trash2 className="w-3.5 h-3.5" /></Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Log de tentativas */}
       <div className="bg-card rounded-xl border border-border shadow-sm">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -309,6 +366,25 @@ export default function AjustesLeituraCCB() {
           </div>
         )}
       </div>
+
+      {/* Dialog padrão de CCB */}
+      <Dialog open={!!padDlg} onOpenChange={(o) => !o && setPadDlg(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{padDlg?.id ? 'Editar padrão de CCB' : 'Novo padrão de CCB'}</DialogTitle></DialogHeader>
+          {padDlg && (
+            <div className="space-y-3">
+              <div className="space-y-1.5"><Label>Nome</Label><Input value={padDlg.nome} onChange={(e) => setPadDlg({ ...padDlg, nome: e.target.value })} placeholder="ex.: UY3" /></div>
+              <div className="space-y-1.5"><Label>Descrição (opcional)</Label><Input value={padDlg.descricao} onChange={(e) => setPadDlg({ ...padDlg, descricao: e.target.value })} placeholder="ex.: CCB padrão UY3" /></div>
+              <div className="space-y-1.5"><Label>Páginas a ler (1-indexado, por vírgula)</Label><Input value={padDlg.paginasStr} onChange={(e) => setPadDlg({ ...padDlg, paginasStr: e.target.value })} placeholder="1,2,13,14,15" /><p className="text-[11px] text-muted-foreground">Páginas onde ficam os dados/endosso/cronograma nesse layout.</p></div>
+              <div className="flex items-center gap-2"><Switch checked={!!padDlg.ativo} onCheckedChange={(v) => setPadDlg({ ...padDlg, ativo: v })} /><span className="text-sm">Ativo (aparece no seletor)</span></div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPadDlg(null)} disabled={padBusy}>Cancelar</Button>
+            <Button onClick={salvarPadrao} disabled={padBusy} className="gap-2">{padBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog reprocessar */}
       <Dialog open={!!repRow} onOpenChange={(o) => !o && setRepRow(null)}>
