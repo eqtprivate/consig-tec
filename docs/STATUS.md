@@ -2,9 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.41.0**.
-> ⚠️ **Ação pendente do usuário:** deploy da Edge Function do Supabase
-> `extrair_ccb` (ver `docs/DEPLOY_EXTRAIR_CCB.md`) — sem ela a leitura de CCB fica presa em 'extraindo'.
+> Supabase). Migrações no repo: **0001–0098**. Versão do app: **v1.44.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -189,6 +187,14 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-17** — **v1.44.0** · **Padrões de CCB + leitura por páginas + endosso/cronograma**:
+  a leitura de CCB voltou ao fluxo **inline** (a tela aguarda — comprovado) e agora envia ao
+  Claude **só as páginas úteis** (via `pdf-lib`), resolvendo o tempo em CCBs longas. As páginas
+  vêm de um **Padrão de CCB** escolhido no upload (migr. **0098** `ccb_templates`, seed
+  **UY3**=1,2,13,14,15); superadmin cria/edita padrões em *Ajustes da leitura de CCB*. Novos
+  campos: **Endosso** (beneficiário/CNPJ/tipo) e **Cronograma de parcelas (PMT)**, exibidos na
+  conferência. `max_tokens` 8192. (A tentativa de rodar a extração numa Edge Function do
+  Supabase foi descartada — EarlyDrop no runtime; arquivo `extrair_ccb` fica no repo sem uso.)
 - **2026-07-17** — **v1.41.0** · **Fix EarlyDrop na `extrair_ccb`**: os logs do Supabase
   mostraram `shutdown reason=EarlyDrop` — o isolate era morto logo após responder, então o
   `EdgeRuntime.waitUntil` (background) não conclía e a CCB ficava `extraindo`. A função
