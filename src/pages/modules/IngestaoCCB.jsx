@@ -313,6 +313,7 @@ export default function IngestaoCCB() {
               {lista.map((r) => {
                 const crit = (r.divergencias || []).filter((d) => d.tipo === 'critica').length;
                 const av = (r.divergencias || []).filter((d) => d.tipo === 'aviso').length;
+                const msgs = (r.divergencias || []).map((d) => `• ${d.mensagem}`).join('\n');
                 const rLendo = r.status === 'extraindo';
                 return (
                   <tr key={r.id} className={`border-b border-border hover:bg-muted/50 ${sel?.id === r.id ? 'bg-primary/5' : ''}`}>
@@ -321,8 +322,8 @@ export default function IngestaoCCB() {
                     <td className="px-4 py-3">{r.acao_sugerida ? <StatusBadge className="bg-muted text-muted-foreground">{ACAO[r.acao_sugerida]}</StatusBadge> : '—'}</td>
                     <td className="px-4 py-3">
                       {rLendo ? <span className="text-xs text-muted-foreground">—</span>
-                        : crit > 0 ? <span className="inline-flex items-center gap-1 text-xs text-red-600"><AlertTriangle className="w-3.5 h-3.5" /> {crit} crítica(s)</span>
-                        : av > 0 ? <span className="text-xs text-amber-600">{av} aviso(s)</span>
+                        : crit > 0 ? <span title={msgs} className="inline-flex items-center gap-1 text-xs text-red-600 cursor-help underline decoration-dotted underline-offset-2"><AlertTriangle className="w-3.5 h-3.5" /> {crit} crítica(s)</span>
+                        : av > 0 ? <span title={msgs} className="text-xs text-amber-600 cursor-help underline decoration-dotted underline-offset-2">{av} aviso(s)</span>
                         : <span className="text-xs text-green-700">ok</span>}
                     </td>
                     <td className="px-4 py-3">
@@ -360,6 +361,19 @@ export default function IngestaoCCB() {
           {sel.acao_sugerida === 'duplicata' && !lendo && !emErro && (
             <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs text-red-700 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" /> Nº de CCB já existe no sistema — provável <b>duplicata</b>. Confirme para descartar ou escolha outra ação.
+            </div>
+          )}
+
+          {(sel.divergencias || []).length > 0 && !lendo && !emErro && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 p-2.5 space-y-1">
+              <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 inline-flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Conferências da leitura</p>
+              <ul className="space-y-0.5">
+                {(sel.divergencias || []).map((d, i) => (
+                  <li key={i} className={`text-[11px] flex items-start gap-1.5 ${d.tipo === 'critica' ? 'text-red-600' : 'text-amber-700 dark:text-amber-400'}`}>
+                    <span className="mt-1 w-1 h-1 rounded-full bg-current shrink-0" /> {d.mensagem}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
