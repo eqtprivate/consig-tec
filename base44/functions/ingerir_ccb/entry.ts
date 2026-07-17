@@ -243,7 +243,10 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
   const vTaxa = numOrNull(ext.taxa_mensal);
   const vPrazo = ext.prazo ? Math.round(Number(ext.prazo)) : null;
   const vPmt = numOrNull(ext.valor_parcela);
-  const confianca = numOrNull(ext.confianca);
+  // Confiança normalizada para 0–1 (alguns modelos, ex. Haiku, devolvem 0–100);
+  // a coluna é numeric pequeno, então >1 estourava (numeric field overflow).
+  let confianca = numOrNull(ext.confianca);
+  if (confianca != null) { if (confianca > 1) confianca = confianca / 100; confianca = Math.max(0, Math.min(1, confianca)); }
 
   let acao: 'duplicata' | 'completar_venda' | 'novo_registro' = 'novo_registro';
   let propostaId: string | null = null;
