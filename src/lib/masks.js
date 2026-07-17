@@ -47,6 +47,21 @@ export const maskDataBR = (v) => onlyDigits(v).slice(0, 8)
   .replace(/(\d{2})(\d)/, '$1/$2')
   .replace(/(\d{2})(\d)/, '$1/$2');
 
+// Moeda: exibe "R$ 1.500,50"; digita em CENTAVOS (dígitos da direita p/ esquerda);
+// ARMAZENA um number (reais). Round-trip ok pois o valor guardado tem 2 casas.
+export const displayMoeda = (v) => {
+  if (v == null || v === '') return '';
+  const n = Number(v);
+  return Number.isFinite(n)
+    ? n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    : '';
+};
+export const storeMoeda = (v) => {
+  const d = onlyDigits(v);
+  if (!d) return null;
+  return parseInt(d, 10) / 100;
+};
+
 // Aplica máscara de EXIBIÇÃO conforme o tipo do campo.
 export function displayMask(tipo, v) {
   switch (tipo) {
