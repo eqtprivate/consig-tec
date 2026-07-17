@@ -5,7 +5,7 @@ import { ccbTemplatesApi } from '@/lib/api/ccbTemplates';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useExtracaoWatcher } from '@/lib/useExtracaoWatcher';
 import { brl } from '@/lib/format';
-import { displayMask, storeMask, isoToBR } from '@/lib/masks';
+import { displayMask, storeMask, isoToBR, displayMoeda, storeMoeda } from '@/lib/masks';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -451,14 +451,16 @@ export default function IngestaoCCB() {
                       const dv = divMap[c.k];
                       const sistema = c.sis ? c.sis(sel.proposta) : null;
                       const borda = dv ? (dv.tipo === 'critica' ? 'border-red-400' : 'border-amber-400') : 'border-border';
+                      const valorCampo = c.moeda ? displayMoeda(dados[c.k]) : (c.mask ? displayMask(c.mask, dados[c.k]) : (dados[c.k] ?? ''));
+                      const aoEditar = (e) => setCampo(c.k, c.moeda ? storeMoeda(e.target.value) : (c.mask ? storeMask(c.mask, e.target.value) : e.target.value));
                       return (
                         <div key={c.k}>
                           <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 items-center">
                             <span className="text-xs text-muted-foreground">{c.label}</span>
                             <Input
-                              value={c.mask ? displayMask(c.mask, dados[c.k]) : (dados[c.k] ?? '')}
-                              onChange={(e) => setCampo(c.k, c.mask ? storeMask(c.mask, e.target.value) : e.target.value)}
-                              inputMode={c.mask && c.mask !== 'data' ? 'numeric' : undefined}
+                              value={valorCampo}
+                              onChange={aoEditar}
+                              inputMode={(c.moeda || (c.mask && c.mask !== 'data')) ? 'numeric' : undefined}
                               className={`h-8 text-sm ${borda}`}
                             />
                             <span className={`text-xs ${dv?.tipo === 'critica' ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
