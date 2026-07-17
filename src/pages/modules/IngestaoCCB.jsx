@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ingestaoApi } from '@/lib/api/ingestao';
+import { ccbTemplatesApi } from '@/lib/api/ccbTemplates';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useExtracaoWatcher } from '@/lib/useExtracaoWatcher';
 import { brl } from '@/lib/format';
@@ -104,6 +105,8 @@ export default function IngestaoCCB() {
   const [uploadPct, setUploadPct] = useState(0);
   const [readPct, setReadPct] = useState(0);
   const [nomeArq, setNomeArq] = useState('');
+  const [templates, setTemplates] = useState([]);
+  const [templateId, setTemplateId] = useState('');
   const pollRef = useRef(null);
 
   const [sel, setSel] = useState(null);       // ingestão em conferência (completa)
@@ -120,6 +123,7 @@ export default function IngestaoCCB() {
   const load = async () => { setLoading(true); setLista(await ingestaoApi.list(filtroStatus).catch(() => [])); setLoading(false); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filtroStatus]);
   useEffect(() => () => clearInterval(pollRef.current), []);
+  useEffect(() => { ccbTemplatesApi.listAtivos().then((t) => { setTemplates(t); setTemplateId((id) => id || (t[0]?.id ?? '')); }).catch(() => {}); }, []);
 
   // Observador global de extrações em segundo plano: avisa quando cada leitura
   // conclui — mesmo com o painel fechado, após enviar vários ou recarregar a página.
@@ -199,7 +203,8 @@ export default function IngestaoCCB() {
     setEnviando(true); setReadPct(0); setUploadPct(0); setNomeArq(file.name);
     try {
       const b64 = await fileToB64(file, setReadPct);
-      const r = await ingestaoApi.ingerir(b64, file.name, setUploadPct);
+      const tpl = templates.find((t) => t.id === templateId);
+      const r = await ingestaoApi.ingerir(b64, file.name, setUploadPct, { paginas: tpl?.paginas, template_id: templateId || undefined });
       await auditoriaApi.log('ingerir_ccb', 'ingestoes_documento', r.id, { arquivo: file.name, status: r.status, duplicado: !!r.duplicado });
       await load();
       await abrir({ id: r.id });
@@ -278,6 +283,16 @@ export default function IngestaoCCB() {
             <Loader2 className="w-3.5 h-3.5 animate-spin" /> {pendentesCount} em leitura…
           </span>
         )}
+      </div>
+
+      {/* Padrão da CCB: define quais páginas do PDF a IA vai ler */}
+      <div className="flex items-center gap-2 flex-wrap bg-card rounded-lg border border-border px-3 py-2">
+        <span className="text-xs font-medium text-foreground">Padrão da CCB:</span>
+        <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="h-8 text-sm rounded-md border border-border bg-card px-2 min-w-[200px]">
+          {templates.length === 0 && <option value="">(nenhum padrão — usando o default)</option>}
+          {templates.map((t) => <option key={t.id} value={t.id}>{t.nome}{Array.isArray(t.paginas) && t.paginas.length ? ` · págs. ${t.paginas.join(', ')}` : ''}</option>)}
+        </select>
+        <span className="text-[11px] text-muted-foreground">a leitura usa só as páginas deste padrão</span>
       </div>
 
       {/* Upload: dropzone (ocioso) ou progresso em fases (enviando) */}
