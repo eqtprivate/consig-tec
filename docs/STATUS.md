@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0098**. Versão do app: **v1.44.0**.
+> Supabase). Migrações no repo: **0001–0098**. Versão do app: **v1.45.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -187,6 +187,14 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-17** — **v1.45.0** · **Máscaras nos campos extraídos (conferência de CCB)**:
+  os campos da conferência agora exibem **formatação brasileira** — CPF `000.000.000-00`,
+  CNPJ `00.000.000/0000-00` (credor/correspondente/endosso), CEP `00000-000`, telefone
+  `(00) 00000-0000` e datas `DD/MM/AAAA` (emissão, nascimento, 1º/último vencimento). O
+  cronograma também mostra os vencimentos em `DD/MM/AAAA`. Padrão **exibir formatado /
+  armazenar limpo** (`src/lib/masks.js`): grava dígitos puros (CPF/CNPJ/CEP/telefone) e
+  datas em ISO, normalizando na carga para a aprovação ficar consistente mesmo nos campos
+  não editados.
 - **2026-07-17** — **v1.44.0** · **Padrões de CCB + leitura por páginas + endosso/cronograma**:
   a leitura de CCB voltou ao fluxo **inline** (a tela aguarda — comprovado) e agora envia ao
   Claude **só as páginas úteis** (via `pdf-lib`), resolvendo o tempo em CCBs longas. As páginas
