@@ -21,10 +21,16 @@ export const ingestaoApi = {
     if (error) throw error;
     return data;
   },
-  // Envia o PDF (base64) para a Edge Function ingerir_ccb. onProgress(pct) reporta o upload.
-  async ingerir(arquivoBase64, arquivoNome, onProgress) {
+  // Envia o PDF (base64) para a Edge Function ingerir_ccb. onProgress(pct) reporta
+  // o upload. opts.paginas / opts.template_id vêm do PADRÃO de CCB escolhido.
+  async ingerir(arquivoBase64, arquivoNome, onProgress, opts = {}) {
     const ev = getEmpresaView();
-    return callFn('ingerir_ccb', { arquivo_base64: arquivoBase64, arquivo_nome: arquivoNome, ...(ev ? { empresa_id: ev } : {}) }, onProgress);
+    return callFn('ingerir_ccb', {
+      arquivo_base64: arquivoBase64, arquivo_nome: arquivoNome,
+      ...(Array.isArray(opts.paginas) && opts.paginas.length ? { paginas: opts.paginas } : {}),
+      ...(opts.template_id ? { template_id: opts.template_id } : {}),
+      ...(ev ? { empresa_id: ev } : {}),
+    }, onProgress);
   },
   // Relê uma ingestão existente a partir do PDF no Storage, opcionalmente com
   // outro modelo (ex.: escalar para Opus numa CCB difícil). Inline no Base44 — a
