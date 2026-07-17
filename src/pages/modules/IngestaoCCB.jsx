@@ -5,6 +5,7 @@ import { ccbTemplatesApi } from '@/lib/api/ccbTemplates';
 import { auditoriaApi } from '@/lib/api/auditoria';
 import { useExtracaoWatcher } from '@/lib/useExtracaoWatcher';
 import { brl } from '@/lib/format';
+import { displayMask, storeMask, isoToBR } from '@/lib/masks';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
