@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.40.0**.
+> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.41.0**.
 > ⚠️ **Ação pendente do usuário:** deploy da Edge Function do Supabase
 > `extrair_ccb` (ver `docs/DEPLOY_EXTRAIR_CCB.md`) — sem ela a leitura de CCB fica presa em 'extraindo'.
 
@@ -189,6 +189,12 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-17** — **v1.41.0** · **Fix EarlyDrop na `extrair_ccb`**: os logs do Supabase
+  mostraram `shutdown reason=EarlyDrop` — o isolate era morto logo após responder, então o
+  `EdgeRuntime.waitUntil` (background) não conclía e a CCB ficava `extraindo`. A função
+  passou a rodar a extração **síncrona** (conclui ANTES de responder); o cliente dispara a
+  invoke **sem aguardar** (não trava a tela) e a conexão aberta mantém a função viva.
+  **Requer re-deploy** da `extrair_ccb` no Supabase.
 - **2026-07-17** — **v1.40.0** · **Extração de CCB movida para o Supabase** (fix definitivo
   do loop em `extraindo`): as functions do Base44 têm teto de ~30s por requisição e a
   leitura de CCB grande estourava esse limite. Agora o `ingerir_ccb` (Base44) apenas sobe o
