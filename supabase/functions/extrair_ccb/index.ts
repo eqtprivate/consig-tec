@@ -126,21 +126,31 @@ const EXTRACT_TOOL = {
 };
 
 async function extrairComClaude(apiKey: string, model: string, base64: string) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model, max_tokens: 2048,
-      tools: [EXTRACT_TOOL], tool_choice: { type: 'tool', name: 'extrair_ccb' },
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-          { type: 'text', text: 'Extraia os campos desta CCB usando a ferramenta extrair_ccb. Para o que não constar, retorne null (nunca "N/A" ou texto). Não invente nem calcule nada.' },
-        ],
-      }],
-    }),
-  });
+  // Timeout defensivo: se a leitura passar disso, aborta e vira 'erro' (com
+  // mensagem) em vez de ficar preso até o isolate ser cortado (EarlyDrop).
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 55000);
+  let res: Response;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model, max_tokens: 2048,
+        tools: [EXTRACT_TOOL], tool_choice: { type: 'tool', name: 'extrair_ccb' },
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+            { type: 'text', text: 'Extraia os campos desta CCB usando a ferramenta extrair_ccb. Para o que não constar, retorne null (nunca "N/A" ou texto). Não invente nem calcule nada.' },
+          ],
+        }],
+      }),
+    });
+  } catch (e) {
+    throw new Error((e as Error)?.name === 'AbortError' ? 'Leitura demorou demais (timeout ~55s) — tente reprocessar.' : `Falha na chamada ao Claude: ${(e as Error).message}`);
+  } finally { clearTimeout(to); }
   if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const j = await res.json();
   const tu = (j.content || []).find((b: any) => b.type === 'tool_use');
@@ -258,8 +268,12 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
 // Faz a extração completa e grava o resultado. Roda em background (waitUntil).
 async function processar(admin: any, anthKey: string, ing: any, modeloPedido: string | null, modeloFallback: string, criadoPor: string) {
   const cfg = await lerConfig(admin, ing.empresa_id);
-  const model = modeloPedido || cfg?.modelo || modeloFallback;
+  // Padrão HAIKU (rápido) para caber no limite de tempo do Supabase; um
+  // reprocessamento pode pedir modelo mais preciso via modeloPedido. O
+  // modeloFallback (env CLAUDE_MODEL) fica como último recurso caso queira Sonnet.
+  const model = modeloPedido || 'claude-haiku-4-5';
   const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
+  void modeloFallback;
   const t0 = Date.now();
   try {
     const { data: blob, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
