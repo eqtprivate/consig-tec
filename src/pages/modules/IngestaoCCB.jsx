@@ -201,8 +201,10 @@ export default function IngestaoCCB() {
         await abrir({ id: r.id });
         toast.info('Arquivo já ingerido — abrindo a ingestão existente.');
       } else {
-        // Fase 2: dispara a extração na Edge Function do Supabase (background) e acompanha por polling.
-        await ingestaoApi.processar(r.id);
+        // Fase 2: dispara a extração na Edge Function do Supabase. Não aguardamos
+        // (a leitura leva ~30-60s): a conexão do fetch fica aberta e mantém a
+        // função viva até concluir; o status é refletido por polling/observador.
+        ingestaoApi.processar(r.id).catch(() => { /* erros são vistos no status/polling */ });
         observar(r.id);
         await load();
         await abrir({ id: r.id });
