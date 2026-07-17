@@ -1,4 +1,28 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { PDFDocument } from 'npm:pdf-lib@1.17.1';
+
+// CCBs são padrão: os ~45 campos ficam nas primeiras páginas; o resto é
+// cláusula. Lemos só as N primeiras páginas — leitura muito mais rápida (cabe no
+// tempo da function) sem perder dado. Ajustável pelo secret CCB_MAX_PAGES.
+const MAX_PAGES_CCB = Number(Deno.env.get('CCB_MAX_PAGES')) || 4;
+
+// Corta o PDF para as `maxPages` primeiras páginas. Se o pdf-lib falhar (PDF
+// estranho), devolve o original inteiro (best-effort, não quebra a leitura).
+async function prepararPdf(bytes: Uint8Array, maxPages: number): Promise<{ b64: string; total: number; usadas: number }> {
+  try {
+    const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    const total = src.getPageCount();
+    if (total <= maxPages) return { b64: bytesToB64(bytes), total, usadas: total };
+    const out = await PDFDocument.create();
+    const pages = await out.copyPages(src, Array.from({ length: maxPages }, (_, i) => i));
+    pages.forEach((p) => out.addPage(p));
+    return { b64: bytesToB64(new Uint8Array(await out.save())), total, usadas: maxPages };
+  } catch {
+    return { b64: bytesToB64(bytes), total: 0, usadas: 0 };
+  }
+}
+const avisoPaginas = (prep: { total: number; usadas: number }) =>
+  ({ campo: 'documento', tipo: 'aviso', extraido: `${prep.usadas}/${prep.total} páginas`, sistema: null, mensagem: `PDF de ${prep.total} páginas: lidas as primeiras ${prep.usadas} (onde ficam os campos da CCB). Se algum dado estiver em página posterior, reprocesse ajustando CCB_MAX_PAGES.` });
 
 // Ingestão e leitura automática de CCB. Recebe o PDF (base64), garante
 // idempotência por hash, sobe ao Storage privado, extrai os dados com a API do
@@ -323,10 +347,11 @@ Deno.serve(async (req) => {
     try {
       const { data: blob, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
       if (dlErr || !blob) throw new Error('PDF original não encontrado no Storage.');
-      const b64 = bytesToB64(new Uint8Array(await blob.arrayBuffer()));
+      const prep = await prepararPdf(new Uint8Array(await blob.arrayBuffer()), MAX_PAGES_CCB);
 
-      const { input: ext, usage } = await extrairComClaude(anthKey, model, b64);
+      const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
       const a = await analisar(admin, ing.empresa_id, ext, confMin);
+      if (prep.total > prep.usadas && prep.usadas > 0) a.divergencias.push(avisoPaginas(prep));
       await admin.from('ingestoes_documento').update({
         status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
         dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
@@ -411,8 +436,10 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
   try {
     if (!anthKey) throw new Error('ANTHROPIC_API_KEY não configurada.');
-    const { input: ext, usage } = await extrairComClaude(anthKey, model, base64.replace(/^data:.*;base64,/, ''));
+    const prep = await prepararPdf(bytes, MAX_PAGES_CCB);
+    const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
     const a = await analisar(admin, empresaId, ext, confMin);
+    if (prep.total > prep.usadas && prep.usadas > 0) a.divergencias.push(avisoPaginas(prep));
     await admin.from('ingestoes_documento').update({
       status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
       dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
