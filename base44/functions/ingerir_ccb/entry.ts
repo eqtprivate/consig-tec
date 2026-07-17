@@ -486,10 +486,11 @@ Deno.serve(async (req) => {
     const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
     const a = await analisar(admin, empresaId, ext, confMin);
     if (prep.total > prep.usadas && prep.usadas > 0) a.divergencias.push(avisoPaginas(prep));
-    await admin.from('ingestoes_documento').update({
+    const { error: upErr } = await admin.from('ingestoes_documento').update({
       status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
       dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
     }).eq('id', ing.id);
+    if (upErr) throw new Error('Falha ao gravar resultado (UPDATE): ' + upErr.message);
     await setModeloUsado(admin, ing.id, model);
     await logTentativa(admin, {
       empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model,
