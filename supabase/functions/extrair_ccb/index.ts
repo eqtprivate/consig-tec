@@ -17,8 +17,13 @@
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY são injetados automaticamente.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
 
 const MODELOS_OK = ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-4-8'];
+// Limite de páginas enviadas ao Claude. CCBs têm os ~45 campos nas primeiras
+// páginas; o resto é cláusula/boilerplate. Cortar mantém a leitura rápida (cabe
+// no tempo da function) sem perder dado extraível.
+const MAX_PAGES_CCB = 6;
 const PRICES: Record<string, [number, number]> = {
   'claude-haiku-4-5': [1, 5],
   'claude-sonnet-5': [3, 15],
@@ -47,6 +52,25 @@ function bytesToB64(bytes: Uint8Array): string {
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
   return btoa(bin);
+}
+
+// Corta o PDF para no máximo `maxPages` páginas (as primeiras). PDFs longos
+// estouram o tempo de leitura da function; as primeiras páginas contêm os campos
+// da CCB. Se o pdf-lib falhar, devolve o original inteiro (best-effort).
+async function prepararPdf(bytes: Uint8Array, maxPages: number): Promise<{ b64: string; total: number; usadas: number }> {
+  try {
+    const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    const total = src.getPageCount();
+    if (total <= maxPages) return { b64: bytesToB64(bytes), total, usadas: total };
+    const out = await PDFDocument.create();
+    const idx = Array.from({ length: maxPages }, (_, i) => i);
+    const pages = await out.copyPages(src, idx);
+    pages.forEach((p) => out.addPage(p));
+    const trimmed = await out.save();
+    return { b64: bytesToB64(new Uint8Array(trimmed)), total, usadas: maxPages };
+  } catch {
+    return { b64: bytesToB64(bytes), total: 0, usadas: 0 };
+  }
 }
 
 function pmt(pv: number, taxaPct: number, n: number): number | null {
@@ -278,9 +302,13 @@ async function processar(admin: any, anthKey: string, ing: any, modeloPedido: st
   try {
     const { data: blob, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
     if (dlErr || !blob) throw new Error('PDF original não encontrado no Storage.');
-    const b64 = bytesToB64(new Uint8Array(await blob.arrayBuffer()));
-    const { input: ext, usage } = await extrairComClaude(anthKey, model, b64);
+    const rawBytes = new Uint8Array(await blob.arrayBuffer());
+    const prep = await prepararPdf(rawBytes, MAX_PAGES_CCB);
+    const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
     const a = await analisar(admin, ing.empresa_id, ext, confMin);
+    if (prep.total > prep.usadas && prep.usadas > 0) {
+      a.divergencias.push({ campo: 'documento', tipo: 'aviso', extraido: `${prep.usadas}/${prep.total} páginas`, sistema: null, mensagem: `PDF longo (${prep.total} páginas): para caber no tempo de leitura, foram processadas as primeiras ${prep.usadas}. Confira campos que possam estar em páginas posteriores.` });
+    }
     await admin.from('ingestoes_documento').update({
       status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
       dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
