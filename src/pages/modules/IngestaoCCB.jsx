@@ -118,7 +118,7 @@ export default function IngestaoCCB() {
 
   // Observador global de extrações em segundo plano: avisa quando cada leitura
   // conclui — mesmo com o painel fechado, após enviar vários ou recarregar a página.
-  const { observar, observarVarios, pendentesCount } = useExtracaoWatcher({
+  const { observarVarios, pendentesCount } = useExtracaoWatcher({
     getFn: (id) => ingestaoApi.get(id),
     onConcluido: (full) => {
       load();
@@ -196,20 +196,11 @@ export default function IngestaoCCB() {
       const b64 = await fileToB64(file, setReadPct);
       const r = await ingestaoApi.ingerir(b64, file.name, setUploadPct);
       await auditoriaApi.log('ingerir_ccb', 'ingestoes_documento', r.id, { arquivo: file.name, status: r.status, duplicado: !!r.duplicado });
-      if (r.duplicado) {
-        await load();
-        await abrir({ id: r.id });
-        toast.info('Arquivo já ingerido — abrindo a ingestão existente.');
-      } else {
-        // Fase 2: dispara a extração na Edge Function do Supabase. Não aguardamos
-        // (a leitura leva ~30-60s): a conexão do fetch fica aberta e mantém a
-        // função viva até concluir; o status é refletido por polling/observador.
-        ingestaoApi.processar(r.id).catch(() => { /* erros são vistos no status/polling */ });
-        observar(r.id);
-        await load();
-        await abrir({ id: r.id });
-        toast.success('Documento recebido — a leitura roda em segundo plano. Você pode fechar esta página.');
-      }
+      await load();
+      await abrir({ id: r.id });
+      if (r.duplicado) toast.info('Arquivo já ingerido — abrindo a ingestão existente.');
+      else if (r.status === 'erro') toast.error(`Extração falhou: ${r.error || ''}`);
+      else if (r.status === 'aguardando_conferencia') toast.success('CCB lida — pronta para conferência.');
     } catch (err) {
       toast.error(err.message || 'Falha ao enviar.');
     } finally {
