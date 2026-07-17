@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.38.0**.
+> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.39.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -187,6 +187,13 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-17** — **v1.39.0** · **Fix da ingestão de CCB** (loop em `extraindo`): a leitura
+  da CCB voltou a ser **inline**, porém agora em **streaming** — a function emite keepalive
+  a cada 5s enquanto o Claude lê o PDF (~30-50s), evitando o corte da conexão ociosa pelo
+  gateway (causa do trava em `extraindo`). Decreto segue em segundo plano. Também nesta
+  leva: **conferência de CNPJ** da empresa habilitada (CCB e decreto), box **"Conferências
+  da leitura"** + tooltip dos avisos na listagem, **convênio pesquisável** (ConvenioPicker)
+  e painel **"Regras vigentes (decreto)"** no cadastro do convênio.
 - **2026-07-16** — **v1.38.0** · **UX da ingestão + reflexo no convênio**: (1) **aviso de
   conclusão** — `useExtracaoWatcher` observa as leituras em segundo plano e dispara um
   toast clicável (“Abrir”) quando cada uma termina, **mesmo com o painel fechado / após
