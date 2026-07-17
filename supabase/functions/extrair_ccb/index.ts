@@ -18,9 +18,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// deno-lint-ignore no-explicit-any
-declare const EdgeRuntime: any;
-
 const MODELOS_OK = ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-4-8'];
 const PRICES: Record<string, [number, number]> = {
   'claude-haiku-4-5': [1, 5],
@@ -320,12 +317,15 @@ Deno.serve(async (req) => {
   if (perfil.role !== 'superadmin' && ing.empresa_id !== perfil.empresa_id) return json({ error: 'Sem permissão nesta ingestão.' }, 403);
   if (ing.status === 'aprovado') return json({ error: 'Ingestão já aprovada — não pode ser reprocessada.' }, 409);
 
-  // Marca 'extraindo' e dispara a extração em BACKGROUND (waitUntil) — responde já.
+  // Marca 'extraindo' e roda a extração de forma SÍNCRONA (await). O isolate do
+  // Supabase é dropado cedo (EarlyDrop) quando retornamos antes de a tarefa
+  // terminar — mesmo com EdgeRuntime.waitUntil. Concluindo ANTES de responder, o
+  // status é gravado com certeza; o cliente mantém a conexão aberta (~30-60s) e
+  // acompanha por polling. A leitura é quase toda espera de rede (I/O), então o
+  // CPU time fica baixo e o wall-clock (~40s) cabe no limite do Supabase.
   await admin.from('ingestoes_documento').update({ status: 'extraindo', observacao: null }).eq('id', ing.id);
-  const work = processar(admin, anthKey, ing, modeloPedido, modeloFallback, caller.user.id);
-  try { EdgeRuntime.waitUntil(work); } catch { await work; }
-
-  return json({ id: ing.id, status: 'extraindo', pendente: true });
+  await processar(admin, anthKey, ing, modeloPedido, modeloFallback, caller.user.id);
+  return json({ id: ing.id, status: 'processado' });
 });
 
 function cors() {
