@@ -441,7 +441,12 @@ export default function IngestaoCCB() {
                         <div key={c.k}>
                           <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 items-center">
                             <span className="text-xs text-muted-foreground">{c.label}</span>
-                            <Input value={dados[c.k] ?? ''} onChange={(e) => setCampo(c.k, e.target.value)} className={`h-8 text-sm ${borda}`} />
+                            <Input
+                              value={c.mask ? displayMask(c.mask, dados[c.k]) : (dados[c.k] ?? '')}
+                              onChange={(e) => setCampo(c.k, c.mask ? storeMask(c.mask, e.target.value) : e.target.value)}
+                              inputMode={c.mask && c.mask !== 'data' ? 'numeric' : undefined}
+                              className={`h-8 text-sm ${borda}`}
+                            />
                             <span className={`text-xs ${dv?.tipo === 'critica' ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                               {sistema != null && sistema !== '' ? (c.moeda ? brl(sistema) : sistema) : (acao === 'completar_venda' ? '—' : '(novo)')}
                             </span>
@@ -466,7 +471,7 @@ export default function IngestaoCCB() {
                           {dados.cronograma.map((p, i) => (
                             <tr key={i} className="border-t border-border">
                               <td className="px-2 py-1">{p?.parcela ?? '—'}</td>
-                              <td className="px-2 py-1">{p?.vencimento || '—'}</td>
+                              <td className="px-2 py-1">{p?.vencimento ? isoToBR(p.vencimento) : '—'}</td>
                               <td className="px-2 py-1 text-right">{p?.valor != null ? brl(p.valor) : '—'}</td>
                             </tr>
                           ))}
