@@ -91,6 +91,20 @@ const SECOES = [
   ] },
 ];
 
+// Mapa campo→tipo de máscara (derivado das seções) p/ normalizar na carga.
+const MASK_MAP = Object.fromEntries(
+  SECOES.flatMap((s) => s.campos).filter((c) => c.mask).map((c) => [c.k, c.mask])
+);
+// Normaliza os campos mascarados para a forma ARMAZENADA (dígitos/ISO), assim a
+// aprovação grava valores limpos mesmo nos campos que o usuário não editar.
+const normalizarDados = (d) => {
+  const out = { ...(d || {}) };
+  for (const [k, tipo] of Object.entries(MASK_MAP)) {
+    if (out[k] != null && out[k] !== '') out[k] = storeMask(tipo, out[k]);
+  }
+  return out;
+};
+
 const fileToB64 = (file, onProgress) => new Promise((res, rej) => {
   const r = new FileReader();
   r.onprogress = (e) => { if (onProgress && e.lengthComputable) onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100))); };
@@ -173,7 +187,7 @@ export default function IngestaoCCB() {
   // Carrega a ingestão completa na conferência.
   const aplicarSel = async (full) => {
     setSel(full);
-    setDados({ ...(full.dados_extraidos || {}) });
+    setDados(normalizarDados(full.dados_extraidos));
     setAcao(full.acao_sugerida === 'duplicata' ? 'duplicata' : (full.acao_sugerida || 'novo_registro'));
     setPdfUrl(await ingestaoApi.pdfUrl(full.storage_path));
   };
