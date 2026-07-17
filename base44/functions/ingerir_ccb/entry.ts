@@ -401,8 +401,34 @@ Deno.serve(async (req) => {
   if (insErr) return Response.json({ error: insErr.message }, { status: 400 });
   try { await admin.from('ingestoes_documento').update({ tamanho_bytes: bytes.length }).eq('id', ing.id); } catch { /* coluna pode não existir antes da 0092 */ }
 
-  // PROCESSAMENTO EM SEGUNDO PLANO: o registro nasce 'extraindo' e retornamos já.
-  // A extração é disparada pelo cliente numa 2ª chamada (branch reprocessar_ingestao_id,
-  // com keepalive), que roda no servidor até o fim mesmo se a aba for fechada.
-  return Response.json({ id: ing.id, status: 'extraindo', pendente: true });
+  // Extração INLINE (na mesma requisição): a CCB é pesada (várias páginas, ~45
+  // campos) e precisa de uma conexão ATENDIDA até concluir. O handler termina no
+  // servidor mesmo se a aba for fechada no meio, então o resultado não se perde.
+  const cfg = await lerConfig(admin, empresaId);
+  const model = modeloPedido || cfg?.modelo || modeloFallback;
+  const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
+
+  const t0 = Date.now();
+  try {
+    if (!anthKey) throw new Error('ANTHROPIC_API_KEY não configurada.');
+    const { input: ext, usage } = await extrairComClaude(anthKey, model, base64.replace(/^data:.*;base64,/, ''));
+    const a = await analisar(admin, empresaId, ext, confMin);
+    await admin.from('ingestoes_documento').update({
+      status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
+      dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
+    }).eq('id', ing.id);
+    await setModeloUsado(admin, ing.id, model);
+    await logTentativa(admin, {
+      empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model,
+      status: 'ok', tokens_entrada: usage?.input_tokens ?? null, tokens_saida: usage?.output_tokens ?? null,
+      custo_usd: custoUsd(model, usage), duracao_ms: Date.now() - t0, confianca: a.confianca,
+      revisao_forcada: a.revisaoForcada, reprocessamento: false, criado_por: caller.user.id,
+    });
+    return Response.json({ id: ing.id, status: 'aguardando_conferencia', modelo_usado: model, acao_sugerida: a.acao, proposta_id: a.propostaId, dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca });
+  } catch (e) {
+    await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message }).eq('id', ing.id);
+    await setModeloUsado(admin, ing.id, model);
+    await logTentativa(admin, { empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model, status: 'erro', duracao_ms: Date.now() - t0, erro: (e as Error).message, reprocessamento: false, criado_por: caller.user.id });
+    return Response.json({ id: ing.id, status: 'erro', error: (e as Error).message }, { status: 200 });
+  }
 });
