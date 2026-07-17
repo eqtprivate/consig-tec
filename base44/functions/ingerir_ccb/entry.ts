@@ -401,50 +401,10 @@ Deno.serve(async (req) => {
   if (insErr) return Response.json({ error: insErr.message }, { status: 400 });
   try { await admin.from('ingestoes_documento').update({ tamanho_bytes: bytes.length }).eq('id', ing.id); } catch { /* coluna pode não existir antes da 0092 */ }
 
-  const cfg = await lerConfig(admin, empresaId);
-  const model = modeloPedido || cfg?.modelo || modeloFallback;
-  const confMin = cfg?.confianca_minima != null ? Number(cfg.confianca_minima) : 0.75;
-
-  // Extração INLINE em STREAMING: a CCB é pesada (várias páginas, ~45 campos) e a
-  // leitura pelo Claude leva ~30-50s. Sem enviar nada nesse tempo, o gateway
-  // derruba a conexão ociosa e a ingestão fica presa em 'extraindo'. Aqui
-  // emitimos um byte de keepalive a cada 5s enquanto processa; o corpo final é o
-  // JSON (os espaços iniciais são ignorados pelo JSON.parse do cliente).
-  const enc = new TextEncoder();
-  const t0 = Date.now();
-  const streamBody = new ReadableStream({
-    async start(controller) {
-      const tick = setInterval(() => { try { controller.enqueue(enc.encode(' ')); } catch { /* fechado */ } }, 5000);
-      const finish = (payload: unknown) => {
-        clearInterval(tick);
-        try { controller.enqueue(enc.encode(JSON.stringify(payload))); } catch { /* noop */ }
-        try { controller.close(); } catch { /* noop */ }
-      };
-      try {
-        if (!anthKey) throw new Error('ANTHROPIC_API_KEY não configurada.');
-        const { input: ext, usage } = await extrairComClaude(anthKey, model, base64.replace(/^data:.*;base64,/, ''));
-        const a = await analisar(admin, empresaId, ext, confMin);
-        await admin.from('ingestoes_documento').update({
-          status: 'aguardando_conferencia', acao_sugerida: a.acao, proposta_id: a.propostaId,
-          dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca,
-        }).eq('id', ing.id);
-        await setModeloUsado(admin, ing.id, model);
-        await logTentativa(admin, {
-          empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model,
-          status: 'ok', tokens_entrada: usage?.input_tokens ?? null, tokens_saida: usage?.output_tokens ?? null,
-          custo_usd: custoUsd(model, usage), duracao_ms: Date.now() - t0, confianca: a.confianca,
-          revisao_forcada: a.revisaoForcada, reprocessamento: false, criado_por: caller.user.id,
-        });
-        finish({ id: ing.id, status: 'aguardando_conferencia', modelo_usado: model, acao_sugerida: a.acao, proposta_id: a.propostaId, dados_extraidos: a.dados, divergencias: a.divergencias, confianca: a.confianca });
-      } catch (e) {
-        try {
-          await admin.from('ingestoes_documento').update({ status: 'erro', observacao: (e as Error).message }).eq('id', ing.id);
-          await setModeloUsado(admin, ing.id, model);
-          await logTentativa(admin, { empresa_id: empresaId, ingestao_id: ing.id, arquivo_nome: arquivoNome, modelo: model, status: 'erro', duracao_ms: Date.now() - t0, erro: (e as Error).message, reprocessamento: false, criado_por: caller.user.id });
-        } catch { /* noop */ }
-        finish({ id: ing.id, status: 'erro', error: (e as Error).message });
-      }
-    },
-  });
-  return new Response(streamBody, { headers: { 'content-type': 'application/json; charset=utf-8' } });
+  // PROCESSAMENTO EM SEGUNDO PLANO NO SUPABASE: a leitura da CCB é pesada e não
+  // cabe no teto de tempo (~30s) das functions do Base44. Aqui só criamos a
+  // ingestão ('extraindo') e retornamos na hora; o cliente dispara a Edge
+  // Function do Supabase (extrair_ccb), que roda a extração com limite bem maior
+  // + EdgeRuntime.waitUntil (background real).
+  return Response.json({ id: ing.id, status: 'extraindo', pendente: true });
 });
