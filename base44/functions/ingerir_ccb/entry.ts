@@ -35,6 +35,7 @@ const numOrNull = (v: unknown) => {
 };
 const soDig = (v: unknown) => (v ? String(v).replace(/\D/g, '') : '');
 const S = (v: unknown) => { const s = v == null ? '' : String(v).trim(); return s === '' ? null : s; };
+const soDigitos = (v: unknown) => (String(v ?? '').replace(/\D/g, '') || null);
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', bytes);
@@ -235,6 +236,22 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
   // Trava por confiança (Item ajustes): abaixo do limite → revisão obrigatória.
   const revisaoForcada = confianca != null && confMin != null && confianca < confMin;
   if (revisaoForcada) push('confianca', 'critica', confianca, confMin, `Confiança ${Math.round((confianca as number) * 100)}% abaixo do limite (${Math.round(confMin * 100)}%). Revisão obrigatória.`);
+
+  // Conferência de habilitação: o CNPJ da empresa que opera deve constar na CCB
+  // (como credor OU correspondente). Se não bater, é um aviso importante.
+  try {
+    const { data: emp } = await admin.from('empresas').select('cnpj').eq('id', empresaId).maybeSingle();
+    const empCnpj = soDigitos(emp?.cnpj);
+    if (empCnpj) {
+      const doc = [soDigitos(ext.credor_cnpj), soDigitos(ext.correspondente_cnpj)].filter(Boolean) as string[];
+      const rot = [S(ext.credor_cnpj), S(ext.correspondente_cnpj)].filter(Boolean).join(' / ') || null;
+      if (doc.length && !doc.includes(empCnpj)) {
+        push('cnpj_empresa', 'aviso', emp?.cnpj, rot, `CNPJ da empresa (${emp?.cnpj}) não confere com o credor/correspondente da CCB — verifique a habilitação para operar.`);
+      } else if (!doc.length) {
+        push('cnpj_empresa', 'aviso', emp?.cnpj, null, 'CCB sem CNPJ de credor/correspondente para conferir a habilitação da empresa.');
+      }
+    }
+  } catch { /* best-effort: não bloqueia a leitura */ }
 
   const dados = {
     // Identificação
