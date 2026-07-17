@@ -82,6 +82,11 @@ const SECOES = [
     { k: 'conta_credito', label: 'Conta' },
     { k: 'tipo_conta', label: 'Tipo de conta' },
   ] },
+  { titulo: 'Endosso / Cessão (repasse do pagamento)', campos: [
+    { k: 'endosso_beneficiario', label: 'Beneficiário do repasse' },
+    { k: 'endosso_cnpj', label: 'CNPJ do beneficiário' },
+    { k: 'endosso_tipo', label: 'Tipo de endosso' },
+  ] },
 ];
 
 const fileToB64 = (file, onProgress) => new Promise((res, rej) => {
@@ -431,6 +436,29 @@ export default function IngestaoCCB() {
                     })}
                   </div>
                 ))}
+                {Array.isArray(dados.cronograma) && dados.cronograma.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80 border-b border-border pb-0.5">Cronograma de parcelas ({dados.cronograma.length})</p>
+                    <div className="max-h-52 overflow-y-auto rounded border border-border">
+                      <table className="w-full text-xs">
+                        <thead className="sticky top-0 bg-muted/70"><tr>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground">Parc.</th>
+                          <th className="text-left px-2 py-1 font-medium text-muted-foreground">Vencimento</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Valor</th>
+                        </tr></thead>
+                        <tbody>
+                          {dados.cronograma.map((p, i) => (
+                            <tr key={i} className="border-t border-border">
+                              <td className="px-2 py-1">{p?.parcela ?? '—'}</td>
+                              <td className="px-2 py-1">{p?.vencimento || '—'}</td>
+                              <td className="px-2 py-1 text-right">{p?.valor != null ? brl(p.valor) : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
