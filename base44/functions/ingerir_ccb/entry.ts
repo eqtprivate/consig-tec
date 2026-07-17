@@ -1,28 +1,31 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 
-// CCBs são padrão: os ~45 campos ficam nas primeiras páginas; o resto é
-// cláusula. Lemos só as N primeiras páginas — leitura muito mais rápida (cabe no
-// tempo da function) sem perder dado. Ajustável pelo secret CCB_MAX_PAGES.
-const MAX_PAGES_CCB = Number(Deno.env.get('CCB_MAX_PAGES')) || 4;
+// Páginas (1-indexed) que contêm os dados na CCB padrão (UY3): identificação e
+// partes em 1-2; endosso em 13; cronograma de parcelas em 14-15. Ler só essas
+// páginas deixa a leitura rápida (cabe no tempo da function). Ajustável pelo
+// secret CCB_PAGES (ex.: "1,2,13,14,15").
+const CCB_PAGES = (Deno.env.get('CCB_PAGES') || '1,2,13,14,15')
+  .split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0);
 
-// Corta o PDF para as `maxPages` primeiras páginas. Se o pdf-lib falhar (PDF
-// estranho), devolve o original inteiro (best-effort, não quebra a leitura).
-async function prepararPdf(bytes: Uint8Array, maxPages: number): Promise<{ b64: string; total: number; usadas: number }> {
+// Monta um PDF só com as `paginas` pedidas (as que existirem). PDFs pequenos
+// (≤8 págs) vão inteiros. Se o pdf-lib falhar, devolve o original (best-effort).
+async function prepararPdf(bytes: Uint8Array, paginas: number[]): Promise<{ b64: string; total: number; usadas: number; lidas: number[] }> {
   try {
     const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
     const total = src.getPageCount();
-    if (total <= maxPages) return { b64: bytesToB64(bytes), total, usadas: total };
+    const idx = paginas.map((p) => p - 1).filter((i) => i >= 0 && i < total);
+    if (total <= 8 || idx.length === 0) return { b64: bytesToB64(bytes), total, usadas: total, lidas: [] };
     const out = await PDFDocument.create();
-    const pages = await out.copyPages(src, Array.from({ length: maxPages }, (_, i) => i));
+    const pages = await out.copyPages(src, idx);
     pages.forEach((p) => out.addPage(p));
-    return { b64: bytesToB64(new Uint8Array(await out.save())), total, usadas: maxPages };
+    return { b64: bytesToB64(new Uint8Array(await out.save())), total, usadas: idx.length, lidas: idx.map((i) => i + 1) };
   } catch {
-    return { b64: bytesToB64(bytes), total: 0, usadas: 0 };
+    return { b64: bytesToB64(bytes), total: 0, usadas: 0, lidas: [] };
   }
 }
-const avisoPaginas = (prep: { total: number; usadas: number }) =>
-  ({ campo: 'documento', tipo: 'aviso', extraido: `${prep.usadas}/${prep.total} páginas`, sistema: null, mensagem: `PDF de ${prep.total} páginas: lidas as primeiras ${prep.usadas} (onde ficam os campos da CCB). Se algum dado estiver em página posterior, reprocesse ajustando CCB_MAX_PAGES.` });
+const avisoPaginas = (prep: { total: number; lidas: number[] }) =>
+  ({ campo: 'documento', tipo: 'aviso', extraido: prep.lidas.join(', '), sistema: null, mensagem: `PDF de ${prep.total} páginas: lidas as páginas ${prep.lidas.join(', ')} (onde ficam os dados da CCB). Ajuste CCB_PAGES se algum campo faltar.` });
 
 // Ingestão e leitura automática de CCB. Recebe o PDF (base64), garante
 // idempotência por hash, sobe ao Storage privado, extrai os dados com a API do
@@ -156,6 +159,25 @@ const EXTRACT_TOOL = {
       agencia_credito: { type: ['string', 'null'] },
       conta_credito: { type: ['string', 'null'] },
       tipo_conta: { type: ['string', 'null'] },
+      // Endosso / cessão — a quem o pagamento/repasse é direcionado (pág. de endosso)
+      endosso_beneficiario: { type: ['string', 'null'], description: 'Nome do endossatário/cessionário — a quem o pagamento/repasse é direcionado' },
+      endosso_cnpj: { type: ['string', 'null'], description: 'CNPJ do beneficiário do endosso/cessão' },
+      endosso_tipo: { type: ['string', 'null'], description: 'Tipo de endosso/cessão (ex.: mandato, translativo, cessão de crédito)' },
+      // Cronograma de pagamento (uma entrada por parcela)
+      cronograma: {
+        type: ['array', 'null'],
+        description: 'Cronograma de pagamento: lista de parcelas com número, vencimento e valor',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            parcela: { type: ['integer', 'null'], description: 'Número da parcela' },
+            vencimento: { type: ['string', 'null'], description: 'Vencimento em ISO (AAAA-MM-DD)' },
+            valor: { type: ['number', 'null'], description: 'Valor da parcela' },
+          },
+          required: ['parcela'],
+        },
+      },
       confianca: { type: 'number', description: 'Confiança geral da extração, 0 a 1' },
     },
     required: ['numero_ccb', 'cpf', 'valor_principal', 'prazo', 'valor_parcela', 'confianca'],
@@ -167,7 +189,7 @@ async function extrairComClaude(apiKey: string, model: string, base64: string) {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
-      model, max_tokens: 2048,
+      model, max_tokens: 8192,
       tools: [EXTRACT_TOOL], tool_choice: { type: 'tool', name: 'extrair_ccb' },
       messages: [{
         role: 'user',
@@ -299,6 +321,13 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
     prazo: vPrazo, valor_parcela: vPmt, primeiro_vencimento: S(ext.primeiro_vencimento), ultimo_vencimento: S(ext.ultimo_vencimento),
     // Bancário
     banco_credito: S(ext.banco_credito), agencia_credito: S(ext.agencia_credito), conta_credito: S(ext.conta_credito), tipo_conta: S(ext.tipo_conta),
+    // Endosso / cessão (a quem o pagamento é direcionado) + cronograma de parcelas
+    endosso_beneficiario: S(ext.endosso_beneficiario), endosso_cnpj: S(ext.endosso_cnpj), endosso_tipo: S(ext.endosso_tipo),
+    cronograma: Array.isArray(ext.cronograma)
+      ? (ext.cronograma as any[])
+          .map((c) => ({ parcela: c?.parcela != null ? Math.round(Number(c.parcela)) : null, vencimento: S(c?.vencimento), valor: numOrNull(c?.valor) }))
+          .filter((c) => c.parcela != null || c.valor != null)
+      : null,
   };
 
   return { dados, divergencias, confianca, acao, propostaId, revisaoForcada };
@@ -347,7 +376,7 @@ Deno.serve(async (req) => {
     try {
       const { data: blob, error: dlErr } = await admin.storage.from('ccb-docs').download(ing.storage_path);
       if (dlErr || !blob) throw new Error('PDF original não encontrado no Storage.');
-      const prep = await prepararPdf(new Uint8Array(await blob.arrayBuffer()), MAX_PAGES_CCB);
+      const prep = await prepararPdf(new Uint8Array(await blob.arrayBuffer()), CCB_PAGES);
 
       const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
       const a = await analisar(admin, ing.empresa_id, ext, confMin);
@@ -436,7 +465,7 @@ Deno.serve(async (req) => {
   const t0 = Date.now();
   try {
     if (!anthKey) throw new Error('ANTHROPIC_API_KEY não configurada.');
-    const prep = await prepararPdf(bytes, MAX_PAGES_CCB);
+    const prep = await prepararPdf(bytes, CCB_PAGES);
     const { input: ext, usage } = await extrairComClaude(anthKey, model, prep.b64);
     const a = await analisar(admin, empresaId, ext, confMin);
     if (prep.total > prep.usadas && prep.usadas > 0) a.divergencias.push(avisoPaginas(prep));
