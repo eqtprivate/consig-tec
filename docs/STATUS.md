@@ -2,7 +2,9 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.39.0**.
+> Supabase). Migrações no repo: **0001–0097**. Versão do app: **v1.40.0**.
+> ⚠️ **Ação pendente do usuário:** deploy da Edge Function do Supabase
+> `extrair_ccb` (ver `docs/DEPLOY_EXTRAIR_CCB.md`) — sem ela a leitura de CCB fica presa em 'extraindo'.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -187,6 +189,14 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-17** — **v1.40.0** · **Extração de CCB movida para o Supabase** (fix definitivo
+  do loop em `extraindo`): as functions do Base44 têm teto de ~30s por requisição e a
+  leitura de CCB grande estourava esse limite. Agora o `ingerir_ccb` (Base44) apenas sobe o
+  PDF e cria a ingestão `extraindo`; o cliente dispara a **Edge Function do Supabase
+  `extrair_ccb`** (`supabase/functions/extrair_ccb/index.ts`), que roda a extração com
+  limite bem maior + `EdgeRuntime.waitUntil` (background real) e grava o status. Requer
+  **deploy manual** da function + secret `ANTHROPIC_API_KEY` no Supabase (ver
+  `docs/DEPLOY_EXTRAIR_CCB.md`). Decreto segue no fluxo do Base44 (leitura rápida).
 - **2026-07-17** — **v1.39.0** · **Fix da ingestão de CCB** (loop em `extraindo`): a leitura
   da CCB voltou a ser **inline**, porém agora em **streaming** — a function emite keepalive
   a cada 5s enquanto o Claude lê o PDF (~30-50s), evitando o corte da conexão ociosa pelo
