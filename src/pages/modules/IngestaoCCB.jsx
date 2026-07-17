@@ -26,22 +26,22 @@ const FILTROS = [['todos', 'Todos'], ['aguardando_conferencia', 'Conferência'],
 const SECOES = [
   { titulo: 'Identificação da CCB', campos: [
     { k: 'numero_ccb', label: 'Nº da CCB' },
-    { k: 'data_emissao', label: 'Emissão' },
+    { k: 'data_emissao', label: 'Emissão', mask: 'data' },
     { k: 'modalidade', label: 'Modalidade' },
     { k: 'praca_pagamento', label: 'Praça de pagamento' },
   ] },
   { titulo: 'Devedor (emitente)', campos: [
     { k: 'nome_cliente', label: 'Nome', sis: (p) => p?.cliente?.nome },
-    { k: 'cpf', label: 'CPF', sis: (p) => p?.cliente?.cpf },
+    { k: 'cpf', label: 'CPF', mask: 'cpf', sis: (p) => p?.cliente?.cpf },
     { k: 'rg', label: 'RG' },
     { k: 'orgao_expedidor', label: 'Órgão exp./UF' },
-    { k: 'data_nascimento', label: 'Nascimento' },
+    { k: 'data_nascimento', label: 'Nascimento', mask: 'data' },
     { k: 'estado_civil', label: 'Estado civil' },
     { k: 'nacionalidade', label: 'Nacionalidade' },
     { k: 'naturalidade', label: 'Naturalidade' },
     { k: 'profissao', label: 'Profissão' },
     { k: 'email', label: 'E-mail' },
-    { k: 'telefone', label: 'Telefone' },
+    { k: 'telefone', label: 'Telefone', mask: 'telefone' },
   ] },
   { titulo: 'Endereço', campos: [
     { k: 'endereco', label: 'Logradouro' },
@@ -50,7 +50,7 @@ const SECOES = [
     { k: 'bairro', label: 'Bairro' },
     { k: 'cidade', label: 'Cidade' },
     { k: 'uf', label: 'UF' },
-    { k: 'cep', label: 'CEP' },
+    { k: 'cep', label: 'CEP', mask: 'cep' },
   ] },
   { titulo: 'Convênio / empregador', campos: [
     { k: 'convenio', label: 'Convênio' },
@@ -59,9 +59,9 @@ const SECOES = [
   ] },
   { titulo: 'Credor / correspondente', campos: [
     { k: 'credor_nome', label: 'Credor' },
-    { k: 'credor_cnpj', label: 'CNPJ credor' },
+    { k: 'credor_cnpj', label: 'CNPJ credor', mask: 'cnpj' },
     { k: 'correspondente_nome', label: 'Correspondente' },
-    { k: 'correspondente_cnpj', label: 'CNPJ corresp.' },
+    { k: 'correspondente_cnpj', label: 'CNPJ corresp.', mask: 'cnpj' },
   ] },
   { titulo: 'Condições financeiras', campos: [
     { k: 'valor_principal', label: 'Valor principal', moeda: true, sis: (p) => p?.valor_solicitado },
@@ -75,8 +75,8 @@ const SECOES = [
     { k: 'tarifa_cadastro', label: 'Tarifa cadastro', moeda: true },
     { k: 'prazo', label: 'Prazo', sis: (p) => p?.prazo },
     { k: 'valor_parcela', label: 'Parcela (PMT)', moeda: true, sis: (p) => p?.valor_parcela },
-    { k: 'primeiro_vencimento', label: '1º vencimento' },
-    { k: 'ultimo_vencimento', label: 'Último vencimento' },
+    { k: 'primeiro_vencimento', label: '1º vencimento', mask: 'data' },
+    { k: 'ultimo_vencimento', label: 'Último vencimento', mask: 'data' },
   ] },
   { titulo: 'Crédito ao cliente (banco)', campos: [
     { k: 'banco_credito', label: 'Banco' },
@@ -86,7 +86,7 @@ const SECOES = [
   ] },
   { titulo: 'Endosso / Cessão (repasse do pagamento)', campos: [
     { k: 'endosso_beneficiario', label: 'Beneficiário do repasse' },
-    { k: 'endosso_cnpj', label: 'CNPJ do beneficiário' },
+    { k: 'endosso_cnpj', label: 'CNPJ do beneficiário', mask: 'cnpj' },
     { k: 'endosso_tipo', label: 'Tipo de endosso' },
   ] },
 ];
