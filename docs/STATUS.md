@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0098**. Versão do app: **v1.45.0**.
+> Supabase). Migrações no repo: **0001–0098**. Versão do app: **v1.46.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -187,6 +187,15 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-17** — **v1.46.0** · **Conferência da CCB pelo CRONOGRAMA (datas + soma que fecha)**:
+  a validação da parcela deixou de depender do recálculo teórico pela Tabela Price (que dava
+  **falso positivo crítico** em cartão consignado / IOF-TAC financiado) e passou a usar o
+  **cronograma extraído da própria CCB** como fonte da verdade: confere **nº de parcelas ×
+  prazo** e, sobretudo, se a **soma das parcelas fecha com o valor total** (avisos, não
+  travam a aprovação). O `1º/último vencimento` são derivados do cronograma quando não
+  vierem nos campos. O recálculo Price virou **fallback como aviso** apenas quando a CCB
+  não tem cronograma. Mudança só na edge function `ingerir_ccb` (auto-deploy) — vale para
+  novas leituras e reprocessamentos; o front já exibe datas `DD/MM/AAAA` e valores em R$.
 - **2026-07-17** — **v1.45.0** · **Máscaras nos campos extraídos (conferência de CCB)**:
   os campos da conferência agora exibem **formatação brasileira** — CPF `000.000.000-00`,
   CNPJ `00.000.000/0000-00` (credor/correspondente/endosso), CEP `00000-000`, telefone
