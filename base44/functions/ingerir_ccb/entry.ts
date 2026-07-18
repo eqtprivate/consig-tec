@@ -274,11 +274,35 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
   const push = (campo: string, tipo: 'critica' | 'aviso', extraido: unknown, sistema: unknown, msg: string) =>
     divergencias.push({ campo, tipo, extraido, sistema, mensagem: msg });
 
-  if (vPrinc != null && vPrazo && vPmt != null) {
+  // Cronograma da própria CCB (páginas de PMT) é a FONTE DA VERDADE das datas e
+  // valores das parcelas. Normalizado aqui e reusado nos dados de saída.
+  const cron = Array.isArray(ext.cronograma)
+    ? (ext.cronograma as any[])
+        .map((c) => ({ parcela: c?.parcela != null ? Math.round(Number(c.parcela)) : null, vencimento: S(c?.vencimento), valor: numOrNull(c?.valor) }))
+        .filter((c) => c.parcela != null || c.valor != null)
+    : [];
+  const somaCron = cron.length ? Number(cron.reduce((s, c) => s + (c.valor || 0), 0).toFixed(2)) : null;
+  const cronDatas = cron.map((c) => c.vencimento).filter(Boolean).sort() as string[];
+  const primeiroVenc = S(ext.primeiro_vencimento) || cronDatas[0] || null;
+  const ultimoVenc = S(ext.ultimo_vencimento) || cronDatas[cronDatas.length - 1] || null;
+
+  // Validação baseada no CRONOGRAMA da CCB: número de parcelas e, sobretudo, a
+  // SOMA das parcelas tem que fechar com o valor total. Sem cronograma, cai no
+  // cálculo teórico (Price) apenas como AVISO (heurística, não fonte da verdade).
+  if (cron.length) {
+    if (vPrazo && cron.length !== vPrazo)
+      push('cronograma', 'aviso', cron.length, vPrazo, `Cronograma tem ${cron.length} parcela(s), mas o prazo informado é ${vPrazo} — a leitura do cronograma pode estar incompleta.`);
+    if (vTotal != null && somaCron != null) {
+      const tol = Math.max(vTotal * 0.01, 2);
+      if (Math.abs(somaCron - vTotal) > tol)
+        push('valor_total', 'aviso', vTotal, somaCron, `Soma das parcelas do cronograma (${somaCron.toFixed(2)}) não fecha com o valor total da CCB (${vTotal.toFixed(2)}).`);
+    }
+  } else if (vPrinc != null && vPrazo && vPmt != null) {
     const calc = pmt(vPrinc, vTaxa || 0, vPrazo);
     if (calc != null) {
       const tol = Math.max(vPmt * 0.02, 0.5);
-      if (Math.abs(calc - vPmt) > tol) push('valor_parcela', 'critica', vPmt, Number(calc.toFixed(2)), `PMT recalculado (${calc.toFixed(2)}) diverge do valor da CCB.`);
+      if (Math.abs(calc - vPmt) > tol)
+        push('valor_parcela', 'aviso', vPmt, Number(calc.toFixed(2)), `Sem cronograma na CCB; PMT recalculado (Price) ${calc.toFixed(2)} diverge da parcela informada — confira taxa/prazo/principal.`);
     }
   }
   if (propostaId && vPrinc != null) {
@@ -288,7 +312,7 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
   }
   if (cpf && !cpfValido(cpf)) push('cpf', 'critica', cpf, null, 'CPF inválido.');
   if (!cpf) push('cpf', 'aviso', null, null, 'CPF não encontrado no documento.');
-  if (vTotal != null && vPmt != null && vPrazo) {
+  if (!cron.length && vTotal != null && vPmt != null && vPrazo) {
     const esperado = vPmt * vPrazo;
     if (Math.abs(esperado - vTotal) > Math.max(vTotal * 0.03, 1)) push('valor_total', 'aviso', vTotal, Number(esperado.toFixed(2)), 'Valor total ≠ parcela × prazo.');
   }
@@ -331,16 +355,13 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
     valor_principal: vPrinc, valor_liberado: numOrNull(ext.valor_liberado), valor_total: vTotal,
     taxa_mensal: vTaxa, taxa_anual: numOrNull(ext.taxa_anual), cet_mensal: numOrNull(ext.cet_mensal), cet_anual: numOrNull(ext.cet_anual),
     iof: numOrNull(ext.iof), tarifa_cadastro: numOrNull(ext.tarifa_cadastro),
-    prazo: vPrazo, valor_parcela: vPmt, primeiro_vencimento: S(ext.primeiro_vencimento), ultimo_vencimento: S(ext.ultimo_vencimento),
+    prazo: vPrazo, valor_parcela: vPmt,
+    primeiro_vencimento: primeiroVenc, ultimo_vencimento: ultimoVenc,
     // Bancário
     banco_credito: S(ext.banco_credito), agencia_credito: S(ext.agencia_credito), conta_credito: S(ext.conta_credito), tipo_conta: S(ext.tipo_conta),
     // Endosso / cessão (a quem o pagamento é direcionado) + cronograma de parcelas
     endosso_beneficiario: S(ext.endosso_beneficiario), endosso_cnpj: S(ext.endosso_cnpj), endosso_tipo: S(ext.endosso_tipo),
-    cronograma: Array.isArray(ext.cronograma)
-      ? (ext.cronograma as any[])
-          .map((c) => ({ parcela: c?.parcela != null ? Math.round(Number(c.parcela)) : null, vencimento: S(c?.vencimento), valor: numOrNull(c?.valor) }))
-          .filter((c) => c.parcela != null || c.valor != null)
-      : null,
+    cronograma: cron.length ? cron : null,
   };
 
   return { dados, divergencias, confianca, acao, propostaId, revisaoForcada };
