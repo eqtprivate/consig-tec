@@ -90,6 +90,10 @@ export const PAPEIS_FONTE = [
   { v: 'decreto', label: 'Decreto' },
   { v: 'outro', label: 'Outro' },
 ];
+export const MODOS_FONTE = [
+  { v: 'origem', label: 'Gera leads (origem)' },
+  { v: 'enriquecimento', label: 'Só enriquece (atualiza existentes)' },
+];
 export const TIPOS_FONTE = [
   { v: 'upload', label: 'Planilha (upload)' },
   { v: 'url_template', label: 'Link (URL de exportação)' },
