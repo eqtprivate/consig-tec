@@ -9,6 +9,7 @@ export const AREA_SUBITEMS = {
   ],
   crm: [
     { key: 'leads', label: 'Leads & Discagem' },
+    { key: 'originacao', label: 'Originação de Leads' },
     { key: 'agenda', label: 'Agenda' },
     { key: 'oportunidades', label: 'Oportunidades' },
     { key: 'conversao', label: 'Conversão' },
