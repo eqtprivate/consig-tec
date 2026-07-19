@@ -185,54 +185,71 @@ Deno.serve(async (req) => {
       if (lote.length) await admin.from('lead_staging').insert(lote);
     }
 
-    // 2) Deduplica por chave, mesclando contato/remuneração.
+    // 2) Deduplica por chave, mesclando contato/remuneração. Marca se algum registro
+    //    veio de fonte 'origem' (só essas CRIAM lead; 'enriquecimento' só atualiza).
+    const modoDe = new Map<string, string>((fontes as any[]).map((f) => [f.id, f.modo || 'origem']));
     const porChave = new Map<string, Record<string, any>>();
     let semChave = 0;
     for (const r of linhasStaging) {
       const k = r.chave_dedup;
       if (!k) { semChave++; continue; }
-      const cur = porChave.get(k);
-      if (!cur) porChave.set(k, { ...r });
+      const origem = modoDe.get(r.fonte_id) !== 'enriquecimento';
+      let cur = porChave.get(k);
+      if (!cur) { cur = { ...r, _temOrigem: false }; porChave.set(k, cur); }
       else for (const campo of CAMPOS) if ((cur[campo] == null || cur[campo] === '') && r[campo] != null && r[campo] !== '') cur[campo] = r[campo];
+      if (origem) cur._temOrigem = true;
     }
     const unicos = [...porChave.values()];
 
     // 3) Gera/atualiza leads (match por convênio + CPF, senão convênio + nome).
     //    Isolamento por EMPRESA (empresa_id) — sem franquia (migr. 0101).
-    let gerados = 0;
+    let gerados = 0, enriquecidos = 0, semCorrespondencia = 0;
     for (const r of unicos) {
       const cpf = soDig(r.cpf);
       const nome = S(r.nome) || (cpf ? `CPF ${cpf}` : null);
       if (!nome) continue;
-      let q = admin.from('leads').select('id, telefone, email').eq('convenio_id', convenioId).limit(1);
+      let q = admin.from('leads').select('id, telefone, email, valor_estimado').eq('convenio_id', convenioId).limit(1);
       q = cpf ? q.eq('cpf', cpf) : q.eq('nome', nome);
       const { data: existente } = await q.maybeSingle();
-      const contato = { telefone: S(r.telefone) || S(r.whatsapp), email: S(r.email) };
+      const tel = S(r.telefone) || S(r.whatsapp);
+      const email = S(r.email);
+      const ve = numBR(r.remuneracao_liquida) ?? numBR(r.remuneracao_bruta);
       if (existente) {
+        // Enriquece: preenche o que estiver vazio (não sobrescreve dado existente).
         const upd: Record<string, any> = {};
-        if (!existente.telefone && contato.telefone) upd.telefone = contato.telefone;
-        if (!existente.email && contato.email) upd.email = contato.email;
-        if (Object.keys(upd).length) await admin.from('leads').update(upd).eq('id', existente.id);
-      } else {
+        if (!existente.telefone && tel) upd.telefone = tel;
+        if (!existente.email && email) upd.email = email;
+        if (existente.valor_estimado == null && ve != null) upd.valor_estimado = ve;
+        if (Object.keys(upd).length) { await admin.from('leads').update(upd).eq('id', existente.id); enriquecidos++; }
+      } else if (r._temOrigem) {
+        // Só fontes 'origem' criam lead novo.
         await admin.from('leads').insert({
-          nome, cpf: cpf || null, telefone: contato.telefone, email: contato.email,
+          nome, cpf: cpf || null, telefone: tel, email,
           origem: 'originacao', convenio_id: convenioId, empresa_id: empresaId,
-          valor_estimado: numBR(r.remuneracao_liquida) ?? numBR(r.remuneracao_bruta),
+          valor_estimado: ve,
           observacao: r.cargo ? `Cargo: ${r.cargo}${r.orgao ? ` · ${r.orgao}` : ''}` : null,
         });
         gerados++;
+      } else {
+        // Enriquecimento sem lead correspondente → ignora (não cria).
+        semCorrespondencia++;
       }
     }
 
+    const obs = [
+      semChave ? `${semChave} linha(s) sem identidade p/ dedup` : null,
+      semCorrespondencia ? `${semCorrespondencia} de enriquecimento sem lead correspondente` : null,
+    ].filter(Boolean).join(' · ') || null;
     await admin.from('lead_consolidacoes').update({
-      status: 'concluida', total_linhas: totalLinhas, total_unicos: unicos.length, total_leads: gerados,
-      observacao: semChave ? `${semChave} linha(s) sem identidade p/ dedup` : null,
-      concluida_at: new Date().toISOString(),
+      status: 'concluida', total_linhas: totalLinhas, total_unicos: unicos.length,
+      total_leads: gerados, total_enriquecidos: enriquecidos,
+      observacao: obs, concluida_at: new Date().toISOString(),
     }).eq('id', cons.id);
 
     return Response.json({
       id: cons.id, status: 'concluida',
-      total_linhas: totalLinhas, total_unicos: unicos.length, total_leads: gerados,
+      total_linhas: totalLinhas, total_unicos: unicos.length,
+      total_leads: gerados, total_enriquecidos: enriquecidos,
     });
   } catch (e) {
     await admin.from('lead_consolidacoes').update({ status: 'erro', observacao: (e as Error).message, concluida_at: new Date().toISOString() }).eq('id', cons.id);
