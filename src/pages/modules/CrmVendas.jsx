@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTabParam } from '@/lib/useTabParam';
 import Leads from '@/pages/modules/Leads';
+import OriginacaoLeads from '@/pages/modules/OriginacaoLeads';
 import Oportunidades from '@/pages/modules/Oportunidades';
 import Clientes from '@/pages/modules/Clientes';
 import Propostas from '@/pages/modules/Propostas';
@@ -13,6 +14,7 @@ import PainelConversao from '@/pages/modules/PainelConversao';
 
 const TABS = [
   { key: 'leads', label: 'Leads & Discagem' },
+  { key: 'originacao', label: 'Originação de Leads' },
   { key: 'agenda', label: 'Agenda' },
   { key: 'oportunidades', label: 'Oportunidades' },
   { key: 'conversao', label: 'Conversão' },
@@ -29,6 +31,7 @@ export default function CrmVendas() {
   const render = () => {
     switch (tab) {
       case 'leads': return <Leads />;
+      case 'originacao': return <OriginacaoLeads />;
       case 'agenda': return <Agenda />;
       case 'oportunidades': return <Oportunidades />;
       case 'conversao': return <PainelConversao />;
