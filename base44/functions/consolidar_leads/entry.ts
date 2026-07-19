@@ -197,11 +197,8 @@ Deno.serve(async (req) => {
     }
     const unicos = [...porChave.values()];
 
-    // 3) Franquia da empresa (para o lead ficar visível ao tenant).
-    const { data: fr } = await admin.from('franquias').select('id').eq('empresa_id', empresaId).order('created_at').limit(1).maybeSingle();
-    const franquiaId = fr?.id || null;
-
-    // 4) Gera/atualiza leads (match por convênio + CPF, senão convênio + nome).
+    // 3) Gera/atualiza leads (match por convênio + CPF, senão convênio + nome).
+    //    Isolamento por EMPRESA (empresa_id) — sem franquia (migr. 0101).
     let gerados = 0;
     for (const r of unicos) {
       const cpf = soDig(r.cpf);
@@ -219,7 +216,7 @@ Deno.serve(async (req) => {
       } else {
         await admin.from('leads').insert({
           nome, cpf: cpf || null, telefone: contato.telefone, email: contato.email,
-          origem: 'originacao', convenio_id: convenioId, franquia_id: franquiaId,
+          origem: 'originacao', convenio_id: convenioId, empresa_id: empresaId,
           valor_estimado: numBR(r.remuneracao_liquida) ?? numBR(r.remuneracao_bruta),
           observacao: r.cargo ? `Cargo: ${r.cargo}${r.orgao ? ` · ${r.orgao}` : ''}` : null,
         });
