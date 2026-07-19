@@ -192,8 +192,9 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   fontes** (planilhas enviadas + links de bases públicas autorizadas) com **de-para** de
   colunas; a consolidação concatena, deduplica (**CPF → nome → matrícula → órgão/cidade**) e
   gera leads. Migração **0099** (`lead_fontes`, `lead_consolidacoes`, `lead_staging`, RLS por
-  tenant) + bucket privado `lead-fontes` + API `leadFontes.js`. Motor `consolidar_leads`
-  (edge) em construção. **Backup diário (migr. 0100)**: `pg_cron` copia todas as tabelas para
+  tenant) + bucket privado `lead-fontes` + API `leadFontes.js`. Motor **`consolidar_leads`**
+  (edge): lê as fontes (CSV/JSON/XLSX), aplica o de-para, grava `lead_staging`, deduplica e
+  gera/atualiza `leads` (atribuídos a uma franquia da empresa). **Backup diário (migr. 0100)**: `pg_cron` copia todas as tabelas para
   o schema `backups` às 03:00 UTC, retém 7 dias (job `backup_diario` ativo).
 - **2026-07-17** — **v1.46.0** · **Conferência da CCB pelo CRONOGRAMA (datas + soma que fecha)**:
   a validação da parcela deixou de depender do recálculo teórico pela Tabela Price (que dava
