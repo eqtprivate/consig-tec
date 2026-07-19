@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0098**. Versão do app: **v1.46.0**.
+> Supabase). Migrações no repo: **0001–0100**. Versão do app: **v1.47.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -187,6 +187,14 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-19** — **v1.47.0** · **Originação de Leads por convênio (nova frente)** + **backup diário**:
+  nova tela **CRM ▸ Originação de Leads** — pós-cadastro do convênio, o operador agrega **N
+  fontes** (planilhas enviadas + links de bases públicas autorizadas) com **de-para** de
+  colunas; a consolidação concatena, deduplica (**CPF → nome → matrícula → órgão/cidade**) e
+  gera leads. Migração **0099** (`lead_fontes`, `lead_consolidacoes`, `lead_staging`, RLS por
+  tenant) + bucket privado `lead-fontes` + API `leadFontes.js`. Motor `consolidar_leads`
+  (edge) em construção. **Backup diário (migr. 0100)**: `pg_cron` copia todas as tabelas para
+  o schema `backups` às 03:00 UTC, retém 7 dias (job `backup_diario` ativo).
 - **2026-07-17** — **v1.46.0** · **Conferência da CCB pelo CRONOGRAMA (datas + soma que fecha)**:
   a validação da parcela deixou de depender do recálculo teórico pela Tabela Price (que dava
   **falso positivo crítico** em cartão consignado / IOF-TAC financiado) e passou a usar o
