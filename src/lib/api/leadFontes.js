@@ -77,6 +77,21 @@ export const leadFontesApi = {
       ...(ev ? { empresa_id: ev } : {}),
     });
   },
+
+  // Base legal (LGPD) do convênio para enriquecimento.
+  async getLgpd(convenioId) {
+    let q = supabase.from('enriquecimento_lgpd').select('*').eq('convenio_id', convenioId).limit(1);
+    const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
+    const { data, error } = await q.maybeSingle();
+    if (error) throw error;
+    return data || null;
+  },
+  async saveLgpd(payload) {
+    const { data, error } = await supabase.from('enriquecimento_lgpd')
+      .upsert(payload, { onConflict: 'empresa_id,convenio_id' }).select().single();
+    if (error) throw error;
+    return data;
+  },
 };
 
 // papéis e tipos válidos (espelham os CHECKs da migração 0099).
