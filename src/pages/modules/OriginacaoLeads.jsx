@@ -4,6 +4,7 @@ import { conveniosApi } from '@/lib/api/convenios';
 import ConvenioPicker from '@/components/ConvenioPicker';
 import { leadFontesApi, PAPEIS_FONTE, TIPOS_FONTE, MODOS_FONTE, CAMPOS_CANONICOS } from '@/lib/api/leadFontes';
 import { decretosApi } from '@/lib/api/decretos';
+import { brl } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -61,6 +62,7 @@ export default function OriginacaoLeads() {
   const [roteando, setRoteando] = useState(null);
   const [lgpd, setLgpd] = useState(null);
   const [lgpdForm, setLgpdForm] = useState({ base_legal: '', finalidade: '', ativo: true });
+  const [dim, setDim] = useState(null);
 
   const convSel = useMemo(() => convenios.find((c) => c.id === convenioId) || null, [convenios, convenioId]);
 
@@ -73,6 +75,7 @@ export default function OriginacaoLeads() {
       const [f, c, l] = await Promise.all([leadFontesApi.listFontes(cid), leadFontesApi.listConsolidacoes(cid), leadFontesApi.getLgpd(cid)]);
       setFontes(f); setConsolidacoes(c); setLgpd(l);
       setLgpdForm(l ? { base_legal: l.base_legal || '', finalidade: l.finalidade || '', ativo: !!l.ativo } : { base_legal: '', finalidade: '', ativo: true });
+      leadFontesApi.dimensionamento(cid).then(setDim).catch(() => setDim(null));
     } catch (e) { toast.error(e.message || 'Falha ao carregar fontes.'); }
     finally { setLoading(false); }
   };
@@ -315,6 +318,29 @@ export default function OriginacaoLeads() {
               ))}
             </div>
           </div>
+
+          {/* Dimensionamento da base capturada */}
+          {dim && dim.servidores > 0 && (
+            <div className="rounded border border-border bg-card p-3">
+              <h3 className="text-sm font-semibold mb-2">Dimensionamento da base capturada</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  ['Servidores', dim.servidores ?? 0],
+                  ['Órgãos', dim.orgaos ?? 0],
+                  ['Massa bruta', brl(dim.massa_bruta)],
+                  ['Massa líquida', brl(dim.massa_liquida)],
+                  ['Ticket médio', brl(dim.ticket_medio_bruto)],
+                  ['Capac. margem estim.', brl(dim.capacidade_margem_estimada)],
+                ].map(([l, v]) => (
+                  <div key={l} className="rounded border border-border p-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{l}</div>
+                    <div className="text-sm font-semibold">{v}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Base capturada (folha) deduplicada por pessoa, leitura mais recente. Capacidade de margem estimada (30% quando não calculada).</p>
+            </div>
+          )}
 
           {/* Consolidação → leads */}
           <div className="rounded border border-border bg-card">
