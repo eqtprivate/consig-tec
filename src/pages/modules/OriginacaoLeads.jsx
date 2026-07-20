@@ -59,17 +59,20 @@ export default function OriginacaoLeads() {
   const [competencia, setCompetencia] = useState('');
   const [consolidando, setConsolidando] = useState(false);
   const [roteando, setRoteando] = useState(null);
+  const [lgpd, setLgpd] = useState(null);
+  const [lgpdForm, setLgpdForm] = useState({ base_legal: '', finalidade: '', ativo: true });
 
   const convSel = useMemo(() => convenios.find((c) => c.id === convenioId) || null, [convenios, convenioId]);
 
   useEffect(() => { conveniosApi.list().then(setConvenios).catch(() => setConvenios([])); }, []);
 
   const carregar = async (cid) => {
-    if (!cid) { setFontes([]); setConsolidacoes([]); return; }
+    if (!cid) { setFontes([]); setConsolidacoes([]); setLgpd(null); return; }
     setLoading(true);
     try {
-      const [f, c] = await Promise.all([leadFontesApi.listFontes(cid), leadFontesApi.listConsolidacoes(cid)]);
-      setFontes(f); setConsolidacoes(c);
+      const [f, c, l] = await Promise.all([leadFontesApi.listFontes(cid), leadFontesApi.listConsolidacoes(cid), leadFontesApi.getLgpd(cid)]);
+      setFontes(f); setConsolidacoes(c); setLgpd(l);
+      setLgpdForm(l ? { base_legal: l.base_legal || '', finalidade: l.finalidade || '', ativo: !!l.ativo } : { base_legal: '', finalidade: '', ativo: true });
     } catch (e) { toast.error(e.message || 'Falha ao carregar fontes.'); }
     finally { setLoading(false); }
   };
@@ -124,6 +127,18 @@ export default function OriginacaoLeads() {
     finally { setRoteando(null); }
   };
 
+  const salvarLgpd = async () => {
+    if (!empresaId || !convenioId) return;
+    if (!lgpdForm.base_legal || !lgpdForm.finalidade.trim()) { toast.error('Informe a base legal e a finalidade.'); return; }
+    try {
+      await leadFontesApi.saveLgpd({ empresa_id: empresaId, convenio_id: convenioId, base_legal: lgpdForm.base_legal, finalidade: lgpdForm.finalidade.trim(), ativo: lgpdForm.ativo });
+      toast.success('Base legal (LGPD) registrada.');
+      carregar(convenioId);
+    } catch (e) { toast.error(e.message || 'Falha ao salvar a base legal.'); }
+  };
+
+  const temEnriquecimento = fontes.some((f) => f.modo === 'enriquecimento' && f.ativo);
+
   const baixar = async (path) => {
     const url = await leadFontesApi.arquivoUrl(path);
     if (url) window.open(url, '_blank'); else toast.error('Arquivo indisponível.');
@@ -159,6 +174,34 @@ export default function OriginacaoLeads() {
         </div>
       ) : (
         <>
+          {/* Base legal (LGPD) para enriquecimento */}
+          <div className="rounded border border-border bg-card p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Base legal (LGPD) para enriquecimento</h3>
+              {lgpd?.ativo
+                ? <span className="text-[11px] text-green-600">ativa</span>
+                : <span className="text-[11px] text-amber-600">não registrada</span>}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select value={lgpdForm.base_legal} onChange={(e) => setLgpdForm({ ...lgpdForm, base_legal: e.target.value })} className={`${inputSel} w-full`}>
+                <option value="">Base legal…</option>
+                <option value="legitimo_interesse">Legítimo interesse</option>
+                <option value="consentimento">Consentimento</option>
+                <option value="execucao_contrato">Execução de contrato</option>
+                <option value="obrigacao_legal">Obrigação legal</option>
+              </select>
+              <Input value={lgpdForm.finalidade} onChange={(e) => setLgpdForm({ ...lgpdForm, finalidade: e.target.value })} placeholder="Finalidade do tratamento" className="h-8 text-sm" />
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-xs flex items-center gap-1"><input type="checkbox" checked={lgpdForm.ativo} onChange={(e) => setLgpdForm({ ...lgpdForm, ativo: e.target.checked })} /> ativa</label>
+              <Button size="sm" className="h-7" onClick={salvarLgpd}>Salvar base legal</Button>
+              <span className="text-[10px] text-muted-foreground">Enriquecimento só roda com base legal ativa. Fontes “origem” não dependem disso.</span>
+            </div>
+            {temEnriquecimento && !lgpd?.ativo && (
+              <p className="text-[11px] text-amber-600">⚠ Há fonte(s) de enriquecimento, mas sem base legal ativa — elas serão ignoradas na consolidação.</p>
+            )}
+          </div>
+
           {/* Fontes */}
           <div className="rounded border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-4 py-2">
