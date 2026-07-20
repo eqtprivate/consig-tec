@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { conveniosApi } from '@/lib/api/convenios';
 import ConvenioPicker from '@/components/ConvenioPicker';
-import { leadFontesApi, PAPEIS_FONTE, TIPOS_FONTE, CAMPOS_CANONICOS } from '@/lib/api/leadFontes';
+import { leadFontesApi, PAPEIS_FONTE, TIPOS_FONTE, MODOS_FONTE, CAMPOS_CANONICOS } from '@/lib/api/leadFontes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -39,7 +39,7 @@ function DeParaEditor({ linhas, setLinhas }) {
 }
 
 const novaFonteVazia = () => ({
-  rotulo: '', papel: 'folha_remuneracao', tipo: 'upload',
+  rotulo: '', papel: 'folha_remuneracao', tipo: 'upload', modo: 'origem',
   file: null, url_template: '', metodo: 'GET', formato: 'csv', separador: ',',
   deparaRows: [],
 });
@@ -86,7 +86,7 @@ export default function OriginacaoLeads() {
       const de_para = Object.fromEntries(nova.deparaRows.filter((r) => r.origem && r.campo).map((r) => [r.origem.trim(), r.campo]));
       await leadFontesApi.createFonte({
         empresa_id: empresaId, convenio_id: convenioId,
-        rotulo: nova.rotulo.trim(), papel: nova.papel, tipo: nova.tipo,
+        rotulo: nova.rotulo.trim(), papel: nova.papel, tipo: nova.tipo, modo: nova.modo,
         arquivo_storage_path: arquivo.path, arquivo_nome: arquivo.nome,
         url_template: nova.tipo === 'upload' ? null : nova.url_template.trim(),
         metodo: nova.metodo || 'GET', formato: nova.formato || null, separador: nova.separador || ',',
@@ -117,8 +117,8 @@ export default function OriginacaoLeads() {
     try {
       const r = await leadFontesApi.consolidar(convenioId, competencia.trim() || null);
       if (r?.error) throw new Error(r.error);
-      toast.success(r?.total_leads != null
-        ? `Consolidação concluída: ${r.total_leads} leads (${r.total_unicos} únicos de ${r.total_linhas} linhas).`
+      toast.success(r?.status === 'concluida'
+        ? `Consolidação: ${r.total_leads} leads gerados, ${r.total_enriquecidos || 0} enriquecidos (${r.total_unicos} únicos de ${r.total_linhas} linhas).`
         : 'Consolidação disparada.');
       carregar(convenioId);
     } catch (e) { toast.error(e.message || 'Falha ao consolidar (o motor consolidar_leads pode ainda não estar publicado).'); }
@@ -174,6 +174,14 @@ export default function OriginacaoLeads() {
                   </div>
                 </div>
 
+                <div>
+                  <label className="text-xs text-muted-foreground">Modo desta fonte</label>
+                  <select value={nova.modo} onChange={(e) => setNova({ ...nova, modo: e.target.value })} className={`${inputSel} w-full`}>
+                    {MODOS_FONTE.map((m) => <option key={m.v} value={m.v}>{m.label}</option>)}
+                  </select>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{nova.modo === 'enriquecimento' ? 'Atualiza contato/valor de leads já existentes; não cria novos.' : 'Cria novos leads a partir desta base.'}</p>
+                </div>
+
                 {nova.tipo === 'upload' ? (
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div>
@@ -222,6 +230,7 @@ export default function OriginacaoLeads() {
                       <span className="text-sm font-medium truncate">{f.rotulo}</span>
                       <span className={badge}>{(PAPEIS_FONTE.find((p) => p.v === f.papel) || {}).label || f.papel}</span>
                       <span className={badge}>{(TIPOS_FONTE.find((t) => t.v === f.tipo) || {}).label || f.tipo}</span>
+                      {f.modo === 'enriquecimento' && <span className={badge}>enriquecimento</span>}
                       {!f.ativo && <span className={badge}>inativa</span>}
                     </div>
                     <div className="text-[11px] text-muted-foreground truncate">
@@ -261,7 +270,7 @@ export default function OriginacaoLeads() {
                     <span className="text-muted-foreground">{c.competencia || 'sem competência'}</span>
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    {c.total_leads} leads · {c.total_unicos} únicos · {c.total_linhas} linhas · {new Date(c.created_at).toLocaleString('pt-BR')}
+                    {c.total_leads} leads · {c.total_enriquecidos || 0} enriq. · {c.total_unicos} únicos · {c.total_linhas} linhas · {new Date(c.created_at).toLocaleString('pt-BR')}
                   </div>
                 </div>
               ))}
