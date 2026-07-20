@@ -92,6 +92,13 @@ export const leadFontesApi = {
     if (error) throw error;
     return data;
   },
+
+  // Dimensionamento da base capturada (agrega lead_staging por convênio).
+  async dimensionamento(convenioId, competencia) {
+    const { data, error } = await supabase.rpc('dimensionamento_folha', { p_convenio: convenioId, p_competencia: competencia || null });
+    if (error) throw error;
+    return data || null;
+  },
 };
 
 // papéis e tipos válidos (espelham os CHECKs da migração 0099).
