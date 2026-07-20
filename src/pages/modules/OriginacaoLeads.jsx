@@ -63,6 +63,8 @@ export default function OriginacaoLeads() {
   const [lgpd, setLgpd] = useState(null);
   const [lgpdForm, setLgpdForm] = useState({ base_legal: '', finalidade: '', ativo: true });
   const [dim, setDim] = useState(null);
+  const [harText, setHarText] = useState('');
+  const [propostas, setPropostas] = useState([]);
 
   const convSel = useMemo(() => convenios.find((c) => c.id === convenioId) || null, [convenios, convenioId]);
 
@@ -141,6 +143,62 @@ export default function OriginacaoLeads() {
   };
 
   const temEnriquecimento = fontes.some((f) => f.modo === 'enriquecimento' && f.ativo);
+
+  // Assistente de descoberta: reconhece recursos de exportação num HAR (ou lista de
+  // URLs) e propõe fontes (url_template/endpoint_api) para o operador salvar.
+  const analisarHar = () => {
+    const txt = harText.trim();
+    if (!txt) { setPropostas([]); return; }
+    const ehExport = (url, mime = '') => {
+      const u = url.toLowerCase();
+      if (/\.(js|css|png|jpe?g|gif|svg|woff2?|ttf|ico|map)(\?|$)/.test(u)) return false;
+      return /\.(csv|xlsx?|json)(\?|$)/.test(u)
+        || /export|download|relatorio|planilha|servidor|folha|remunerac|transparenc/.test(u)
+        || /csv|excel|spreadsheet|officedocument|application\/json/.test(mime.toLowerCase());
+    };
+    const fmt = (url) => { const u = url.toLowerCase(); if (/\.xlsx?(\?|$)/.test(u)) return 'xlsx'; if (/\.json(\?|$)/.test(u)) return 'json'; return 'csv'; };
+    const placeholders = (url) => url
+      .replace(/([?&](?:ano|year)=)\d{4}/gi, '$1{ano}')
+      .replace(/([?&](?:mes|month)=)\d{1,2}\b/gi, '$1{mes}')
+      .replace(/([?&]compet\w*=)[\d-]+/gi, '$1{competencia}');
+    const cands = [];
+    try {
+      const j = JSON.parse(txt);
+      for (const e of (j?.log?.entries || [])) {
+        const url = e?.request?.url; if (!url) continue;
+        const mime = e?.response?.content?.mimeType || '';
+        if (!ehExport(url, mime)) continue;
+        const metodo = (e.request.method || 'GET').toUpperCase();
+        cands.push({ url: placeholders(url), metodo, formato: fmt(url), tipo: metodo === 'POST' ? 'endpoint_api' : 'url_template' });
+      }
+    } catch {
+      for (const line of txt.split(/\n+/)) {
+        const url = line.trim(); if (!/^https?:\/\//i.test(url) || !ehExport(url)) continue;
+        cands.push({ url: placeholders(url), metodo: 'GET', formato: fmt(url), tipo: 'url_template' });
+      }
+    }
+    const seen = new Set();
+    const uniq = cands.filter((c) => (seen.has(c.url) ? false : (seen.add(c.url), true)));
+    setPropostas(uniq.map((c, i) => ({ ...c, rotulo: `Recurso ${i + 1} (${c.formato})`, sel: true })));
+    if (!uniq.length) toast.error('Nenhum recurso de exportação reconhecido no conteúdo colado.');
+  };
+
+  const adicionarPropostas = async () => {
+    const sel = propostas.filter((p) => p.sel);
+    if (!sel.length || !empresaId || !convenioId) return;
+    try {
+      for (const p of sel) {
+        await leadFontesApi.createFonte({
+          empresa_id: empresaId, convenio_id: convenioId,
+          rotulo: p.rotulo || 'Recurso', papel: 'outro', tipo: p.tipo, modo: 'origem',
+          url_template: p.url, metodo: p.metodo, formato: p.formato, separador: ',', de_para: {},
+        });
+      }
+      toast.success(`${sel.length} fonte(s) adicionada(s). Agora ajuste o de-para de cada uma.`);
+      setPropostas([]); setHarText('');
+      carregar(convenioId);
+    } catch (e) { toast.error(e.message || 'Falha ao adicionar as fontes.'); }
+  };
 
   const baixar = async (path) => {
     const url = await leadFontesApi.arquivoUrl(path);
@@ -317,6 +375,25 @@ export default function OriginacaoLeads() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Assistente de descoberta (HAR / URLs) */}
+          <div className="rounded border border-border bg-card p-3 space-y-2">
+            <h3 className="text-sm font-semibold">Assistente de descoberta (HAR / URLs)</h3>
+            <p className="text-[11px] text-muted-foreground">Cole o <b>HAR</b> do portal (DevTools ▸ Network ▸ “Save all as HAR”) ou uma <b>lista de URLs</b> de exportação (uma por linha). O assistente reconhece os recursos de folha e pré-preenche as fontes (você confere e salva).</p>
+            <textarea value={harText} onChange={(e) => setHarText(e.target.value)} rows={4} placeholder="Cole o HAR (JSON) ou as URLs…" className="w-full text-xs rounded border border-border bg-card p-2 font-mono" />
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" className="h-7" onClick={analisarHar}>Analisar</Button>
+              {propostas.length > 0 && <Button size="sm" className="h-7" onClick={adicionarPropostas}>Adicionar {propostas.filter((p) => p.sel).length} fonte(s)</Button>}
+            </div>
+            {propostas.map((p, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={p.sel} onChange={(e) => setPropostas(propostas.map((x, j) => (j === i ? { ...x, sel: e.target.checked } : x)))} />
+                <span className={badge}>{p.tipo}</span><span className={badge}>{p.formato}</span>
+                <Input value={p.rotulo} onChange={(e) => setPropostas(propostas.map((x, j) => (j === i ? { ...x, rotulo: e.target.value } : x)))} className="h-7 text-xs w-40" />
+                <span className="truncate text-muted-foreground flex-1" title={p.url}>{p.url}</span>
+              </div>
+            ))}
           </div>
 
           {/* Dimensionamento da base capturada */}
