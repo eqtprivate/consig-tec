@@ -3,10 +3,11 @@ import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { conveniosApi } from '@/lib/api/convenios';
 import ConvenioPicker from '@/components/ConvenioPicker';
 import { leadFontesApi, PAPEIS_FONTE, TIPOS_FONTE, MODOS_FONTE, CAMPOS_CANONICOS } from '@/lib/api/leadFontes';
+import { decretosApi } from '@/lib/api/decretos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Plus, Trash2, RefreshCw, UploadCloud, Link2, Loader2, Download, Play } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, UploadCloud, Link2, Loader2, Download, Play, ScanLine } from 'lucide-react';
 
 const inputSel = 'h-8 text-sm rounded-md border border-border bg-card px-2';
 const badge = 'text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground';
@@ -57,6 +58,7 @@ export default function OriginacaoLeads() {
   const [salvando, setSalvando] = useState(false);
   const [competencia, setCompetencia] = useState('');
   const [consolidando, setConsolidando] = useState(false);
+  const [roteando, setRoteando] = useState(null);
 
   const convSel = useMemo(() => convenios.find((c) => c.id === convenioId) || null, [convenios, convenioId]);
 
@@ -103,6 +105,23 @@ export default function OriginacaoLeads() {
     if (!confirm('Remover esta fonte?')) return;
     try { await leadFontesApi.removeFonte(id); carregar(convenioId); }
     catch (e) { toast.error(e.message || 'Falha ao remover.'); }
+  };
+
+  // Fonte 'decreto' → entrega o PDF ao leitor de decretos (ingerir_decreto), que na
+  // aprovação aplica as regras ao convênio. Reusa toda a esteira de Decretos IA.
+  const rotearDecreto = async (f) => {
+    setRoteando(f.id);
+    try {
+      const url = f.tipo === 'upload' ? await leadFontesApi.arquivoUrl(f.arquivo_storage_path) : f.url_template;
+      if (!url) throw new Error('Fonte sem arquivo/URL.');
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('Não consegui baixar o arquivo do decreto.');
+      const blob = await resp.blob();
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(blob); });
+      await decretosApi.ingerir(b64, f.arquivo_nome || `${f.rotulo || 'decreto'}.pdf`);
+      toast.success('Decreto enviado ao leitor (Convênios ▸ Decretos IA) para leitura e conferência.');
+    } catch (e) { toast.error(e.message || 'Falha ao rotear. Se for link externo (CORS), baixe e suba como upload.'); }
+    finally { setRoteando(null); }
   };
 
   const baixar = async (path) => {
@@ -239,6 +258,11 @@ export default function OriginacaoLeads() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {f.papel === 'decreto' && (
+                      <button type="button" onClick={() => rotearDecreto(f)} disabled={roteando === f.id} className="text-muted-foreground hover:text-primary" title="Enviar ao leitor de decretos">
+                        {roteando === f.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
+                      </button>
+                    )}
                     {f.tipo === 'upload' && f.arquivo_storage_path && (
                       <button type="button" onClick={() => baixar(f.arquivo_storage_path)} className="text-muted-foreground hover:text-primary" title="Baixar"><Download className="w-4 h-4" /></button>
                     )}
