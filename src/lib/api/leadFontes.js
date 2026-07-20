@@ -80,11 +80,14 @@ export const leadFontesApi = {
 
   // Base legal (LGPD) do convênio para enriquecimento.
   async getLgpd(convenioId) {
-    let q = supabase.from('enriquecimento_lgpd').select('*').eq('convenio_id', convenioId).limit(1);
-    const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
-    const { data, error } = await q.maybeSingle();
-    if (error) throw error;
-    return data || null;
+    // Resiliente: se a migração 0103 ainda não rodou, não quebra a tela.
+    try {
+      let q = supabase.from('enriquecimento_lgpd').select('*').eq('convenio_id', convenioId).limit(1);
+      const ev = getEmpresaView(); if (ev) q = q.eq('empresa_id', ev);
+      const { data, error } = await q.maybeSingle();
+      if (error) return null;
+      return data || null;
+    } catch { return null; }
   },
   async saveLgpd(payload) {
     const { data, error } = await supabase.from('enriquecimento_lgpd')
