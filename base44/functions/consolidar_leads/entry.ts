@@ -148,6 +148,18 @@ Deno.serve(async (req) => {
   if (fErr) return Response.json({ error: fErr.message }, { status: 400 });
   if (!fontes || !fontes.length) return Response.json({ error: 'Nenhuma fonte ativa para consolidar.' }, { status: 400 });
 
+  // Portão LGPD: fontes de MODO 'enriquecimento' só rodam com base legal ATIVA do
+  // convênio. Sem base, elas são ignoradas (as de 'origem' seguem).
+  const { data: lgpd } = await admin.from('enriquecimento_lgpd').select('id')
+    .eq('empresa_id', empresaId).eq('convenio_id', convenioId).eq('ativo', true).maybeSingle();
+  let fontesUsar = fontes as any[];
+  let enriqBloqueado = 0;
+  if (!lgpd) {
+    fontesUsar = (fontes as any[]).filter((f) => (f.modo || 'origem') !== 'enriquecimento');
+    enriqBloqueado = (fontes as any[]).length - fontesUsar.length;
+  }
+  if (!fontesUsar.length) return Response.json({ error: 'Enriquecimento bloqueado: registre a base legal (LGPD) do convênio antes de consolidar fontes de enriquecimento.' }, { status: 400 });
+
   // Abre a consolidação.
   const { data: cons, error: cErr } = await admin.from('lead_consolidacoes').insert({
     empresa_id: empresaId, convenio_id: convenioId, competencia, status: 'processando', iniciada_at: new Date().toISOString(),
@@ -158,7 +170,7 @@ Deno.serve(async (req) => {
     // 1) Lê + normaliza cada fonte → linhas de staging.
     const linhasStaging: Record<string, any>[] = [];
     let totalLinhas = 0;
-    for (const f of fontes) {
+    for (const f of fontesUsar) {
       try {
         const regs = await lerFonteRegistros(admin, f, competencia);
         let n = 0;
@@ -187,7 +199,7 @@ Deno.serve(async (req) => {
 
     // 2) Deduplica por chave, mesclando contato/remuneração. Marca se algum registro
     //    veio de fonte 'origem' (só essas CRIAM lead; 'enriquecimento' só atualiza).
-    const modoDe = new Map<string, string>((fontes as any[]).map((f) => [f.id, f.modo || 'origem']));
+    const modoDe = new Map<string, string>(fontesUsar.map((f) => [f.id, f.modo || 'origem']));
     const porChave = new Map<string, Record<string, any>>();
     let semChave = 0;
     for (const r of linhasStaging) {
@@ -239,6 +251,7 @@ Deno.serve(async (req) => {
     const obs = [
       semChave ? `${semChave} linha(s) sem identidade p/ dedup` : null,
       semCorrespondencia ? `${semCorrespondencia} de enriquecimento sem lead correspondente` : null,
+      enriqBloqueado ? `${enriqBloqueado} fonte(s) de enriquecimento bloqueada(s) — sem base legal LGPD` : null,
     ].filter(Boolean).join(' · ') || null;
     await admin.from('lead_consolidacoes').update({
       status: 'concluida', total_linhas: totalLinhas, total_unicos: unicos.length,
