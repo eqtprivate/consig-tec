@@ -2,7 +2,7 @@
 
 > Linha de base atualizada em **2026-07-16**. Fonte da verdade: git (`main`); o
 > Base44 sincroniza pelo git; migrações em `supabase/migrations/` (aplicadas no
-> Supabase). Migrações no repo: **0001–0100**. Versão do app: **v1.47.0**.
+> Supabase). Migrações no repo: **0001–0102**. Versão do app: **v1.48.0**.
 
 Legenda: ✅ feito · 🟡 parcial · ⚠️ depende de integração/dados externos · ⬜ não iniciado.
 
@@ -187,6 +187,13 @@ Sonnet ≈ **R$ 0,85**. CCBs curtas custam bem menos.
   bloqueado pela RLS.
 
 ## 10) Histórico recente
+- **2026-07-20** — **v1.48.0** · **Enriquecimento de dados (fontes variadas, sem parceiro fixo)** +
+  **leads por empresa**: cada fonte ganhou um **modo** — `origem` (gera leads) ou `enriquecimento`
+  (só **atualiza** leads existentes: telefone/e-mail/valor, casando por CPF→nome→matrícula→órgão/
+  cidade; não cria novos). A fonte pode ser xlsx/csv/link — nada de provedor específico (migr.
+  **0102**). A consolidação reporta *gerados* + *enriquecidos*. **`leads` isolada por empresa**
+  (migr. **0101**): `empresa_id` + RLS por empresa (admin vê toda a empresa; setores/áreas
+  limitam funcionalidades, camada à parte) — franquia deixou de ser necessária.
 - **2026-07-19** — **v1.47.0** · **Originação de Leads por convênio (nova frente)** + **backup diário**:
   nova tela **CRM ▸ Originação de Leads** — pós-cadastro do convênio, o operador agrega **N
   fontes** (planilhas enviadas + links de bases públicas autorizadas) com **de-para** de
