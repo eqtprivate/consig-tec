@@ -476,19 +476,29 @@ export default function IngestaoCCB() {
                 {Array.isArray(dados.cronograma) && dados.cronograma.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80 border-b border-border pb-0.5">Cronograma de parcelas ({dados.cronograma.length})</p>
-                    <div className="max-h-52 overflow-y-auto rounded border border-border">
-                      <table className="w-full text-xs">
+                    <div className="max-h-52 overflow-auto rounded border border-border">
+                      <table className="w-full text-xs whitespace-nowrap">
                         <thead className="sticky top-0 bg-muted/70"><tr>
                           <th className="text-left px-2 py-1 font-medium text-muted-foreground">Parc.</th>
                           <th className="text-left px-2 py-1 font-medium text-muted-foreground">Vencimento</th>
-                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Valor</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Saldo dev.</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Juros</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Amort.</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Prestação</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">IOF</th>
+                          <th className="text-right px-2 py-1 font-medium text-muted-foreground">Saldo final</th>
                         </tr></thead>
                         <tbody>
                           {dados.cronograma.map((p, i) => (
                             <tr key={i} className="border-t border-border">
                               <td className="px-2 py-1">{p?.parcela ?? '—'}</td>
                               <td className="px-2 py-1">{p?.vencimento ? isoToBR(p.vencimento) : '—'}</td>
+                              <td className="px-2 py-1 text-right">{p?.saldo_devedor != null ? brl(p.saldo_devedor) : '—'}</td>
+                              <td className="px-2 py-1 text-right">{p?.juros != null ? brl(p.juros) : '—'}</td>
+                              <td className="px-2 py-1 text-right">{p?.amortizacao != null ? brl(p.amortizacao) : '—'}</td>
                               <td className="px-2 py-1 text-right">{p?.valor != null ? brl(p.valor) : '—'}</td>
+                              <td className="px-2 py-1 text-right">{p?.iof != null ? brl(p.iof) : '—'}</td>
+                              <td className="px-2 py-1 text-right">{p?.saldo_devedor_final != null ? brl(p.saldo_devedor_final) : '—'}</td>
                             </tr>
                           ))}
                         </tbody>
