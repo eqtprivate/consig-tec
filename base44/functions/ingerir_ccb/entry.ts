@@ -166,14 +166,19 @@ const EXTRACT_TOOL = {
       // Cronograma de pagamento (uma entrada por parcela)
       cronograma: {
         type: ['array', 'null'],
-        description: 'Cronograma de pagamento: lista de parcelas com número, vencimento e valor',
+        description: 'Cronograma/fluxo de pagamento (Tabela Price). Uma entrada por parcela com TODAS as colunas da tabela; use null para colunas ausentes.',
         items: {
           type: 'object',
           additionalProperties: false,
           properties: {
             parcela: { type: ['integer', 'null'], description: 'Número da parcela' },
-            vencimento: { type: ['string', 'null'], description: 'Vencimento em ISO (AAAA-MM-DD)' },
-            valor: { type: ['number', 'null'], description: 'Valor da parcela' },
+            vencimento: { type: ['string', 'null'], description: 'Data de vencimento em ISO (AAAA-MM-DD)' },
+            saldo_devedor: { type: ['number', 'null'], description: 'Saldo devedor no início da parcela' },
+            juros: { type: ['number', 'null'], description: 'Parcela de juros' },
+            amortizacao: { type: ['number', 'null'], description: 'Parcela de amortização do principal' },
+            valor: { type: ['number', 'null'], description: 'Prestação (PMT) — valor total da parcela' },
+            iof: { type: ['number', 'null'], description: 'IOF da parcela, se houver' },
+            saldo_devedor_final: { type: ['number', 'null'], description: 'Saldo devedor ao final da parcela' },
           },
           required: ['parcela'],
         },
@@ -278,7 +283,16 @@ async function analisar(admin: any, empresaId: string, ext: Record<string, unkno
   // valores das parcelas. Normalizado aqui e reusado nos dados de saída.
   const cron = Array.isArray(ext.cronograma)
     ? (ext.cronograma as any[])
-        .map((c) => ({ parcela: c?.parcela != null ? Math.round(Number(c.parcela)) : null, vencimento: S(c?.vencimento), valor: numOrNull(c?.valor) }))
+        .map((c) => ({
+          parcela: c?.parcela != null ? Math.round(Number(c.parcela)) : null,
+          vencimento: S(c?.vencimento),
+          saldo_devedor: numOrNull(c?.saldo_devedor),
+          juros: numOrNull(c?.juros),
+          amortizacao: numOrNull(c?.amortizacao),
+          valor: numOrNull(c?.valor),
+          iof: numOrNull(c?.iof),
+          saldo_devedor_final: numOrNull(c?.saldo_devedor_final),
+        }))
         .filter((c) => c.parcela != null || c.valor != null)
     : [];
   const somaCron = cron.length ? Number(cron.reduce((s, c) => s + (c.valor || 0), 0).toFixed(2)) : null;
