@@ -6,7 +6,7 @@ import TopBar from '@/components/TopBar';
 import TrocarSenha from '@/pages/TrocarSenha';
 import { useAuth } from '@/lib/ConsigtecAuthContext';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, LifeBuoy, ShieldCheck } from 'lucide-react';
+import { ShieldAlert, LifeBuoy, ShieldCheck, BookOpen } from 'lucide-react';
 
 function ContaInativa({ onLogout }) {
   return (
@@ -73,6 +73,7 @@ export default function AppLayout() {
           <footer className="mt-8 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5"><img src="/brand/consigtec_logo_icon.png" alt="" className="w-4 h-4 rounded" /> CONSIGTEC</span>
             <div className="flex items-center gap-4">
+              <Link to="/docs" className="hover:text-foreground inline-flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> Documentação</Link>
               <Link to="/suporte" className="hover:text-foreground inline-flex items-center gap-1"><LifeBuoy className="w-3.5 h-3.5" /> Suporte</Link>
               <Link to="/seguranca" className="hover:text-foreground inline-flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Segurança &amp; Privacidade</Link>
             </div>
