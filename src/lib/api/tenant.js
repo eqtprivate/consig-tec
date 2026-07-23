@@ -20,6 +20,16 @@ export const empresasApi = {
     if (error) throw error;
     return data;
   },
+  // Arquivar (soft delete, reversivel): marca ativo=false/true.
+  async arquivar(id, ativo) {
+    return this.update(id, { ativo });
+  },
+  // Excluir definitivamente (so empresas VAZIAS; a RPC bloqueia se houver dados). Superadmin.
+  async remove(id) {
+    const { data, error } = await supabase.rpc('excluir_empresa', { p_id: id });
+    if (error) throw error;
+    return data;
+  },
 };
 
 export const planosApi = {
