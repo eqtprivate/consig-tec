@@ -31,7 +31,7 @@ function Tab({ head, rows }) {
         <tbody>
           {rows.map((r, i) => (
             <tr key={i} className="border-t border-border align-top">
-              {r.map((c, j) => <td key={j} className="px-3 py-2.5">{c}</td>)}
+              {r.map((c, j) => <td key={j} className={"px-3 py-2.5 " + (j === 0 ? "font-medium text-foreground" : "")}>{c}</td>)}
             </tr>
           ))}
         </tbody>
@@ -144,11 +144,11 @@ export default function Documentacao() {
         <Tab
           head={['Camada', 'O que garante']}
           rows={[
-            [<B>Multi-tenant + white-label</B>, 'empresa_id em tudo, RLS tenant-aware, superadmin cross-tenant, planos + cota, cores/logo e menu por empresa.'],
-            [<B>IA (leitura de documentos)</B>, 'Leitura de CCB e de decreto por IA (Claude); extração é sugestão, conferência humana obrigatória.'],
-            [<B>Motor de travas</B>, 'As regras do decreto (margem, idade, prazo, prioridade) viram validações automáticas na venda/averbação.'],
-            [<B>Segurança & LGPD</B>, 'Auditoria, log de acesso/impersonação, base legal do tratamento, backup diário (7 dias).'],
-            [<B>Financeiro / Comissões</B>, 'Consolidam recebíveis e rateios a partir dos contratos e da conciliação.'],
+            ['Multi-tenant + white-label', 'empresa_id em tudo, RLS tenant-aware, superadmin cross-tenant, planos + cota, cores/logo e menu por empresa.'],
+            ['IA (leitura de documentos)', 'Leitura de CCB e de decreto por IA (Claude); extração é sugestão, conferência humana obrigatória.'],
+            ['Motor de travas', 'As regras do decreto (margem, idade, prazo, prioridade) viram validações automáticas na venda/averbação.'],
+            ['Segurança & LGPD', 'Auditoria, log de acesso/impersonação, base legal do tratamento, backup diário (7 dias).'],
+            ['Financeiro / Comissões', 'Consolidam recebíveis e rateios a partir dos contratos e da conciliação.'],
           ]}
         />
       </Sec>
@@ -196,9 +196,9 @@ export default function Documentacao() {
         <Tab
           head={['Leitor', 'Lê', 'Aplica em', 'Trava principal']}
           rows={[
-            [<B>Ingestão de CCB</B>, 'A cédula (dados do devedor, financeiro, endosso, cronograma completo)', 'clientes / ccbs / parcelas', 'Soma do cronograma tem que fechar; CNPJ habilitado'],
-            [<B>Decretos (IA)</B>, 'O decreto/lei do ente (margens, prazo, adiantamento…)', 'Regras do convênio', 'Divergência com o cadastro exige justificativa'],
-            [<B>Originação de Leads</B>, 'Planilhas/links de folha pública', 'Leads + dimensionamento', 'Enriquecimento só com base legal (LGPD)'],
+            ['Ingestão de CCB', 'A cédula (dados do devedor, financeiro, endosso, cronograma completo)', 'clientes / ccbs / parcelas', 'Soma do cronograma tem que fechar; CNPJ habilitado'],
+            ['Decretos (IA)', 'O decreto/lei do ente (margens, prazo, adiantamento…)', 'Regras do convênio', 'Divergência com o cadastro exige justificativa'],
+            ['Originação de Leads', 'Planilhas/links de folha pública', 'Leads + dimensionamento', 'Enriquecimento só com base legal (LGPD)'],
           ]}
         />
         <p className="text-xs">Padrões (templates) de CCB definem quais páginas ler por emissor (ex.: UY3 = 1,2,13,14,15). Custo e confiança de cada leitura ficam registrados.</p>
@@ -209,15 +209,15 @@ export default function Documentacao() {
         <Tab
           head={['Termo', 'Significado']}
           rows={[
-            [<B>CCB</B>, 'Cédula de Crédito Bancário — o contrato do empréstimo, com força executiva (Lei 10.931).'],
-            [<B>Convênio</B>, 'O ente consignante (prefeitura, órgão) onde a margem é averbada.'],
-            [<B>Averbação</B>, 'Reserva do desconto na folha do servidor.'],
-            [<B>Margem consignável</B>, 'Percentual do salário que pode ser comprometido com consignado.'],
-            [<B>PMT</B>, 'Valor da parcela (prestação) — Tabela Price.'],
-            [<B>Conciliação de folha</B>, 'Bater o que a folha efetivamente descontou/pagou com o esperado.'],
-            [<B>Cessão / FIDC</B>, 'Venda da carteira de recebíveis a um fundo, com deságio.'],
-            [<B>Motor de travas</B>, 'Regras (do decreto) que bloqueiam operações fora do permitido.'],
-            [<B>Tenant / empresa</B>, 'Cliente da plataforma; seus dados são isolados dos demais.'],
+            ['CCB', 'Cédula de Crédito Bancário — o contrato do empréstimo, com força executiva (Lei 10.931).'],
+            ['Convênio', 'O ente consignante (prefeitura, órgão) onde a margem é averbada.'],
+            ['Averbação', 'Reserva do desconto na folha do servidor.'],
+            ['Margem consignável', 'Percentual do salário que pode ser comprometido com consignado.'],
+            ['PMT', 'Valor da parcela (prestação) — Tabela Price.'],
+            ['Conciliação de folha', 'Bater o que a folha efetivamente descontou/pagou com o esperado.'],
+            ['Cessão / FIDC', 'Venda da carteira de recebíveis a um fundo, com deságio.'],
+            ['Motor de travas', 'Regras (do decreto) que bloqueiam operações fora do permitido.'],
+            ['Tenant / empresa', 'Cliente da plataforma; seus dados são isolados dos demais.'],
           ]}
         />
       </Sec>
