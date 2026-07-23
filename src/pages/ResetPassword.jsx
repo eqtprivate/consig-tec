@@ -42,7 +42,7 @@ export default function ResetPassword() {
     try {
       const { error } = await supabase.auth.updateUser({ password: senha });
       if (error) throw error;
-      await supabase.rpc('marcar_senha_trocada').catch(() => {});
+      try { await supabase.rpc('marcar_senha_trocada'); } catch { /* best-effort: não bloqueia a troca de senha */ }
       window.location.href = '/';
     } catch (err) {
       setErro(err.message || 'Não foi possível redefinir a senha.');
