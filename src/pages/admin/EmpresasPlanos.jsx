@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { PageHeader, Panel, StatusBadge, EmptyState } from '@/components/kit';
-import { Building2, Plus, Pencil, Package, ShieldAlert } from 'lucide-react';
+import { Building2, Plus, Pencil, Package, ShieldAlert, Trash2, Archive, ArchiveRestore } from 'lucide-react';
 
 // Segmento comercial do cliente (informativo) — organiza a carteira de tenants.
 const SEGMENTOS = ['Correspondente', 'Promotora', 'Financeira', 'Banco', 'Cooperativa', 'Securitizadora/FIDC', 'Outro'];
@@ -87,6 +87,28 @@ export default function EmpresasPlanos() {
       toast.success('Empresa salva.');
       setOpen(false); load();
     } catch (err) { toast.error(err.message || 'Falha ao salvar (apenas superadmin).'); }
+  };
+
+  // Arquivar/reativar (soft, reversível) — seguro para empresas com dados.
+  const toggleAtivo = async (e) => {
+    try {
+      await empresasApi.arquivar(e.id, !e.ativo);
+      await auditoriaApi.log(e.ativo ? 'arquivar_empresa' : 'reativar_empresa', 'empresas', e.id, { nome: e.nome });
+      toast.success(e.ativo ? 'Empresa arquivada.' : 'Empresa reativada.');
+      load();
+    } catch (err) { toast.error(err.message || 'Falha ao atualizar a empresa.'); }
+  };
+
+  // Excluir definitivamente — só empresas vazias; a RPC bloqueia se houver dados.
+  const excluir = async (e) => {
+    if (!window.confirm(`Excluir DEFINITIVAMENTE a empresa "${e.nome}"? Só funciona se ela não tiver nenhum dado vinculado. Para empresas com dados, use Arquivar.`)) return;
+    try {
+      const r = await empresasApi.remove(e.id);
+      if (r && r.ok === false) { toast.error(`${r.motivo} (${r.detalhes || r.total})`); return; }
+      await auditoriaApi.log('excluir_empresa', 'empresas', e.id, { nome: e.nome });
+      toast.success('Empresa excluída.');
+      load();
+    } catch (err) { toast.error(err.message || 'Falha ao excluir a empresa.'); }
   };
 
   if (!isSuperadmin) {
@@ -168,7 +190,9 @@ export default function EmpresasPlanos() {
                   </td>
                   <td className="px-4 py-3"><span className={`text-xs ${e.ativo ? 'text-green-700' : 'text-muted-foreground'}`}>{e.ativo ? 'Ativa' : 'Inativa'}</span></td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openEdit(e)} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => openEdit(e)} title="Editar" className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"><Pencil className="w-4 h-4" /></button>
+                    <button onClick={() => toggleAtivo(e)} title={e.ativo ? 'Arquivar (desativar)' : 'Reativar'} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded">{e.ativo ? <Archive className="w-4 h-4" /> : <ArchiveRestore className="w-4 h-4" />}</button>
+                    <button onClick={() => excluir(e)} title="Excluir definitivamente" className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-muted rounded"><Trash2 className="w-4 h-4" /></button>
                   </td>
                 </tr>
               ))}
